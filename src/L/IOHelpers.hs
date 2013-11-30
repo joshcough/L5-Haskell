@@ -1,6 +1,7 @@
 module L.IOHelpers
   (
     changeExtension
+   ,getExtension
    ,getRecursiveContents
    ,listFiles
    ,putFileNames
@@ -95,6 +96,12 @@ namesAndContents fileNames = zip fileNames <$> contents fileNames
 
 dropRightWhile :: (a -> Bool) -> [a] -> [a]
 dropRightWhile f = reverse . dropWhile f . reverse
+
+takeRightWhile :: (a -> Bool) -> [a] -> [a]
+takeRightWhile f = reverse . takeWhile f . reverse
+
+getExtension :: FilePath -> String
+getExtension = takeRightWhile (\c -> not (c == '.'))
 
 changeExtension :: String -> String -> String
 changeExtension file newExt = (dropRightWhile (\c -> not (c == '.')) file) ++ newExt
