@@ -18,11 +18,13 @@ import System.Environment
 import System.IO
 
 -- L1 Parser (uses shared L1/L2 Parser)
-parseL1 = parse (parseI parseL1Reg parseL1S) where
+l1Parser = Parser parseL1Reg parseL1S where
   parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister s)
   parseL1S s = case (sread s) of
     AtomNum n -> Right $ NumberL1S n
     AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister LabelL1S RegL1S s
+
+parseL1 = parseProgram l1Parser
 
 -- X86 Generation code
 type X86Inst = String

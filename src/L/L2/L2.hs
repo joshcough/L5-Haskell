@@ -16,16 +16,14 @@ import Control.Monad.Error
 zipWithIndex xs = zip xs [1..]
 
 -- L2 Parser (uses shared L1/L2 Parser)
-
---parseI :: (String -> Either String x) -> (String -> Either String s) -> SExpr -> Either String (Instruction x s)
-
-parseL2 :: SExpr -> Either String L2
-parseL2 = parse (parseI (parseX VarL2X RegL2X) parseL2S) where
+l2Parser = Parser (parseX VarL2X RegL2X) parseL2S where
   parseX v r  s = Right $ maybe (v s) r (parseRegister s)
   parseL2S    s = case (sread s) of
     AtomNum n -> Right $ NumberL2S n
     AtomSym s -> maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $ 
                    parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
+
+parseL2 = parseProgram l2Parser
 
 -- replaces variables with registers in an L2 function.
 -- todo: comment me
