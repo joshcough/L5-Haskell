@@ -83,30 +83,24 @@ library
     vector                    >= 0.10    && < 0.11,
     void                      >= 0.6     && < 1
 
+-- executable for the L1 Compiler
 executable L1Main
   hs-source-dirs: mains/l1
   main-is: Main.hs
-  build-depends:
-    base < 5,
-    directory                 >= 1.2.0.1,
-    l,
-    mtl                       >= 2       && < 2.2
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
+-- executable for Liveness
 executable LivenessMain
   hs-source-dirs: mains/liveness
   main-is: Main.hs
-  build-depends:
-    base < 5,
-    directory                 >= 1.2.0.1,
-    l,
-    mtl                       >= 2       && < 2.2
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
--- Verify the properties of lenses with QuickCheck
+-- QuickCheck tests
 test-suite properties
   type:           exitcode-stdio-1.0
   main-is:        properties/properties.hs
   ghc-options:    -w -threaded -rtsopts -with-rtsopts=-N -v0
-  hs-source-dirs: . properties
+  hs-source-dirs: properties
   other-modules:
     L1Tests
 
@@ -129,6 +123,7 @@ test-suite properties
       unordered-containers,
       void                       >= 0.6     && < 1
 
+-- Non QuickCheck tests.
 Test-Suite tests
   type:       detailed-0.9
   test-module: L1Tests
