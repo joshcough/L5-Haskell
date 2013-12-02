@@ -6,6 +6,7 @@ module L.IOHelpers
    ,listFiles
    ,putFileNames
    ,putList
+   ,touch
   ) where
 
 import Control.Monad (forM)
@@ -33,6 +34,9 @@ putWithNewLine a = putStrLn (show a) >> putStrLn "\n"
 -- put each a in the given list, and a new line after each too.
 putWithNewLineList :: Show a => [a] -> IO ()
 putWithNewLineList xs = sequenceA_ (map putWithNewLine xs)
+
+touch :: FilePath -> IO ()
+touch f = writeFile f ""
 
 -- full pathnames for every file in the given directory
 filesWithFullPaths :: FilePath -> IO [FilePath]

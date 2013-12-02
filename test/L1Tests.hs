@@ -1,33 +1,34 @@
-import IOHelpers
+module L1Tests (tests) where
+
+import Control.Applicative
+import Control.Monad hiding (sequence)
 import Data.List
+import Data.Traversable
+import Distribution.TestSuite
+import Prelude hiding (sequence)
+import System.Directory (doesFileExist, removeFile)
+import L.CompilationUnit
+import L.IOHelpers
+import L.L1.L1
+import L.TestHelpers
 
-testDir = "./L1TestFiles"
-scalaResultsDir   = testDir ++ "/scala-results"
-haskellResultsDir = testDir
-l1File = isSuffixOf ".L1"
-sFile  = isSuffixOf ".S"
-testFiles      = fmap (take 250 . filter l1File) (filesWithFullPaths testDir)
---scalaResults   = fmap (filter sFile)  (filesWithFullPaths scalaResultsDir)
---haskellResults = fmap (filter sFile)  (filesWithFullPaths haskellResultsDir)
+tests :: IO [Test]
+tests = mkTests compileL1Files 
 
---main = do (testFiles >>= namesAndContents >>= putList)
+testDir = "./test/test-fest/"
+endsWith :: String -> String -> Bool
+endsWith = isSuffixOf
+isL1File = endsWith ".L1"
+l1Files :: IO [FilePath]
+l1Files = getRecursiveContents testDir >>= (return . filter isL1File) 
 
-main = error "redo"
+compileL1Files :: IO [TestInstance]
+compileL1Files = fmap (fmap mkL1Test) l1Files where
+  mkL1Test :: FilePath -> TestInstance
+  mkL1Test file = mkTest file $ go file
+  go :: FilePath -> IO Progress
+  go file = do
+    actual   <- compileL1File_ file
+    expected <- (readOutputFile actual)
+    return $ finish (outputContents actual == expected) file
 
-{--
-filesWithFullPaths :: FilePath -> IO [FilePath]
-filesWithFullPaths dir = drop 2 <$> listFiles dir $$> (map (\f -> dir ++ "/" ++ f))
-
---sequenceA_ :: (Foldable t, Applicative f) => t (f a) -> f ()
-putFileNames :: FilePath -> IO ()
-putFileNames dir = filesWithFullPaths dir >>= putList
-
--- checks to see if the contents of the given files are equal
-filesEqual :: FilePath -> FilePath -> IO Bool
-filesEqual f1 f2 = (==) <$> (readFile f1) <*> (readFile f2)
-
--- checks to see if the two given lists
---  1) contain all the same filenames
---  2) the contents of the files are equal
-fileListEqual :: [FilePath] -> [FilePath] -> IO Bool
---}

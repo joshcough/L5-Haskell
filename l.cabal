@@ -32,6 +32,7 @@ library
     L.L1L2AST
     L.L1L2Parser
     L.Read
+    L.TestHelpers
     -- L1
     L.L1.L1
     -- L2
@@ -47,6 +48,7 @@ library
     bound                     >= 0.9     && < 1,
     bytes                     >= 0.11    && < 1,
     bytestring                >= 0.9     && < 0.11,
+    Cabal                     >= 1.18.0,
     cereal                    >= 0.3.5.2 && < 0.4,
     crypto-api                >= 0.10.2  && < 0.13,
     cryptohash                >= 0.8.3   && < 0.9,
@@ -126,3 +128,14 @@ test-suite properties
       transformers,
       unordered-containers,
       void                       >= 0.6     && < 1
+
+Test-Suite tests
+  type:       detailed-0.9
+  test-module: L1Tests
+  hs-source-dirs: . test
+  build-depends: 
+    base,
+    Cabal     >= 1.18.0,
+    directory >= 1.2.0.1,
+    l
+
