@@ -1,7 +1,9 @@
 module L.L1L2Parser 
   (
     Parser(..),
+    extract,
     parseI,
+    parseInstructionList,
     parseProgram,
     parseRegister,
     parseLabelOrRegister
@@ -19,6 +21,9 @@ data Parser x s = Parser {
   parseS :: String -> ParseResult s
 }
 
+extract :: ParseResult p -> p
+extract = either error id
+
 parseProgram :: Parser x s -> SExpr -> ParseResult (Program x s)
 parseProgram p (List ((List main) : funcs)) = do
   main'  <- (parseMain p) main
@@ -33,6 +38,10 @@ parseMain p exps =
 parseFunction :: Parser x s -> SExpr -> ParseResult (Func x s)
 parseFunction p (List ((AtomSym name) : exps)) =
   do { body <- traverse (parseI p) exps; return $ Func $ LabelDeclaration (parseLabel name) : body }
+
+parseInstructionList :: Parser x s -> SExpr -> ParseResult [(Instruction x s)]
+parseInstructionList p (List exps) = traverse (parseI p) exps
+parseInstructionList p _ = Left "not an instruction list"
 
 parseI :: Parser x s -> SExpr -> ParseResult (Instruction x s)
 parseI p a@(AtomSym s) = maybe

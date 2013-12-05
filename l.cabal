@@ -126,7 +126,7 @@ test-suite properties
 -- Non QuickCheck tests.
 Test-Suite tests
   type:       detailed-0.9
-  test-module: L1Tests
+  test-module: LTests
   hs-source-dirs: . test
   build-depends: 
     base,

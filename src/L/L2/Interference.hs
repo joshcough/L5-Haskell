@@ -10,7 +10,6 @@ import L.L1L2AST
 import L.L2.Liveness
  
 type InterferenceGraph = M.Map L2X (S.Set L2X)
-type IIOS = InstructionInOutSet
 
 empty :: InterferenceGraph
 empty = M.empty

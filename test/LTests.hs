@@ -1,4 +1,4 @@
-module L1Tests (tests) where
+module LTests (tests) where
 
 import Control.Applicative
 import Control.Monad hiding (sequence)
@@ -11,16 +11,18 @@ import L.CompilationUnit
 import L.IOHelpers
 import L.L1.L1
 import L.TestHelpers
+import L.L2.Liveness
 
 tests :: IO [Test]
-tests = mkTests compileL1Files 
+tests = mkTests [compileL1Files]
 
-testDir = "./test/test-fest/"
 endsWith :: String -> String -> Bool
 endsWith = isSuffixOf
-isL1File = endsWith ".L1"
+testDir = "./test/test-fest/"
+getTestFiles ext = 
+  getRecursiveContents testDir >>= (return . filter (endsWith ext))
 l1Files :: IO [FilePath]
-l1Files = getRecursiveContents testDir >>= (return . filter isL1File) 
+l1Files = getTestFiles ".L1" 
 
 compileL1Files :: IO [TestInstance]
 compileL1Files = fmap (fmap mkL1Test) l1Files where

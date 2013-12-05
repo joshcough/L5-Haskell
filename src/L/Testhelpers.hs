@@ -11,8 +11,11 @@ import L.CompilationUnit
 import L.IOHelpers
 import L.L1.L1
 
-mkTests :: IO [TestInstance] -> IO [Test]
-mkTests ts = fmap (fmap Test) ts
+mkTests_ :: IO [TestInstance] -> IO [Test]
+mkTests_ ts = fmap (fmap Test) ts
+
+mkTests :: [IO [TestInstance]] -> IO [Test]
+mkTests = mkTests_ . fmap join . sequence
 
 mkTest :: String -> IO Progress -> TestInstance
 mkTest testName runF = TestInstance

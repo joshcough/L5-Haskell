@@ -3,6 +3,7 @@
 module L.L2.Liveness where
 
 import Control.Monad
+import Data.List
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -12,7 +13,16 @@ data InstructionInOutSet = InstructionInOutSet {
   index  :: Int,       inst    :: L2Instruction,
   genSet :: S.Set L2X, killSet :: S.Set L2X,
   inSet  :: S.Set L2X, outSet  :: S.Set L2X
-}
+} deriving (Eq)
+
+type IIOS = InstructionInOutSet
+
+showLiveness :: [IIOS] -> String
+showLiveness is = 
+  let go l = "(" ++ (concat $ intersperse " " (fmap show l)) ++ ")" 
+      ins  = fmap (S.toList . inSet) is
+      outs = fmap (S.toList . outSet) is
+  in "((in " ++ go ins ++ ") (out " ++ go outs ++ "))" 
 
 set :: AsL2X x => [x] -> S.Set L2X
 set = S.fromList . fmap asL2X
@@ -62,60 +72,74 @@ kill (MathInst x _ _)             = set [x]
 kill (Call s)                     = S.unions [callerSave, result]
 kill _                            = S.empty
 
-{--
+-- TODO: really? this could be somewhere...
+zipWithIndex :: [a] -> [(a, Int)]
+zipWithIndex as = zip as [0..]
 
+liveness :: [L2Instruction] -> [IIOS]
+liveness = head . inout
+
+-- builds up a giant list of all the intermediate inout results
+-- robby starts out with a function, and empty in and out sets for each instruction
+-- that is the first result in the list return here
+-- then there is a result for each slide all the way down to the last slide
+-- when things are finally complete (we've reached the fixed point)
+inout :: [L2Instruction] -> [[IIOS]]
+inout is =
+  let 
+      nrInstructions :: Int
+      nrInstructions = length is
+      instructionsWithIndex :: [(L2Instruction, Int)]
+      instructionsWithIndex = zipWithIndex is
+      -- TODO: i think this map is busted because there could be two equal instructions
+      -- it's only used to find label declarations too... this should be easier.
+      indeces :: M.Map L2Instruction Int
+      indeces = M.fromList instructionsWithIndex
+      findLabelDecIndex :: Label -> Int
+      findLabelDecIndex l = 
+        maybe (error $ "no such label: " ++ l) id (M.lookup (LabelDeclaration l) indeces) 
+      succIndeces :: [S.Set Int]
+      succIndeces = fmap succIndeces_ instructionsWithIndex where
+        succIndeces_ :: (L2Instruction, Int) -> S.Set Int
+        succIndeces_ (i, n) = case i of
+          Return                    -> S.empty
+          TailCall _                -> S.empty
+          Assign _ (ArrayError _ _) -> S.empty
+          Goto label                -> S.singleton $ findLabelDecIndex label
+          -- we have to test that there is something after this instruction
+          -- in case the last instruction is something other than return or cjump
+          -- i think that in normal functions this doesn't happen but the hw allows it.
+          _ -> if (nrInstructions > (n + 1)) then  S.singleton (n+1) else S.empty
+      step :: [IIOS] -> [IIOS]
+      step current = fmap step_ current where
+        step_ :: IIOS -> IIOS
+        step_ i =
+              -- in(n) = gen(n-th-inst) ∪ (out (n) - kill(n-th-inst))
+          let newIn :: S.Set L2X
+              newIn = S.union (genSet i) ((outSet i) S.\\ (killSet i))
+              -- out(n) = ∪{in(m) | m ∈ succ(n)}
+              newOut :: S.Set L2X
+              newOut = S.fromList $ (fmap (current !!) $ S.toList (succIndeces !! (index i))) >>= S.toList . inSet
+              --if(newIn.size > i.in.size || newOut.size > i.out.size) changes = true
+              --i.copy(in=newIn, out=newOut)
+          in InstructionInOutSet (index i) (inst i) (genSet i) (killSet i) newIn newOut
+      -- does the next round of moving things up the in/out chains.
+      -- recurs until the result is the same as what we've got so far.
+      inout_ :: [[IIOS]] -> [[IIOS]]
+      inout_ acc =
+        let current = acc !! 0
+            nextStep = step current
+        in if (nextStep == current) then acc else inout_ (nextStep : acc)
+      -- start out with empty in and out sets for all instructions
+      emptyStartSet :: [IIOS]
+      emptyStartSet = fmap f instructionsWithIndex where
+        f (inst, index) = InstructionInOutSet index inst (gen inst) (kill inst) S.empty S.empty
+  -- then fill them in until we reach the fixed point.
+  in inout_ [emptyStartSet]
+
+{--
   // just gets the last inout result. (the most important one)
   def inoutFinalResult(f:Func): List[InstructionInOutSet] = inout(f.body).head
-
-  // builds up a giant list of all the intermediate inout results
-  // robby starts out with a function, and empty in and out sets for each instruction
-  // that is the first result in the list return here
-  // then there is a result for each slide all the way down to the last slide
-  // when things are finally complete (we've reached the fixed point)
-  def inout(instructions:List[Instruction]): List[List[InstructionInOutSet]] = {
-    val instructionsWithIndex = instructions.zipWithIndex
-    val indeces = instructionsWithIndex.toMap
-    def findLabelDecIndex(label: Label): Int =
-      indeces.getOrElse(LabelDeclaration(label), error("no such label: " + label.name))
-    val succIndeces = instructionsWithIndex.map {
-      case (i, n) => i match {
-        case Return | TailCall(_) | Assignment(_, ArrayError(_, _)) => Set()
-        case Goto(label) => Set(findLabelDecIndex(label))
-        case CJump(_, l1, l2) => Set(findLabelDecIndex(l1), findLabelDecIndex(l2))
-        // we have to test that there is something after this instruction
-        // in case the last instruction is something other than return or cjump
-        // i think that in normal functions this doesn't happen but the hw allows it.
-        case _ if (instructions.isDefinedAt(n + 1)) => Set(n + 1)
-        case _ => Set()
-      }
-    }.toIndexedSeq
-
-    // does the next round of moving things up the in/out chains.
-    // recurs until the result is the same as what we've got so far.
-    def inout(acc:List[List[InstructionInOutSet]]): List[List[InstructionInOutSet]] = {
-      val current = acc.head
-      var changes: Boolean = false
-      // build the next result
-      val nextStep = current.map(i => {
-        // in(n) = gen(n-th-inst) ∪ (out (n) - kill(n-th-inst))
-        val newIn = i.gen union (i.out -- i.kill)
-        // out(n) = ∪{in(m) | m ∈ succ(n)}
-        val newOut = succIndeces(i.index).map(current(_)).flatMap(_.in)
-        if(newIn.size > i.in.size || newOut.size > i.out.size) changes = true
-        i.copy(in=newIn, out=newOut)
-      })
-      // if we've reached the fixed point, we can stop. otherwise continue.
-      // if(nextStep == current) acc else inout(nextStep :: acc)
-      if(!changes) acc else inout(nextStep :: acc)
-    }
-
-    // start out with empty in and out sets for all instructions
-    val emptyStartSet = instructionsWithIndex.map {
-      case (inst, index) => InstructionInOutSet(index, inst, gen(inst), kill(inst), Set[X](), Set[X]())
-    }
-    // then fill them in until we reach the fixed point.
-    inout(List(emptyStartSet))
-  }
 
   def liveRanges(iioss: List[InstructionInOutSet]): List[List[LiveRange]] = {
     def liveRanges(x: X, sets: List[List[X]]): List[LiveRange] = sets match {

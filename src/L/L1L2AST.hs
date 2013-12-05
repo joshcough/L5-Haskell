@@ -15,14 +15,15 @@ eax = CXR Eax
 ebx = CXR Ebx
 ecx = CXR Ecx
 edx = CXR Edx
-data MemLoc x   = MemLoc x Int
-data CompOp     = LT | LTEQ | EQ
-data Comp s     = Comp s CompOp s
+data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
+data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
+data Comp s     = Comp s CompOp s deriving (Eq, Ord)
 data AssignRHS x s =
   CompRHS (Comp s) | Allocate s s | Print s | ArrayError s s | MemRead (MemLoc x) | SRHS s
+    deriving (Eq, Ord)
 
 data X86Op = Increment | Decrement | Multiply | LeftShift | RightShift | BitwiseAnd
-  deriving (Eq)
+  deriving (Eq, Ord)
 increment  = Increment
 decrement  = Decrement
 multiply   = Multiply
@@ -53,7 +54,7 @@ data Instruction x s =
   LabelDeclaration Label     |
   Call s                     |
   TailCall s                 |
-  Return
+  Return deriving (Eq, Ord)
 
 data Func x s = Func { body :: [Instruction x s]}
 data Program x s = Program (Func x s) [Func x s]
@@ -162,7 +163,7 @@ instance Show L1S where
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
 type Variable = String
 data L2X = RegL2X Register | VarL2X Variable
-data L2S = XL2S L2X | NumberL2S Int | LabelL2S Label
+data L2S = XL2S L2X | NumberL2S Int | LabelL2S Label deriving (Eq, Ord)
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 type L2 = Program L2X L2S

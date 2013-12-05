@@ -11,9 +11,9 @@ import L.L2.Liveness
 import System.Environment 
 import System.IO
 
+parseIList = parseInstructionList l2Parser
+
 main = fmap (!! 0) getArgs >>= runLiveness where
   runLiveness inputFile =
-    fmap ((either error id) . parseL2 . sread) (readFile inputFile) >>= putStrLn . show
+    fmap (showLiveness . liveness . extract . parseIList . sread) (readFile inputFile) >>= putStrLn . show
 
---parseL2 :: SExpr -> Either String L2
---parseL2 (sread code)
