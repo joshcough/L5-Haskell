@@ -8,6 +8,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
 import L.L1L2AST
+import Debug.Trace
 
 data InstructionInOutSet = InstructionInOutSet {
   index  :: Int,       inst    :: L2Instruction,
@@ -34,34 +35,35 @@ arguments     = set [eax, ecx, edx]
 result        = set [eax]
 
 gen :: L2Instruction -> S.Set L2X
-gen i = genI i where
-  genI :: L2Instruction -> S.Set L2X
-  genI (Assign x rhs)             = genRHS rhs
-  genI (MathInst x _ s)           = S.unions [genX x,  genS s]
-  genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
-  genI (Goto s)                   = S.empty
-  genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
-  genI (LabelDeclaration _)       = S.empty
-  genI (Call s)                   = S.unions [genS s,  arguments]
-  genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
-  genI Return                     = S.unions [result, calleeSave]
+gen i = genI i
 
-  genX :: L2X -> S.Set L2X
-  genX (RegL2X r) = set [r]
-  genX (VarL2X v) = set [v]
+genI :: L2Instruction -> S.Set L2X
+genI (Assign x rhs)             = genRHS rhs
+genI (MathInst x _ s)           = S.unions [genX x,  genS s]
+genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
+genI (Goto s)                   = S.empty
+genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
+genI (LabelDeclaration _)       = S.empty
+genI (Call s)                   = S.unions [genS s,  arguments]
+genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
+genI Return                     = S.unions [result, calleeSave]
 
-  genS :: L2S -> S.Set L2X
-  genS (XL2S x)        = genX x
-  genS (NumberL2S n)   = S.empty
-  genS (LabelL2S l)    = S.empty
+genX :: L2X -> S.Set L2X
+genX (RegL2X r) = set [r]
+genX (VarL2X v) = set [v]
+
+genS :: L2S -> S.Set L2X
+genS (XL2S x)        = genX x
+genS (NumberL2S n)   = S.empty
+genS (LabelL2S l)    = S.empty
   
-  genRHS :: AssignRHS L2X L2S -> S.Set L2X
-  genRHS (CompRHS (Comp s1 _ s2)) = S.unions [genS s1, genS s2]
-  genRHS (Allocate n init)        = S.unions [genS n,  genS init]
-  genRHS (Print s)                = genS s
-  genRHS (ArrayError a n)         = S.unions [genS a,  genS n]
-  genRHS (MemRead (MemLoc bp _))  = genX bp
-  genRHS (SRHS s)                 = genS s
+genRHS :: AssignRHS L2X L2S -> S.Set L2X
+genRHS (CompRHS (Comp s1 _ s2)) = S.unions [genS s1, genS s2]
+genRHS (Allocate n init)        = S.unions [genS n,  genS init]
+genRHS (Print s)                = genS s
+genRHS (ArrayError a n)         = S.unions [genS a,  genS n]
+genRHS (MemRead (MemLoc bp _))  = genX bp
+genRHS (SRHS s)                 = genS s
 
 kill :: L2Instruction -> S.Set L2X
 kill (Assign x (Print s))         = S.insert x x86CallerSave
@@ -120,14 +122,12 @@ inout is =
               -- out(n) = ∪{in(m) | m ∈ succ(n)}
               newOut :: S.Set L2X
               newOut = S.fromList $ (fmap (current !!) $ S.toList (succIndeces !! (index i))) >>= S.toList . inSet
-              --if(newIn.size > i.in.size || newOut.size > i.out.size) changes = true
-              --i.copy(in=newIn, out=newOut)
           in InstructionInOutSet (index i) (inst i) (genSet i) (killSet i) newIn newOut
       -- does the next round of moving things up the in/out chains.
       -- recurs until the result is the same as what we've got so far.
       inout_ :: [[IIOS]] -> [[IIOS]]
       inout_ acc =
-        let current = acc !! 0
+        let current = acc !! 0 --trace (showLiveness $ acc !! 0) $ acc !! 0
             nextStep = step current
         in if (nextStep == current) then acc else inout_ (nextStep : acc)
       -- start out with empty in and out sets for all instructions

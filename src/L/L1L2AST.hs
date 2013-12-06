@@ -177,9 +177,9 @@ instance Show L2S where
   show (LabelL2S l)    = show l
   show (XL2S x)        = show x
 
-instance Eq  L2X where (==) x1 x2 = (show x1) == (show x1)
-instance Ord L2X where compare x1 x2 = compare (show x1) (show x1)
-instance Ord Register where compare x1 x2 = compare (show x1) (show x1)
+instance Eq  L2X where (==) x1 x2 = (show x1) == (show x2)
+instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
+instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
 
 class (Eq a, Ord a) => AsL2X a where 
   asL2X :: a -> L2X
