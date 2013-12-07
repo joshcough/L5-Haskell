@@ -1,6 +1,7 @@
 module L.Utils
   (
-    extract
+    endsWith
+   ,extract
    ,mkString
    ,zipWithIndex
   ) where
@@ -9,6 +10,9 @@ import Data.List
 
 mkString :: String -> [String] -> String
 mkString s l = concat $ intersperse s l
+
+endsWith :: String -> String -> Bool
+endsWith = isSuffixOf
 
 extract :: Either String a -> a
 extract = either error id

@@ -1,15 +1,26 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
-module L.L2.Interference where
+module L.L2.Interference 
+  (
+    Interference
+   ,buildInterferenceGraph
+   ,runInterference
+   ,runInterferenceMain
+  ) where
 
 import Control.Monad
+import Data.List (sort)
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
+import L.CompilationUnit
 import L.L1L2AST
+import L.Read (showAsList)
+import L.Utils (mkString)
 import L.L2.Liveness
  
 type InterferenceGraph = M.Map L2X (S.Set L2X)
+newtype Interference = Interference InterferenceGraph
 
 empty :: InterferenceGraph
 empty = M.empty
@@ -90,8 +101,8 @@ interference f s1 s2 iios = zipFilterSets f (s1 iios) (s2 iios)
     Except that the variables x and y do not interfere if the instruction was (x <- y)
     All real registers interfere with each other
 -}
-buildInterferenceSet :: [IIOS] -> InterferenceGraph
-buildInterferenceSet iioss = 
+buildInterferenceGraph :: [IIOS] -> Interference
+buildInterferenceGraph iioss = 
   let 
     -- take the interference from the first instruction's in set.
     firstInstructionInSetInterference :: InterferenceGraph
@@ -104,7 +115,7 @@ buildInterferenceSet iioss =
    
     variables = iioss >>= ((fmap VarL2X) . S.toList . vars . inst)
 
-  in unions [
+  in Interference $ unions [
     addNodes variables registerInterference, 
     firstInstructionInSetInterference, 
     outAndSpecialInterference
@@ -171,21 +182,28 @@ instance HasVars L2Instruction where
   vars Return                     = S.empty
 
 {-
-  /**
-    Example:
-    ((eax ebx ecx edi edx esi x)
-    (ebx eax ecx edi edx esi)
-    (ecx eax ebx edi edx esi)
-    (edi eax ebx ecx edx esi x)
-    (edx eax ebx ecx edi esi)
-    (esi eax ebx ecx edi edx x)
-    (x eax edi esi))
-   */
-  def hwView = {
-    def sortedMembers = members.toList.sorted
-    def sortedNeighborNames(x:X): List[String] = map(x).toList.sorted.map(L2Printer.toCode)
-    sortedMembers.map{ m =>
-      (L2Printer.toCode(m) :: sortedNeighborNames(m)).mkString("(", " ", ")")
-    }.mkString("(", "\n", ")")
-  }
+  Example:
+  ((eax ebx ecx edi edx esi x)
+  (ebx eax ecx edi edx esi)
+  (ecx eax ebx edi edx esi)
+  (edi eax ebx ecx edx esi x)
+  (edx eax ebx ecx edi esi)
+  (esi eax ebx ecx edi edx x)
+  (x eax edi esi))
 -}
+instance Show Interference where
+  show (Interference g) = "(" ++ (mkString "\n") memberLists ++ ")" where
+    sortedMembers = sort $ S.toList $ graphMembers g
+    showMember x  = showAsList $ x : S.toList (connections x g)
+    memberLists   = fmap showMember sortedMembers 
+
+-- calculate the intereference graph for a string containing a list of instructions
+runInterference :: String -> Interference
+runInterference = buildInterferenceGraph . runLiveness
+
+-- calculate the intereference graph for a string containing a list of instructions
+-- that string is read from the given filepath
+-- return a the result wrapped in a CompilationUnit for testing purposes
+-- it allows the result file to be read.
+runInterferenceMain :: FilePath -> IO (CompilationUnit Interference)
+runInterferenceMain = compile1 runInterference "gres"

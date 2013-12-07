@@ -11,38 +11,35 @@ import L.CompilationUnit
 import L.IOHelpers
 import L.L1.L1
 import L.Read
+import L.Utils
 import L.TestHelpers
+import L.L2.Interference
 import L.L2.Liveness
 
 tests :: IO [Test]
-tests = mkTests [compileL1Files, livenessTests]
+tests = mkTests [compileL1Files, livenessTests] --, interferenceTests]
 
-endsWith :: String -> String -> Bool
-endsWith = isSuffixOf
 testDir = "./test/test-fest/"
-livenessDir = testDir ++ "liveness-test"
-getTestFiles dir ext = 
-  getRecursiveContents dir >>= (return . filter (endsWith ext))
-l1Files :: IO [FilePath]
+livenessDir     = testDir ++ "liveness-test"
+interferenceDir = testDir ++ "graph-test"
+getTestFiles = getRecursiveContentsByExt
 l1Files = getTestFiles testDir ".L1" 
-livenessFiles = getTestFiles livenessDir ".L2f"
+livenessFiles     = getTestFiles livenessDir     ".L2f"
+interferenceFiles = getTestFiles interferenceDir ".L2f"
 
-compileL1Files :: IO [TestInstance]
-compileL1Files = fmap (fmap mkL1Test) l1Files where
-  mkL1Test :: FilePath -> TestInstance
-  mkL1Test file = mkTest file $ go file
-  go :: FilePath -> IO Progress
-  go file = do
-    actual   <- compileL1File_ file
-    expected <- readOutputFile actual
-    return $ assertEqual (result actual) expected
+compileL1Files = testsFromFiles l1Files $ \file -> do
+  actual   <- compileL1File_ file
+  expected <- readOutputFile actual
+  return $ assertEqual (result actual) expected
 
-livenessTests :: IO [TestInstance]
-livenessTests = fmap (fmap mkLivenessTest) livenessFiles where
-  mkLivenessTest :: FilePath -> TestInstance
-  mkLivenessTest file = mkTest file $ go file
-  go :: FilePath -> IO Progress
-  go file = do
-    live     <- livenessMain_ file
-    expected <- fmap sread $ readOutputFile live
-    return $ assertEqual ((sread . showLiveness . result) live) expected
+livenessTests = testsFromFiles livenessFiles $ \file -> do
+  live     <- livenessMain_ file
+  expected <- fmap sread $ readOutputFile live
+  return $ assertEqual ((sread . showLiveness . result) live) expected
+
+{-
+interferenceTests = testsFromFiles interferenceFiles $ \file -> do
+  graph    <- runInterferenceMain file
+  expected <- fmap sread $ readOutputFile graph
+  return $ assertEqual ((sread . show . result) graph) expected
+-}

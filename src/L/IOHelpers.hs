@@ -4,6 +4,7 @@ module L.IOHelpers
    ,fileArgMain
    ,getExtension
    ,getRecursiveContents
+   ,getRecursiveContentsByExt
    ,listFiles
    ,mapFileContents
    ,mapFileContentsAndPrint
@@ -12,11 +13,12 @@ module L.IOHelpers
    ,touch
   ) where
 
+import Control.Applicative
 import Control.Monad (forM)
 import Data.List
 import Data.Traversable hiding (forM)
 import Data.Foldable hiding (concat, notElem)
-import Control.Applicative
+import L.Utils (endsWith)
 import System.Environment 
 import System.FilePath ((</>))
 import System.IO
@@ -122,6 +124,10 @@ getRecursiveContents topdir = do
     isDirectory <- doesDirectoryExist path
     if isDirectory then getRecursiveContents path else return [path]
   return (concat paths)
+
+getRecursiveContentsByExt :: FilePath -> String -> IO [FilePath]
+getRecursiveContentsByExt dir ext = 
+  getRecursiveContents dir >>= (return . filter (endsWith ext))
 
 mapFileContents :: (String -> a) -> FilePath -> IO a
 mapFileContents f file = fmap f $ readFile file

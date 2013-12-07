@@ -17,6 +17,9 @@ mkTests_ ts = fmap (fmap Test) ts
 mkTests :: [IO [TestInstance]] -> IO [Test]
 mkTests = mkTests_ . fmap join . sequence
 
+testsFromFiles :: IO [FilePath] -> (FilePath -> IO Progress) -> IO [TestInstance]
+testsFromFiles files f = fmap (fmap $ \file -> mkTest file (f file)) files 
+
 mkTest :: String -> IO Progress -> TestInstance
 mkTest testName runF = TestInstance
   { run       = runF

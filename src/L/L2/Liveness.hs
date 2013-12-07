@@ -5,7 +5,6 @@ module L.L2.Liveness
     InstructionInOutSet(..)
    ,IIOS
    ,liveness
-   ,livenessMain
    ,livenessMain_
    ,runLiveness
    ,showLiveness
@@ -103,12 +102,6 @@ runLiveness = liveness . extract . parseL2InstList . sread
 -- it allows the result file to be read.
 livenessMain_ :: FilePath -> IO (CompilationUnit [IIOS])
 livenessMain_ = compile1 runLiveness "lres"
-
--- reads first command line argument, loads that file
--- calls runLiveness on it, writes the result to same file location
--- except with .lres as the extension instead of .L2f
-livenessMain :: IO ()
-livenessMain = compile (showLiveness . runLiveness) "lres"
 
 -- builds up a giant list of all the intermediate inout results
 -- robby starts out with a function, and empty in and out sets for each instruction
