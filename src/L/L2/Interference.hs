@@ -19,7 +19,7 @@ import L.CompilationUnit
 import L.IOHelpers (withFileArg)
 import L.L1L2AST
 import L.Read (showAsList)
-import L.Utils (mkString)
+import L.Utils (mkString, traceA)
 import L.L2.Liveness
  
 type InterferenceGraph = M.Map L2X (S.Set L2X)
@@ -89,13 +89,6 @@ registerInterference = mkGraph [
   (edi, edx), (edi, esi),
   (edx, esi) ]
 
-zipFilterSets :: (Ord a, Ord b, Show a, Show b) => (a -> b -> Bool) -> S.Set a -> S.Set b -> S.Set (a, b)
-zipFilterSets f xs ys = S.fromList (filter (uncurry f) $ zip (S.elems xs) (S.elems ys))
-
-interference :: (Ord a, Ord b, Show a, Show b) =>
-                (a -> b -> Bool) -> (c -> S.Set a) -> (c -> S.Set b) -> c -> S.Set (a, b)
-interference f s1 s2 iios = zipFilterSets f (s1 iios) (s2 iios)
-
 {-
   Build interference graph from the liveness information
     Two variables live at the same time interfere with each other
@@ -109,7 +102,9 @@ buildInterferenceGraph iioss =
     -- take the interference from the first instruction's in set.
     firstInstructionInSetInterference :: InterferenceGraph
     firstInstructionInSetInterference = 
-      maybe empty (edgeSetToGraph . interference (/=) inSet outSet) (listToMaybe iioss)
+      maybe empty f (listToMaybe iioss) where
+        f i = let l = S.toList (inSet i)
+              in edgeSetToGraph $ S.fromList $ [(x,y) | x <- l, y <- l, x < y]
 
     -- take the interference from all the out sets.
     outAndSpecialInterference :: InterferenceGraph
@@ -141,7 +136,7 @@ outAndSpecialInterference1 iios =
         in edgeSetToGraph $ 
              maybe 
                initial 
-               (S.difference initial . S.singleton) 
+               (S.difference (traceA initial) . S.singleton) 
                (assignmentRemovals (inst iios))
 
       -- Constrained arithmetic operators
@@ -157,7 +152,7 @@ outAndSpecialInterference1 iios =
         f (MathInst _ LeftShift  (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
         f (MathInst _ RightShift (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
         f _ = []
-  in union outInterference specialInterference
+  in union (traceA outInterference) (traceA specialInterference)
 
 class HasVars a where
   vars :: a -> S.Set Variable
