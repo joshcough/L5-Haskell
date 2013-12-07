@@ -45,37 +45,41 @@ calleeSave     = set [edi, esi]
 arguments      = set [eax, ecx, edx]
 resultRegister = set [eax]
 
+-- generate the gen set for an instruction
+-- (what things are alive during that instruction)
 gen :: L2Instruction -> S.Set L2X
-gen i = genI i
+gen i = genI i where
 
-genI :: L2Instruction -> S.Set L2X
-genI (Assign x rhs)             = genRHS rhs
-genI (MathInst x _ s)           = S.unions [genX x,  genS s]
-genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
-genI (Goto s)                   = S.empty
-genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
-genI (LabelDeclaration _)       = S.empty
-genI (Call s)                   = S.unions [genS s,  arguments]
-genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
-genI Return                     = S.unions [resultRegister, calleeSave]
+  genI :: L2Instruction -> S.Set L2X
+  genI (Assign x rhs)             = genRHS rhs
+  genI (MathInst x _ s)           = S.unions [genX x,  genS s]
+  genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
+  genI (Goto s)                   = S.empty
+  genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
+  genI (LabelDeclaration _)       = S.empty
+  genI (Call s)                   = S.unions [genS s,  arguments]
+  genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
+  genI Return                     = S.unions [resultRegister, calleeSave]
 
-genX :: L2X -> S.Set L2X
-genX (RegL2X r) = set [r]
-genX (VarL2X v) = set [v]
+  genX :: L2X -> S.Set L2X
+  genX (RegL2X r) = set [r]
+  genX (VarL2X v) = set [v]
 
-genS :: L2S -> S.Set L2X
-genS (XL2S x)        = genX x
-genS (NumberL2S n)   = S.empty
-genS (LabelL2S l)    = S.empty
+  genS :: L2S -> S.Set L2X
+  genS (XL2S x)        = genX x
+  genS (NumberL2S n)   = S.empty
+  genS (LabelL2S l)    = S.empty
   
-genRHS :: AssignRHS L2X L2S -> S.Set L2X
-genRHS (CompRHS (Comp s1 _ s2)) = S.unions [genS s1, genS s2]
-genRHS (Allocate n init)        = S.unions [genS n,  genS init]
-genRHS (Print s)                = genS s
-genRHS (ArrayError a n)         = S.unions [genS a,  genS n]
-genRHS (MemRead (MemLoc bp _))  = genX bp
-genRHS (SRHS s)                 = genS s
+  genRHS :: AssignRHS L2X L2S -> S.Set L2X
+  genRHS (CompRHS (Comp s1 _ s2)) = S.unions [genS s1, genS s2]
+  genRHS (Allocate n init)        = S.unions [genS n,  genS init]
+  genRHS (Print s)                = genS s
+  genRHS (ArrayError a n)         = S.unions [genS a,  genS n]
+  genRHS (MemRead (MemLoc bp _))  = genX bp
+  genRHS (SRHS s)                 = genS s
 
+-- generate the kill set for an instruction
+-- (everthing that is overwritten during that instruction)
 kill :: L2Instruction -> S.Set L2X
 kill (Assign x (Print s))         = S.insert x x86CallerSave
 kill (Assign x (Allocate a init)) = S.insert x x86CallerSave
@@ -85,15 +89,24 @@ kill (MathInst x _ _)             = set [x]
 kill (Call s)                     = S.unions [callerSave, resultRegister]
 kill _                            = S.empty
 
+-- calculate the liveness for a list of instructions
 liveness :: [L2Instruction] -> [IIOS]
 liveness = head . inout
 
+-- calculate the liveness for a string containing a list of instructions
 runLiveness :: String -> [IIOS]
 runLiveness = liveness . extract . parseL2InstList . sread
 
+-- calculate the liveness for a string containing a list of instructions
+-- that string is read from the given filepath
+-- return a the result wrapped in a CompilationUnit for testing purposes
+-- it allows the result file to be read.
 livenessMain_ :: FilePath -> IO (CompilationUnit [IIOS])
 livenessMain_ = compile1 runLiveness "lres"
 
+-- reads first command line argument, loads that file
+-- calls runLiveness on it, writes the result to same file location
+-- except with .lres as the extension instead of .L2f
 livenessMain :: IO ()
 livenessMain = compile (showLiveness . runLiveness) "lres"
 
