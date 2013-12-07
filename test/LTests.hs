@@ -37,6 +37,6 @@ livenessTests = testsFromFiles livenessFiles $ \file -> do
 interferenceDir   = testDir ++ "graph-test"
 interferenceFiles = getRecursiveContentsByExt interferenceDir ".L2f"
 interferenceTests = testsFromFiles interferenceFiles $ \file -> do
-  graph    <- runInterferenceMain file
+  graph    <- runInterferenceMain_ file
   expected <- fmap sread $ readOutputFile graph
   return $ assertEqual ((sread . show . result) graph) expected

@@ -6,6 +6,7 @@ module L.L2.Interference
    ,buildInterferenceGraph
    ,runInterference
    ,runInterferenceMain
+   ,runInterferenceMain_
   ) where
 
 import Control.Monad
@@ -14,6 +15,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
 import L.CompilationUnit
+import L.IOHelpers (withFileArg)
 import L.L1L2AST
 import L.Read (showAsList)
 import L.Utils (mkString)
@@ -205,5 +207,11 @@ runInterference = buildInterferenceGraph . runLiveness
 -- that string is read from the given filepath
 -- return a the result wrapped in a CompilationUnit for testing purposes
 -- it allows the result file to be read.
-runInterferenceMain :: FilePath -> IO (CompilationUnit Interference)
-runInterferenceMain = compile1 runInterference "gres"
+runInterferenceMain_ :: FilePath -> IO (CompilationUnit Interference)
+runInterferenceMain_ = compile1 runInterference "gres"
+
+-- reads first command line argument, loads that file
+-- calls runLiveness on it, shows it, and returns it.
+runInterferenceMain :: IO ()
+runInterferenceMain = withFileArg $ \f ->
+  compile1 runInterference "lres" f >>= (putStrLn . show . result)

@@ -172,9 +172,6 @@ inout is =
   in inout_ [emptyStartSet]
 
 {--
-  // just gets the last inout result. (the most important one)
-  def inoutFinalResult(f:Func): List[InstructionInOutSet] = inout(f.body).head
-
   def liveRanges(iioss: List[InstructionInOutSet]): List[List[LiveRange]] = {
     def liveRanges(x: X, sets: List[List[X]]): List[LiveRange] = sets match {
       case Nil => Nil
@@ -195,25 +192,8 @@ inout is =
 --}
 
 {--
-
-
 // TODO: probably should fill in the usages variable.
 case class LiveRange(x:X, range:Int, usages:Int=0) extends Ordered[LiveRange] {
   def compare(that: LiveRange) = this.range compare that.range
 }
-
-
-import L2AST._
-import util.Timer
-
-object LivenessMain {
-  import io.FileHelper._
-  import java.io.File
-  import L2CompilerMain._
-
-  def main(args:Array[String]){ println(liveness(new File(args(0)).read)) }
-
-  //  % liveness f.L2f
-  //  ((in (eax) (eax x)) (out (eax x) ()))
-  def liveness(code:String) = L2Printer.hwView(inoutForTesting(code))
 --}
