@@ -2,6 +2,8 @@
 
 module L.L1L2AST where
 
+import L.Read (showAsList)
+
 type Label      = String
 
 data XRegister  = Esi | Edi | Ebp | Esp deriving Eq
@@ -66,14 +68,14 @@ instance (Show x, Show s) => Show (Func x s) where
   show (Func is) = "(" ++ (is >>= (\i -> ((show i) ++ "\n\t"))) ++ ")"
 
 instance (Show x, Show s) => Show (Instruction x s) where
-  show (Assign x rhs)       = concat ["(", show x, " <- ", show rhs, ")"]
-  show (MathInst x op s)    = concat ["(", show x, " ", x86OpSymbol op, " ", show s, ")"]
-  show (MemWrite loc s)     = concat ["(", show loc, " <- ", show s, ")"]
-  show (Goto l)             = concat ["(goto", show l, ")"]
-  show (CJump cmp l1 l2)    = concat ["(", show cmp, " ", show l1, " ", show l2, ")"]
+  show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
+  show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
+  show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
+  show (Goto l)             = showAsList ["goto", show l]
+  show (CJump cmp l1 l2)    = showAsList [show cmp, show l1, show l2]
   show (LabelDeclaration l) = show l
-  show (Call s)             = "(call" ++ show s ++ ")"
-  show (TailCall s)         = "(tail-call" ++ show s ++ ")"
+  show (Call s)             = showAsList ["call", show s]
+  show (TailCall s)         = showAsList ["tail-call", show s]
   show Return               = "(return)"
 
 instance Show XRegister where
@@ -93,14 +95,14 @@ instance Show Register where
 
 instance (Show x, Show s) => Show (AssignRHS x s) where
   show (CompRHS c)        = show c
-  show (Allocate s1 s2)   = "(allocate " ++ (show s1) ++ " " ++ (show s2) ++ ")"
-  show (Print s)          = "(print " ++ (show s) ++ ")"
-  show (ArrayError s1 s2) = "(array-error " ++ (show s1) ++ " " ++ (show s2) ++ ")"
+  show (Allocate s1 s2)   = showAsList ["allocate", show s1, show s2]
+  show (Print s)          = showAsList ["print", show s]
+  show (ArrayError s1 s2) = showAsList ["array-error", show s1, show s2]
   show (SRHS s)           = show s
   show (MemRead loc)      = show loc
 
 instance (Show x) => Show (MemLoc x) where
-  show (MemLoc x n) = "(mem " ++ (show x) ++ " " ++ (show n) ++ ")"
+  show (MemLoc x n) = showAsList ["mem", show x, show n]
 
 instance (Show s) => Show (Comp s) where
   show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]

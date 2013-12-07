@@ -33,9 +33,7 @@ type IIOS = InstructionInOutSet
 showLiveness :: [IIOS] -> String
 showLiveness is = 
   let go :: (IIOS -> S.Set L2X) -> String
-      go f = mkString " " $ fmap go1 (fmap (S.toList . f) is) 
-      go1 :: [L2X] -> String
-      go1 l = "(" ++ (mkString " " $ fmap show l) ++ ")"
+      go f = mkString " " $ fmap showAsList (fmap (S.toList . f) is) 
   in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
 set :: AsL2X x => [x] -> S.Set L2X
