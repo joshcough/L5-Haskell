@@ -1,14 +1,26 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
-module L.L2.Liveness where
+module L.L2.Liveness
+  (
+    InstructionInOutSet(..)
+   ,IIOS
+   ,liveness
+   ,livenessMain
+   ,livenessMain_
+   ,runLiveness
+   ,showLiveness
+  ) where
 
 import Control.Monad
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
+import L.CompilationUnit
 import L.L1L2AST
-import Debug.Trace
+import L.L1L2Parser
+import L.Read
+import L.Utils
 
 data InstructionInOutSet = InstructionInOutSet {
   index  :: Int,       inst    :: L2Instruction,
@@ -20,19 +32,20 @@ type IIOS = InstructionInOutSet
 
 showLiveness :: [IIOS] -> String
 showLiveness is = 
-  let go l = "(" ++ (concat $ intersperse " " (fmap show l)) ++ ")" 
-      ins  = fmap (S.toList . inSet) is
-      outs = fmap (S.toList . outSet) is
-  in "((in " ++ go ins ++ ") (out " ++ go outs ++ "))" 
+  let go :: (IIOS -> S.Set L2X) -> String
+      go f = mkString " " $ fmap go1 (fmap (S.toList . f) is) 
+      go1 :: [L2X] -> String
+      go1 l = "(" ++ (mkString " " $ fmap show l) ++ ")"
+  in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
 set :: AsL2X x => [x] -> S.Set L2X
 set = S.fromList . fmap asL2X
 
-callerSave    = set [eax, ebx, ecx, edx]
-x86CallerSave = set [eax, ecx, edx]
-calleeSave    = set [edi, esi]
-arguments     = set [eax, ecx, edx]
-result        = set [eax]
+callerSave     = set [eax, ebx, ecx, edx]
+x86CallerSave  = set [eax, ecx, edx]
+calleeSave     = set [edi, esi]
+arguments      = set [eax, ecx, edx]
+resultRegister = set [eax]
 
 gen :: L2Instruction -> S.Set L2X
 gen i = genI i
@@ -46,7 +59,7 @@ genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
 genI (LabelDeclaration _)       = S.empty
 genI (Call s)                   = S.unions [genS s,  arguments]
 genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
-genI Return                     = S.unions [result, calleeSave]
+genI Return                     = S.unions [resultRegister, calleeSave]
 
 genX :: L2X -> S.Set L2X
 genX (RegL2X r) = set [r]
@@ -71,15 +84,20 @@ kill (Assign x (Allocate a init)) = S.insert x x86CallerSave
 kill (Assign x (ArrayError a n))  = S.insert x x86CallerSave
 kill (Assign x _)                 = set [x]
 kill (MathInst x _ _)             = set [x]
-kill (Call s)                     = S.unions [callerSave, result]
+kill (Call s)                     = S.unions [callerSave, resultRegister]
 kill _                            = S.empty
-
--- TODO: really? this could be somewhere...
-zipWithIndex :: [a] -> [(a, Int)]
-zipWithIndex as = zip as [0..]
 
 liveness :: [L2Instruction] -> [IIOS]
 liveness = head . inout
+
+runLiveness :: String -> [IIOS]
+runLiveness = liveness . extract . parseL2InstList . sread
+
+livenessMain_ :: FilePath -> IO (CompilationUnit [IIOS])
+livenessMain_ = compile1 runLiveness "lres"
+
+livenessMain :: IO ()
+livenessMain = compile (showLiveness . runLiveness) "lres"
 
 -- builds up a giant list of all the intermediate inout results
 -- robby starts out with a function, and empty in and out sets for each instruction
@@ -108,6 +126,7 @@ inout is =
           TailCall _                -> S.empty
           Assign _ (ArrayError _ _) -> S.empty
           Goto label                -> S.singleton $ findLabelDecIndex label
+          CJump _ l1 l2             -> S.fromList [findLabelDecIndex l1, findLabelDecIndex l2]
           -- we have to test that there is something after this instruction
           -- in case the last instruction is something other than return or cjump
           -- i think that in normal functions this doesn't happen but the hw allows it.

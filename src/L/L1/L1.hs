@@ -14,17 +14,9 @@ import L.L1L2AST
 import L.L1L2Parser
 import L.IOHelpers
 import L.Read
+import L.Utils
 import System.Environment 
 import System.IO
-
--- L1 Parser (uses shared L1/L2 Parser)
-l1Parser = Parser parseL1Reg parseL1S where
-  parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister s)
-  parseL1S s = case (sread s) of
-    AtomNum n -> Right $ NumberL1S n
-    AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister LabelL1S RegL1S s
-
-parseL1 = parseProgram l1Parser
 
 -- X86 Generation code
 type X86Inst = String
@@ -37,7 +29,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     x86Funcs <- genFunc $ concat $ map body funcs
     return $ dump $ concat [header, x86Main, x86Funcs, footer] where
     dump :: [X86Inst] -> String
-    dump insts = concat $ intersperse "\n" $ map adjust insts
+    dump insts = mkString "\n" $ map adjust insts
     adjust i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
     header = [
       ".file\t\"prog.c\"",
@@ -179,11 +171,13 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
 compileL1 :: String -> Either String String
 compileL1 code = parseL1 (sread code) >>= genX86Code
 
+compileL1OrDie :: String -> String
+compileL1OrDie = (either error id) . compileL1
+
 -- reads first command line argument, loads that file
 -- compiles it, writes the result to same file location
 -- except with .S as the extension instead of .L1
 compileL1File :: IO ()
-compileL1File = compile compileL1 "S"
-
-compileL1File_ :: FilePath -> IO CompilationUnit
-compileL1File_ = compile1 compileL1 "S"
+compileL1File = compile compileL1OrDie "S"
+compileL1File_ :: FilePath -> IO (CompilationUnit String)
+compileL1File_ = compile1 compileL1OrDie "S"

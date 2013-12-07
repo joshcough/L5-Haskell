@@ -1,9 +1,12 @@
 module L.IOHelpers
   (
     changeExtension
+   ,fileArgMain
    ,getExtension
    ,getRecursiveContents
    ,listFiles
+   ,mapFileContents
+   ,mapFileContentsAndPrint
    ,putFileNames
    ,putList
    ,touch
@@ -119,3 +122,15 @@ getRecursiveContents topdir = do
     isDirectory <- doesDirectoryExist path
     if isDirectory then getRecursiveContents path else return [path]
   return (concat paths)
+
+mapFileContents :: (String -> a) -> FilePath -> IO a
+mapFileContents f file = fmap f $ readFile file
+
+mapFileContentsAndPrint :: Show a => (String -> a) -> FilePath -> IO ()
+mapFileContentsAndPrint f file = mapFileContents f file >>= putStrLn . show
+
+withFileArg :: (FilePath -> IO ()) -> IO ()
+withFileArg f = fmap (!! 0) getArgs >>= f
+
+fileArgMain :: Show a => (String -> a) -> IO ()
+fileArgMain f =  withFileArg $ mapFileContentsAndPrint f 

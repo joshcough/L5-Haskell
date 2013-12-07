@@ -26,8 +26,11 @@ mkTest testName runF = TestInstance
   , setOption = \_ _ -> Right $ mkTest testName runF
   }
 
-finish :: Bool -> String -> Progress 
-finish b failureMsg = if b then (Finished Pass) else failWith failureMsg
+assertEqual :: (Show a, Eq a) => a -> a -> Progress 
+assertEqual a1 a2 = 
+  if a1 == a2 
+  then Finished Pass 
+  else failWith $ concat ["not equal\n", show a1, "\n", show a2]
 failWith :: String -> Progress
 failWith msg = Finished $ Fail msg
 

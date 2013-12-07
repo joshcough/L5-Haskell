@@ -33,6 +33,7 @@ library
     L.L1L2Parser
     L.Read
     L.TestHelpers
+    L.Utils
     -- L1
     L.L1.L1
     -- L2

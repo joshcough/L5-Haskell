@@ -1,7 +1,12 @@
 module L.L1L2Parser 
   (
+    l1Parser,
+    l2Parser,
+    parseL1,
+    parseL1InstList,
+    parseL2,
+    parseL2InstList,
     Parser(..),
-    extract,
     parseI,
     parseInstructionList,
     parseProgram,
@@ -9,10 +14,11 @@ module L.L1L2Parser
     parseLabelOrRegister
   ) where
 
-import L.Read
-import L.L1L2AST
 import Data.Maybe
 import Data.Traversable
+import L.Read
+import L.L1L2AST
+import L.Utils
 
 type ParseResult p = Either String p
 
@@ -20,9 +26,6 @@ data Parser x s = Parser {
   parseX :: String -> ParseResult x,
   parseS :: String -> ParseResult s
 }
-
-extract :: ParseResult p -> p
-extract = either error id
 
 parseProgram :: Parser x s -> SExpr -> ParseResult (Program x s)
 parseProgram p (List ((List main) : funcs)) = do
@@ -139,3 +142,25 @@ parseN4 n = case (sread n) of
   AtomNum n -> Right n
   AtomSym s -> Left $ "not a number" ++ n
 parseCXRegister cx = fmap CXR (cxRegisterFromName cx)
+
+
+-- L1 Parser (uses shared L1/L2 Parser)
+l1Parser = Parser parseL1Reg parseL1S where
+  parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister s)
+  parseL1S s = case (sread s) of
+    AtomNum n -> Right $ NumberL1S n
+    AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister LabelL1S RegL1S s
+
+parseL1 = parseProgram l1Parser
+parseL1InstList = parseInstructionList l1Parser
+
+-- L2 Parser (uses shared L1/L2 Parser)
+l2Parser = Parser (parseX VarL2X RegL2X) parseL2S where
+  parseX v r  s = Right $ maybe (v s) r (parseRegister s)
+  parseL2S    s = case (sread s) of
+    AtomNum n -> Right $ NumberL2S n
+    AtomSym s -> maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
+                   parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
+
+parseL2 = parseProgram l2Parser
+parseL2InstList = parseInstructionList l2Parser

@@ -8,12 +8,9 @@ import L.L1L2Parser
 import L.IOHelpers
 import L.L2.L2
 import L.L2.Liveness
+import L.Utils
 import System.Environment 
 import System.IO
 
-parseIList = parseInstructionList l2Parser
-
-main = fmap (!! 0) getArgs >>= runLiveness where
-  runLiveness inputFile =
-    fmap (showLiveness . liveness . extract . parseIList . sread) (readFile inputFile) >>= putStrLn . show
-
+--main = fileArgMain (showLiveness . runLiveness)
+main = livenessMain

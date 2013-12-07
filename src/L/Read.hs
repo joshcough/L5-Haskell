@@ -6,14 +6,18 @@ module L.Read
   ) where
 
 import Data.List
---import TestHelpers
---import Test.HUnit
 import Data.Char (isSpace)
+import L.Utils
 
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace
 
-data SExpr = AtomSym String | AtomNum Int | List [SExpr] deriving (Show, Eq)
+data SExpr = AtomSym String | AtomNum Int | List [SExpr] deriving (Eq)
+
+instance Show SExpr where
+  show (AtomSym s) = s
+  show (AtomNum i) = show i
+  show (List exps) = concat ["(", mkString " " $ fmap show exps, ")"]
 
 sread :: String -> SExpr
 sread s = let (sexpr, _) = readWithRest (preprocess s) in sexpr
