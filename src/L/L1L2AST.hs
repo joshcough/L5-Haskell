@@ -183,7 +183,7 @@ instance Eq  L2X where (==) x1 x2 = (show x1) == (show x2)
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
 instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
 
-class (Eq a, Ord a) => AsL2X a where 
+class (Eq a, Ord a, Show a) => AsL2X a where 
   asL2X :: a -> L2X
 instance AsL2X Register where 
   asL2X = RegL2X

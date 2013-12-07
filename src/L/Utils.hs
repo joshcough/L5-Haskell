@@ -3,10 +3,12 @@ module L.Utils
     endsWith
    ,extract
    ,mkString
+   ,traceA
    ,zipWithIndex
   ) where
 
 import Data.List
+import Debug.Trace
 
 mkString :: String -> [String] -> String
 mkString s l = concat $ intersperse s l
@@ -20,3 +22,6 @@ extract = either error id
 -- TODO: really? this could be somewhere...
 zipWithIndex :: [a] -> [(a, Int)]
 zipWithIndex as = zip as [0..]
+
+traceA :: Show a => a -> a
+traceA a = traceShow a a

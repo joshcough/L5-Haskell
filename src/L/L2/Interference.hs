@@ -14,6 +14,7 @@ import Data.List (sort)
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Debug.Trace
 import L.CompilationUnit
 import L.IOHelpers (withFileArg)
 import L.L1L2AST
@@ -49,25 +50,24 @@ addNodes xs g = foldl (flip addNode) g xs
 unions ::[InterferenceGraph] -> InterferenceGraph
 unions gs = foldl union empty gs
 
-addEdge :: (AsL2X x, AsL2X y) => (x, y) -> InterferenceGraph -> InterferenceGraph
-addEdge (x1, x2) g
-  -- dont bother adding ebp or esp
-  | (asL2X x1) == (RegL2X ebp) = g
-  | (asL2X x1) == (RegL2X esp) = g
-  | (asL2X x2) == (RegL2X ebp) = g
-  | (asL2X x2) == (RegL2X esp) = g
-  | (asL2X x1) == (asL2X x2)   = g -- dont add edge between a variable or register and itself...duh
-  | otherwise = unions [g, singletonEdge x1 x2] where
-  singletonEdge :: (AsL2X x, AsL2X y) => x -> y -> InterferenceGraph
-  singletonEdge x1 x2
-    | (asL2X x1) == (asL2X x2) = singleton x1
-    | otherwise = union
-       (M.singleton (asL2X x1) (S.singleton (asL2X x2)))
-       (M.singleton (asL2X x2) (S.singleton (asL2X x1)))
-
 addEdges :: (AsL2X x, AsL2X y) => [(x, y)] -> InterferenceGraph -> InterferenceGraph
-addEdges edges g = foldl (flip addEdge) g edges
-
+addEdges edges g = foldl (flip addEdge) g edges where
+  addEdge :: (AsL2X x, AsL2X y) => (x, y) -> InterferenceGraph -> InterferenceGraph
+  addEdge (x1, x2) g
+    -- dont bother adding ebp or esp
+    | (asL2X x1) == (RegL2X ebp) = g
+    | (asL2X x1) == (RegL2X esp) = g
+    | (asL2X x2) == (RegL2X ebp) = g
+    | (asL2X x2) == (RegL2X esp) = g
+    | (asL2X x1) == (asL2X x2)   = g -- dont add edge between a variable or register and itself...duh
+    | otherwise = unions [g, singletonEdge x1 x2] where
+    singletonEdge :: (AsL2X x, AsL2X y) => x -> y -> InterferenceGraph
+    singletonEdge x1 x2
+      | (asL2X x1) == (asL2X x2) = singleton x1
+      | otherwise = union
+         (M.singleton (asL2X x1) (S.singleton (asL2X x2)))
+         (M.singleton (asL2X x2) (S.singleton (asL2X x1)))
+  
 mkGraph :: (AsL2X x, AsL2X y) => [(x, y)] -> InterferenceGraph
 mkGraph edges = addEdges edges empty
 
@@ -89,10 +89,10 @@ registerInterference = mkGraph [
   (edi, edx), (edi, esi),
   (edx, esi) ]
 
-zipFilterSets :: (Ord a, Ord b) => (a -> b -> Bool) -> S.Set a -> S.Set b -> S.Set (a, b)
+zipFilterSets :: (Ord a, Ord b, Show a, Show b) => (a -> b -> Bool) -> S.Set a -> S.Set b -> S.Set (a, b)
 zipFilterSets f xs ys = S.fromList (filter (uncurry f) $ zip (S.elems xs) (S.elems ys))
 
-interference :: (Ord a, Ord b) =>
+interference :: (Ord a, Ord b, Show a, Show b) =>
                 (a -> b -> Bool) -> (c -> S.Set a) -> (c -> S.Set b) -> c -> S.Set (a, b)
 interference f s1 s2 iios = zipFilterSets f (s1 iios) (s2 iios)
 
@@ -128,14 +128,21 @@ outAndSpecialInterference1 iios =
   let outInterference :: InterferenceGraph
       outInterference = 
         -- add in the kill
-        let outsPlusKill = S.union (outSet iios) (killSet iios)
-            initial = zipFilterSets (<) outsPlusKill outsPlusKill
+        let outsPlusKill :: S.Set L2X
+            outsPlusKill = S.union (outSet iios) (killSet iios)
+            initial :: S.Set (L2X, L2X)
+            initial = S.fromList $ let l = S.toList outsPlusKill in [(x,y) | x <- l, y <- l, x < y]
+            jop :: L2X -> L2X -> Maybe (L2X, L2X)
             jop x1 x2 = Just $ orderedPair x1 x2
+            assignmentRemovals :: L2Instruction -> Maybe (L2X, L2X)
             assignmentRemovals (Assign v@(VarL2X _) (SRHS (XL2S x)))            = jop v x
             assignmentRemovals (Assign r@(RegL2X _) (SRHS (XL2S v@(VarL2X _)))) = jop r v
             assignmentRemovals _ = Nothing
         in edgeSetToGraph $ 
-             maybe initial (S.difference initial . S.singleton) (assignmentRemovals (inst iios))
+             maybe 
+               initial 
+               (S.difference initial . S.singleton) 
+               (assignmentRemovals (inst iios))
 
       -- Constrained arithmetic operators
       -- Add interference edges to disallow the illegal registers
