@@ -11,6 +11,7 @@ module L.IOHelpers
    ,putFileNames
    ,putList
    ,touch
+   ,withFileArg
   ) where
 
 import Control.Applicative

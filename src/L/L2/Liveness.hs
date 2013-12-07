@@ -6,6 +6,7 @@ module L.L2.Liveness
    ,IIOS
    ,liveness
    ,livenessMain_
+   ,livenessMain
    ,runLiveness
    ,showLiveness
   ) where
@@ -18,6 +19,7 @@ import qualified Data.Set as S
 import L.CompilationUnit
 import L.L1L2AST
 import L.L1L2Parser
+import L.IOHelpers
 import L.Read
 import L.Utils
 
@@ -102,6 +104,15 @@ runLiveness = liveness . extract . parseL2InstList . sread
 -- it allows the result file to be read.
 livenessMain_ :: FilePath -> IO (CompilationUnit [IIOS])
 livenessMain_ = compile1 runLiveness "lres"
+
+-- reads first command line argument, loads that file
+-- calls runLiveness on it, shows it, and returns it.
+livenessMain :: IO ()
+livenessMain = withFileArg $ \f -> 
+  compile1 (showLiveness . runLiveness) "lres" f >>= (putStrLn . result)
+
+--withFileArg :: (FilePath -> IO ()) -> IO ()
+--fileArgMain :: Show a => (String -> a) -> IO ()
 
 -- builds up a giant list of all the intermediate inout results
 -- robby starts out with a function, and empty in and out sets for each instruction
