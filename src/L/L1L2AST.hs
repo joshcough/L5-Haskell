@@ -166,6 +166,7 @@ instance Show L1S where
 type Variable = String
 data L2X = RegL2X Register | VarL2X Variable
 data L2S = XL2S L2X | NumberL2S Int | LabelL2S Label deriving (Eq, Ord)
+type L2MemLoc = MemLoc L2X
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 type L2 = Program L2X L2S

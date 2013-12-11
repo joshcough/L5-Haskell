@@ -40,6 +40,7 @@ library
     L.L2.L2
     L.L2.Interference
     L.L2.Liveness
+    L.L2.Spill
 
   build-depends:
     ansi-terminal             >= 0.6     && < 0.7,
