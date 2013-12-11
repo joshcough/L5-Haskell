@@ -91,7 +91,8 @@ registerInterference = mkGraph [
 
 {-
   Build interference graph from the liveness information
-    Two variables live at the same time interfere with each other
+    Two variables alive at the same time interfere with each other
+    (that means they cannot live in the same register)
     Killed variables interfere with variables in the out set
     Except that the variables x and y do not interfere if the instruction was (x <- y)
     All real registers interfere with each other
@@ -99,6 +100,11 @@ registerInterference = mkGraph [
 buildInterferenceGraph :: [IIOS] -> Interference
 buildInterferenceGraph iioss = 
   let 
+    -- start with a graph containing all of the variables and registers
+    -- but with no edges (no interference)
+    variables = iioss >>= ((fmap VarL2X) . S.toList . vars . inst)
+    variableAndRegisterGraph = addNodes variables registerInterference
+
     -- take the interference from the first instruction's in set.
     firstInstructionInSetInterference :: InterferenceGraph
     firstInstructionInSetInterference = 
@@ -106,38 +112,45 @@ buildInterferenceGraph iioss =
         f i = let l = S.toList (inSet i)
               in edgeSetToGraph $ S.fromList $ [(x,y) | x <- l, y <- l, x < y]
 
-    -- take the interference from all the out sets.
+    -- take the interference for each instruction.
+    -- (which is from the out sets, and some special cases)
     outAndSpecialInterference :: InterferenceGraph
-    outAndSpecialInterference = unions (fmap outAndSpecialInterference1 iioss)
-   
-    variables = iioss >>= ((fmap VarL2X) . S.toList . vars . inst)
+    outAndSpecialInterference = unions (fmap interference1 iioss)
 
   in Interference $ unions [
-    addNodes variables registerInterference, 
+    variableAndRegisterGraph, 
     firstInstructionInSetInterference, 
     outAndSpecialInterference
   ]
 
-outAndSpecialInterference1 :: IIOS -> InterferenceGraph
-outAndSpecialInterference1 iios =
+interference1 :: IIOS -> InterferenceGraph
+interference1 iios =
   let outInterference :: InterferenceGraph
       outInterference = 
-        -- add in the kill
+        -- start with the outSet unioned with the killSet
+        -- because anything that is alive (out) in the instruction
+        -- interferes with anything killed in the instruction
+        -- (because if it didn't interfere, it could be possible that
+        --  it gets into a register that gets killed)
         let outsPlusKill :: S.Set L2X
             outsPlusKill = S.union (outSet iios) (killSet iios)
             initial :: S.Set (L2X, L2X)
             initial = S.fromList $ let l = S.toList outsPlusKill in [(x,y) | x <- l, y <- l, x < y]
             jop :: L2X -> L2X -> Maybe (L2X, L2X)
             jop x1 x2 = Just $ orderedPair x1 x2
+            -- there is one exception to that rule, however - assignment statements
+            -- x <- y
+            -- x gets killed here, but doesn't interfere with y
+            -- (unless x gets used again later, but then x and y will
+            --  interfere because of different rules)
             assignmentRemovals :: L2Instruction -> Maybe (L2X, L2X)
             assignmentRemovals (Assign v@(VarL2X _) (SRHS (XL2S x)))            = jop v x
             assignmentRemovals (Assign r@(RegL2X _) (SRHS (XL2S v@(VarL2X _)))) = jop r v
             assignmentRemovals _ = Nothing
-        in edgeSetToGraph $ 
-             maybe 
-               initial 
-               (S.difference (traceA initial) . S.singleton) 
-               (assignmentRemovals (inst iios))
+        in edgeSetToGraph $ maybe 
+             initial 
+             (S.difference initial . S.singleton) 
+             (assignmentRemovals $ inst iios)
 
       -- Constrained arithmetic operators
       -- Add interference edges to disallow the illegal registers
@@ -154,36 +167,31 @@ outAndSpecialInterference1 iios =
         f _ = []
   in union (traceA outInterference) (traceA specialInterference)
 
-class HasVars a where
-  vars :: a -> S.Set Variable
+vars :: L2Instruction -> S.Set Variable
+vars = varsI where
+  varsI (Assign x rhs)             = S.unions [varsX x,  varsRHS rhs]
+  varsI (MathInst x _ s)           = S.unions [varsX x,  varsS s]
+  varsI (MemWrite (MemLoc bp _) s) = S.unions [varsX bp, varsS s]
+  varsI (Goto _)                   = S.empty
+  varsI (CJump (Comp s1 _ s2) _ _) = S.unions [varsS s1, varsS s2]
+  varsI (LabelDeclaration _)       = S.empty
+  varsI (Call s)                   = varsS s
+  varsI (TailCall s)               = varsS s
+  varsI Return                     = S.empty
 
-instance HasVars L2X where
-  vars (RegL2X _) = S.empty
-  vars (VarL2X v) = S.singleton v
+  varsX (RegL2X _) = S.empty
+  varsX (VarL2X v) = S.singleton v
 
-instance HasVars L2S where
-  vars (XL2S x)        = vars x
-  vars (NumberL2S n)   = S.empty
-  vars (LabelL2S l)    = S.empty
+  varsS (XL2S x)        = varsX x
+  varsS (NumberL2S n)   = S.empty
+  varsS (LabelL2S l)    = S.empty
 
-instance HasVars (AssignRHS L2X L2S) where
-  vars (CompRHS (Comp s1 _ s2)) = S.unions [vars s1, vars s2] 
-  vars (Allocate s1 s2)         = S.unions [vars s1, vars s2] 
-  vars (Print s)                = vars s
-  vars (ArrayError a n)         = S.unions [vars a,  vars n]
-  vars (MemRead (MemLoc bp _))  = vars bp
-  vars (SRHS s)                 = vars s
-
-instance HasVars L2Instruction where
-  vars (Assign x rhs)             = S.unions [vars x,  vars rhs]
-  vars (MathInst x _ s)           = S.unions [vars x,  vars s]
-  vars (MemWrite (MemLoc bp _) s) = S.unions [vars bp, vars s]
-  vars (Goto _)                   = S.empty
-  vars (CJump (Comp s1 _ s2) _ _) = S.unions [vars s1, vars s2]
-  vars (LabelDeclaration _)       = S.empty
-  vars (Call s)                   = vars s
-  vars (TailCall s)               = vars s
-  vars Return                     = S.empty
+  varsRHS (CompRHS (Comp s1 _ s2)) = S.unions [varsS s1, varsS s2] 
+  varsRHS (Allocate s1 s2)         = S.unions [varsS s1, varsS s2] 
+  varsRHS (Print s)                = varsS s
+  varsRHS (ArrayError a n)         = S.unions [varsS a,  varsS n]
+  varsRHS (MemRead (MemLoc bp _))  = varsX bp
+  varsRHS (SRHS s)                 = varsS s
 
 {-
   Example:
