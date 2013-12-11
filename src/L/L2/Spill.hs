@@ -16,7 +16,7 @@ spill :: Variable -> Int -> L2MemLoc -> L2Instruction -> State Int [L2Instructio
 spill spillVar stackOffset memLoc = spillI where
 
   spillVarX = VarL2X spillVar
-  readSpillVar = MemRead memLoc
+  readSpillVarInto x = Assign x (MemRead memLoc)
   writeSpillVar v = MemWrite memLoc (XL2S v)
 
   newVar :: State Int L2X
@@ -51,26 +51,21 @@ spill spillVar stackOffset memLoc = spillI where
   spillRHS (ArrayError a n)         = todo 
   spillRHS (MemRead (MemLoc bp _))  = todo 
 
+  -- if x or s is being spilled, 
+  -- create a new var and read the spilled vars value from memory into it
+  -- then do the original computation using the new var instead of x or s
   spillMathOp :: L2X -> X86Op -> L2S -> State Int [L2Instruction]
   spillMathOp x op s 
     -- (x += x) for any op, where x is being spilled (x is now in memory)
-    -- read x from memory and store it in the new var
-    -- do the original computation using the new var instead of x
-    -- write the value of the new var back to x's loc in memory 
     | (x == spillVarX && XL2S x == s) = withNewVar $ \v ->
-      [Assign v readSpillVar, MathInst v op (XL2S v), writeSpillVar v]  
+      [readSpillVarInto v, MathInst v op (XL2S v), writeSpillVar v]  
     -- (x += somethingElse) for any op, where x is being spilled (x is now in memory)
-    -- read x from memory and store it in the new var
-    -- do the original computation using the new var instead of x
-    -- write the value of the new var back to x's loc in memory 
     | x == spillVarX = withNewVar $ \v ->
-      [Assign v readSpillVar, MathInst v op s, writeSpillVar v]
+      [readSpillVarInto v, MathInst v op s, writeSpillVar v]
     -- (y += x) for any op, where x is being spilled (x is now in memory)
-    -- read x from memory and store it in the new var
-    -- do the original computation using the new var instead of x
     -- this updates y's value, so we don't have to write x back to memory
     | s == XL2S spillVarX = withNewVar $ \v -> 
-      [Assign v readSpillVar, MathInst x op (XL2S v)]
+      [readSpillVarInto v, MathInst x op (XL2S v)]
     -- spill var is not in the instruction, so just return it.
     | otherwise = return [MathInst x op s]
 
