@@ -170,6 +170,7 @@ type L2MemLoc = MemLoc L2X
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 type L2 = Program L2X L2S
+l2eax = RegL2X eax
 
 instance Show L2X where
   show (RegL2X r) = show r

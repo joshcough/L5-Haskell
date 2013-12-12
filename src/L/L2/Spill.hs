@@ -24,7 +24,7 @@ spill spillVar stackOffset memLoc = spillI where
   newVar = do
     n <- get
     _ <- put (n + 1)
-    return $ VarL2X $ spillPrefix ++ (show n)
+    return $ VarL2X $ spillPrefix ++ show n
 
   withNewVar   :: (L2X -> a) -> State Int a
   withNewVar   f = fmap f newVar
@@ -92,6 +92,77 @@ spill spillVar stackOffset memLoc = spillI where
     -- (y <- (mem s_0 n)
     | v2 == spillVarX = withNewVarR $ \v -> [Assign v1 (MemRead (MemLoc v off))]
     | otherwise = return [Assign v1 read]
+  spillAssignment v1 c@(CompRHS comp@(Comp s1 op s2))
+    -- (x <- x < x) ... wtf
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (s_1 <- s_0 < s_0)
+    -- ((mem ebp stackOffset) <- s_1)
+    | v1 == spillVarX && s1 == spillVarS && s2 == spillVarS = 
+      withNewVarRW $ \v -> [Assign v (CompRHS $ Comp (XL2S v) op (XL2S v))]
+    -- (x <- x < y)
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (s_1 <- s_0 < y)
+    -- ((mem ebp stackOffset) <- s_1)
+    | v1 == spillVarX && s1 == spillVarS = 
+      withNewVarRW $ \v -> [Assign v (CompRHS $ Comp (XL2S v) op s2)]
+    -- (x <- y < x)
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (s_1 <- y < s_0)
+    -- ((mem ebp stackOffset) <- s_1)
+    | v1 == spillVarX && s2 == spillVarS =
+      withNewVarRW $ \v -> [Assign v (CompRHS $ Comp s1 op (XL2S v))]
+    -- (x <- y < z)
+    -- (s_0 <- y < z)
+    -- ((mem ebp stackOffset) <- s_0)
+    | v1 == spillVarX =  
+      withNewVarRW $ \v -> [Assign v (CompRHS $ Comp s1 op s2)]
+
+    -- ok, x is not the spill var
+
+    -- (y <- x < x)
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (y <- s_0 < s_0)
+    | s1 == spillVarS && s2 == spillVarS = withNewVarR $ \v ->
+      [Assign v1 (CompRHS $ Comp (XL2S v) op (XL2S v))]
+    -- (y <- x < z)
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (y <- s_0 < z)
+    | s1 == spillVarS = withNewVarR $ \v -> 
+      [Assign v1 (CompRHS $ Comp (XL2S v) op s2)]
+    -- (y <- z < x)
+    -- (s_0 <- (mem ebp stackOffset))
+    -- (y <- z < s_0)
+    | s2 == spillVarS = withNewVarR $ \v ->
+      [Assign v1 (CompRHS $ Comp s1 op (XL2S v))]
+    | otherwise = return [Assign v1 c]
+  -- (eax <- (print s))
+  spillAssignment r p@(Print s)
+    | r == l2eax && s == spillVarS = 
+       withNewVarR $ \v -> [Assign l2eax (Print (XL2S v))]
+    | otherwise = return [Assign r p]
+  spillAssignment r a@(Allocate n init)
+    -- (eax <- (allocate x x))
+    | r == l2eax && n == spillVarS && init == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (Allocate (XL2S v) (XL2S v))]
+    -- (eax <- (allocate x i))
+    | r == l2eax && n == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (Allocate (XL2S v) init)]
+    -- (eax <- (allocate n x))
+    | r == l2eax && init == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (Allocate n (XL2S v))]
+    | otherwise = return [Assign r a]
+  spillAssignment r ae@(ArrayError a n)
+    -- (eax <- (array-error x x))
+    | r == l2eax && a == spillVarS && n == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (ArrayError (XL2S v) (XL2S v))]
+    -- (eax <- (array-error x i))
+    | r == l2eax && a == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (ArrayError (XL2S v) n)]
+    -- (eax <- (array-error n x))
+    | r == l2eax && n == spillVarS =
+       withNewVarR $ \v -> [Assign l2eax (ArrayError a (XL2S v))]
+    | otherwise = return [Assign r ae]
+  spillAssignment l r = error $ "bad assignment: " ++ (show $ Assign l r)
 
   spillCJump c@(Comp s1 op s2) l1 l2
     -- (cjump x < x :l1 :l2)
