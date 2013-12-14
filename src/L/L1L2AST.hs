@@ -179,7 +179,7 @@ instance Show L2X where
 
 instance Show L2S where
   show (NumberL2S n)   = show n
-  show (LabelL2S l)    = show l
+  show (LabelL2S l)    = ":" ++ l
   show (XL2S x)        = show x
 
 instance Eq  L2X where (==) x1 x2 = (show x1) == (show x2)

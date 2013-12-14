@@ -19,10 +19,10 @@ data SExpr = AtomSym String | AtomNum Int | List [SExpr] deriving (Eq)
 instance Show SExpr where
   show (AtomSym s) = s
   show (AtomNum i) = show i
-  show (List exps) = showAsList exps
+  show (List exps) = showAsList $ fmap show exps
 
-showAsList :: (Show a) => [a] -> String
-showAsList as = "(" ++ (mkString " " $ fmap show as) ++ ")"
+showAsList :: [String] -> String
+showAsList as = "(" ++ (mkString " " as) ++ ")"
 
 sread :: String -> SExpr
 sread s = let (sexpr, _) = readWithRest (preprocess s) in sexpr

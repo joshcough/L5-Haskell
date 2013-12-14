@@ -206,7 +206,7 @@ vars = varsI where
 instance Show Interference where
   show (Interference g) = "(" ++ (mkString "\n") memberLists ++ ")" where
     sortedMembers = sort $ S.toList $ graphMembers g
-    showMember x  = showAsList $ x : S.toList (connections x g)
+    showMember x  = showAsList $ fmap show $ x : S.toList (connections x g)
     memberLists   = fmap showMember sortedMembers 
 
 -- calculate the intereference graph for a string containing a list of instructions

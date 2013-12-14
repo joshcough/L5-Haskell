@@ -1,6 +1,7 @@
 module L.L2.Spill
   (
     runSpillMain_
+   ,spill
    ,spillTest
   ) where
 
@@ -29,7 +30,7 @@ spillTest input = case (readWithRest input) of
         off = read $ w !! 1
         pre = w !! 2
         ins = extract $ parseL2InstList program
-    in showAsList $ spill var off pre ins
+    in showAsList $ fmap show $ spill var off pre ins
 
 runSpillMain_ :: FilePath -> IO (CompilationUnit String)
 runSpillMain_ = compile1 spillTest "sres"
@@ -92,8 +93,12 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     | v2 == spillVarX = return [readSpillVarInto v1]
     -- y <- z
     | otherwise = return [Assign v1 rhs]
-  -- assignment to variable from register or number
+  -- assignment to variable from register
   spillAssignment v@(VarL2X _) rhs@(SRHS s@(XL2S _))
+    | v == spillVarX = return [MemWrite memLoc s]
+    | otherwise      = return [Assign v rhs]
+  -- assignment to variable from number
+  spillAssignment v@(VarL2X _) rhs@(SRHS s)
     | v == spillVarX = return [MemWrite memLoc s]
     | otherwise      = return [Assign v rhs]
   -- assignment to register from variable
