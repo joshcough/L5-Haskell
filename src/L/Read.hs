@@ -2,8 +2,8 @@ module L.Read
   (
     SExpr(..)
    ,flatten
-   ,readWithRest
    ,showAsList
+   ,sreadWithRest
    ,sread
   ) where
 
@@ -26,6 +26,9 @@ showAsList as = "(" ++ (mkString " " as) ++ ")"
 
 sread :: String -> SExpr
 sread s = let (sexpr, _) = readWithRest (preprocess s) in sexpr
+
+sreadWithRest :: String -> (SExpr, String)
+sreadWithRest s = readWithRest (preprocess s)
 
 preprocess :: String -> String
 preprocess s = concat $ map ((++ " ") . trim . removeComments) (lines s)

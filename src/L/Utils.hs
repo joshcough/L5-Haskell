@@ -4,6 +4,7 @@ module L.Utils
    ,extract
    ,mkString
    ,traceA
+   ,traceSA
    ,zipWithIndex
   ) where
 
@@ -25,3 +26,6 @@ zipWithIndex as = zip as [0..]
 
 traceA :: Show a => a -> a
 traceA a = traceShow a a
+
+traceSA :: Show a => String -> a -> a
+traceSA s a = trace (s ++ " " ++ show a) a
