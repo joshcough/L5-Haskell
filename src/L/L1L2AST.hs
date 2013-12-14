@@ -72,8 +72,8 @@ instance (Show x, Show s) => Show (Instruction x s) where
   show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
   show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
   show (Goto l)             = showAsList ["goto", show l]
-  show (CJump cmp l1 l2)    = showAsList [show cmp, show l1, show l2]
-  show (LabelDeclaration l) = show l
+  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, ":" ++ l1, ":" ++ l2]
+  show (LabelDeclaration l) = ":" ++ l
   show (Call s)             = showAsList ["call", show s]
   show (TailCall s)         = showAsList ["tail-call", show s]
   show Return               = "(return)"
@@ -158,7 +158,7 @@ type L1 = Program L1X L1S
 
 instance Show L1S where
   show (NumberL1S n) = show n
-  show (LabelL1S l)  = show l
+  show (LabelL1S l)  = ":" ++ l
   show (RegL1S r)    = show r
 
 -- L2 AST (uses shared L1/L2 AST)

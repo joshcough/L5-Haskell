@@ -77,7 +77,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     | otherwise = return [Call s]
   spillI (TailCall s) 
     | s == spillVarS = withNewVarR $ \v -> [TailCall (XL2S v)]
-    | otherwise = return [Call s]
+    | otherwise = return [TailCall s]
   spillI g@(Goto _)                 = return [g]
   spillI l@(LabelDeclaration _)     = return [l]
   spillI r@Return                   = return [r]
@@ -103,8 +103,8 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     | otherwise      = return [Assign v rhs]
   -- assignment to register from variable
   spillAssignment r@(RegL2X _) rhs@(SRHS s@(XL2S v@(VarL2X _)))
-    | v == spillVarX = return [MemWrite memLoc s]
-    | otherwise      = return [readSpillVarInto r]
+    | v == spillVarX = return [Assign r $ MemRead memLoc]
+    | otherwise      = return [Assign r rhs]
   -- assignment to register from register or number
   spillAssignment r@(RegL2X _) rhs@(SRHS _) = return [Assign r rhs]
   -- assignments with MemReads
@@ -147,7 +147,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     -- (s_0 <- y < z)
     -- ((mem ebp stackOffset) <- s_0)
     | v1 == spillVarX =  
-      withNewVarRW $ \v -> [Assign v (CompRHS $ Comp s1 op s2)]
+      withNewVar $ \v -> [Assign v (CompRHS $ Comp s1 op s2), writeSpillVar v]
 
     -- ok, x is not the spill var
 
@@ -171,6 +171,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
   spillAssignment r p@(Print s)
     | r == l2eax && s == spillVarS = 
        withNewVarR $ \v -> [Assign l2eax (Print (XL2S v))]
+    | r == l2eax = return [Assign r p]
   spillAssignment r a@(Allocate n init)
     -- (eax <- (allocate x x))
     | r == l2eax && n == spillVarS && init == spillVarS =
@@ -181,6 +182,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     -- (eax <- (allocate n x))
     | r == l2eax && init == spillVarS =
        withNewVarR $ \v -> [Assign l2eax (Allocate n (XL2S v))]
+    | r == l2eax = return [Assign r a]
   spillAssignment r ae@(ArrayError a n)
     -- (eax <- (array-error x x))
     | r == l2eax && a == spillVarS && n == spillVarS =
@@ -191,6 +193,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     -- (eax <- (array-error n x))
     | r == l2eax && n == spillVarS =
        withNewVarR $ \v -> [Assign l2eax (ArrayError a (XL2S v))]
+    | r == l2eax = return [Assign r ae]
   spillAssignment l r = error $ "bad assignment: " ++ (show $ Assign l r)
 
   spillCJump c@(Comp s1 op s2) l1 l2
