@@ -100,16 +100,14 @@ runLiveness = liveness . extract . parseL2InstList . sread
 
 -- calculate the liveness for a string containing a list of instructions
 -- that string is read from the given filepath
--- return a the result wrapped in a CompilationUnit for testing purposes
--- it allows the result file to be read.
-livenessMain_ :: FilePath -> IO (CompilationUnit [IIOS])
-livenessMain_ = compile1 runLiveness "lres"
+livenessMain_ :: FilePath -> IO [IIOS]
+livenessMain_ = compile1 runLiveness
 
 -- reads first command line argument, loads that file
 -- calls runLiveness on it, shows it, and returns it.
 livenessMain :: IO ()
 livenessMain = withFileArg $ \f -> 
-  compile1 (showLiveness . runLiveness) "lres" f >>= (putStrLn . result)
+  compile1 (showLiveness . runLiveness) f >>= putStrLn
 
 --withFileArg :: (FilePath -> IO ()) -> IO ()
 --fileArgMain :: Show a => (String -> a) -> IO ()

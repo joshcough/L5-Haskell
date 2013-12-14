@@ -1,6 +1,7 @@
 module L.L1.L1 
   (
     compileL1
+   ,compileL1OrDie
    ,compileL1File
    ,compileL1File_
   ) where
@@ -179,5 +180,5 @@ compileL1OrDie = (either error id) . compileL1
 -- except with .S as the extension instead of .L1
 compileL1File :: IO ()
 compileL1File = compile compileL1OrDie "S"
-compileL1File_ :: FilePath -> IO (CompilationUnit String)
-compileL1File_ = compile1 compileL1OrDie "S"
+compileL1File_ :: FilePath -> IO String
+compileL1File_ = compile1 compileL1OrDie

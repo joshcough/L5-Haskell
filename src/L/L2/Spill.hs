@@ -32,8 +32,8 @@ spillTest input = case (sreadWithRest input) of
         ins = extract $ parseL2InstList program
     in showAsList $ fmap show $ spill var off pre ins
 
-runSpillMain_ :: FilePath -> IO (CompilationUnit String)
-runSpillMain_ = compile1 spillTest "sres"
+runSpillMain_ :: FilePath -> IO String
+runSpillMain_ = compile1 spillTest
 
 -- TODO: figure out - is this really the top level? 
 -- if not, the state should propagate, and be run later.

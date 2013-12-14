@@ -23,42 +23,63 @@ import L.L2.Spill
 import L.Read
 import L.Utils
 
-testDir = "./test/test-fest/"
-
-main = defaultMain $ testGroup "Main" $ (unsafePerformIO . fmap concat . sequence) allTests 
+main = defaultMain $ testGroup "Main" $ (unsafePerformIO . sequence) allTests 
 
 allTests = [l1Tests, livenessTests, interferenceTests, spillTests]
 
-testsFromFiles :: [FilePath] -> (FilePath -> Assertion) -> [TestTree]
-testsFromFiles files f = fmap (\file -> testCase file $ f file) files
+testDir = "./test/test-fest/"
 
-l1Files = getRecursiveContentsByExt testDir ".L1" 
-l1Tests = compile <$> l1Files where
-  compile fs = testsFromFiles fs $ \file -> do
-    actual   <- compileL1File_ file
-    expected <- readOutputFile actual
-    (result actual) @?= expected
+data TestDef a = TestDef {
+  name :: String,
+  dir  :: FilePath,
+  inputFileExt  :: String,
+  outputFileExt :: String,
+  computeExpected :: String -> a,
+  computeResult   :: String -> a
+}
 
-livenessDir   = testDir ++ "liveness-test"
-livenessFiles = getRecursiveContentsByExt livenessDir ".L2f"
-livenessTests = compile <$> livenessFiles where
-  compile fs = testsFromFiles fs $ \file -> do
-    live     <- livenessMain_ file
-    expected <- fmap sread $ readOutputFile live
-    ((sread . showLiveness . result) live) @?= expected
+l1Tests = tree $ TestDef { 
+  name = "L1", 
+  dir  = testDir,
+  inputFileExt = "L1",
+  outputFileExt = "S",
+  computeResult = compileL1OrDie,
+  computeExpected = id
+}
+livenessTests = tree $ TestDef { 
+  name = "Liveness", 
+  dir  = testDir ++ "liveness-test", 
+  inputFileExt  = "L2f", 
+  outputFileExt = "lres",
+  computeResult = sread . showLiveness . runLiveness, 
+  computeExpected = sread
+}
+interferenceTests = tree $ TestDef { 
+  name = "Interference", 
+  dir  = testDir ++ "graph-test", 
+  inputFileExt  = "L2f", 
+  outputFileExt = "gres",
+  computeResult = sread . show . runInterference, 
+  computeExpected = sread
+}
+spillTests = tree $ TestDef { 
+  name = "Spill", 
+  dir  = testDir ++ "spill-test", 
+  inputFileExt  = "L2f", 
+  outputFileExt = "sres",
+  computeResult = sread . spillTest, 
+  computeExpected = sread
+}
 
-interferenceDir   = testDir ++ "graph-test"
-interferenceFiles = getRecursiveContentsByExt interferenceDir ".L2f"
-interferenceTests = compile <$> interferenceFiles where
-  compile fs = testsFromFiles fs $ \file -> do
-    graph    <- runInterferenceMain_ file
-    expected <- fmap sread $ readOutputFile graph
-    ((sread . show . result) graph) @?= expected
+tree :: (Eq a, Show a) => TestDef a -> IO TestTree
+tree def = 
+  let testsFromFiles :: [FilePath] -> (FilePath -> Assertion) -> [TestTree]
+      testsFromFiles files f = fmap (\file -> testCase file $ f file) files
+      files = getRecursiveContentsByExt (dir def) (inputFileExt def)
+      mkTests fs = testsFromFiles fs $ \file -> do
+        res <- fmap (computeResult   def) $ readFile file
+        exp <- fmap (computeExpected def) $ readFile (changeExtension file (outputFileExt def))
+        res @?= exp
+  in testGroup (name def) . mkTests <$> files
 
-spillDir   = testDir ++ "spill-test"
-spillFiles = getRecursiveContentsByExt spillDir ".L2f"
-spillTests = spill <$> spillFiles where
-  spill fs = testsFromFiles fs $ \file -> do
-    s        <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat"      (show e)
-    expected <- fmap sread $ readOutputFile s
-    ((sread . result) s) @?= expected
+-- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)

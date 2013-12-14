@@ -1,54 +1,30 @@
 module L.CompilationUnit
   (
-    CompilationUnit(..)
-   ,compile
-   ,compile_
+    compile
    ,compile1
-   ,fromOutputFile
-   ,readOutputFile
-   ,writeOutputFile
   ) where
 
 import Control.Applicative
 import L.IOHelpers
 import System.Environment
 
-data CompilationUnit a = CompilationUnit {
-  inputFile :: FilePath, 
-  outputExt :: String, 
-  result    :: a
-} deriving (Eq, Show)
-
-instance Functor CompilationUnit where
-  fmap f c = CompilationUnit (inputFile c) (outputExt c) $ f (result c)
-
--- build a CompilationUnit post compilation
-fromOutputFile :: FilePath -> String -> IO (CompilationUnit String)
-fromOutputFile input ext = do f <- readFile (changeExtension ext input)
-                              length f `seq` (return $ CompilationUnit input ext f)
-
-outputFile :: CompilationUnit a -> String
-outputFile c = changeExtension (inputFile c) (outputExt c)
-
-readOutputFile :: CompilationUnit a -> IO String
-readOutputFile c = do f <- readFile (outputFile c)
-                      length f `seq` (return f)
-
-writeOutputFile :: (Show a) => CompilationUnit a -> IO ()
-writeOutputFile c = writeFile (outputFile c) (show $ result c)
-
 -- just read the first file here. i suppose later on i could compile many files...
 -- compile that file, and write it's result out
 compile :: Show a => (String -> a) -> String -> IO ()
-compile compileFunction newExt = compile_ compileFunction newExt >>= writeOutputFile
+compile compileFunction newExt = do
+  (f, a) <- compile_ compileFunction
+  writeFile (changeExtension f newExt) (show a)
 
--- read input file from fist command line arg, and compile it to a CompilationUnit
-compile_ :: (String -> a) -> String -> IO (CompilationUnit a)
-compile_ compileFunction ext = fmap (!! 0) getArgs >>= compile1 compileFunction ext where
+-- read input file from fist command line arg, and compile it 
+compile_ :: (String -> a) -> IO (FilePath, a)
+compile_ compileFunction = do 
+  inputFile <- fmap (!! 0) getArgs
+  a <- compile1 compileFunction inputFile
+  return (inputFile, a)
 
--- read the given input file, and compile it to a CompilationUnit
-compile1 :: (String -> a) -> String -> FilePath -> IO (CompilationUnit a)
-compile1 compileFunction ext inputFile = 
+-- read the given input file, and compile it
+compile1 :: (String -> a) -> FilePath -> IO a
+compile1 compileFunction inputFile = 
   do f <- readFile inputFile
-     length f `seq` return (CompilationUnit inputFile ext (compileFunction f))
+     length f `seq` return (compileFunction f)
 

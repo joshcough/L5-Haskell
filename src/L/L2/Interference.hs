@@ -217,11 +217,11 @@ runInterference = buildInterferenceGraph . runLiveness
 -- that string is read from the given filepath
 -- return a the result wrapped in a CompilationUnit for testing purposes
 -- it allows the result file to be read.
-runInterferenceMain_ :: FilePath -> IO (CompilationUnit Interference)
-runInterferenceMain_ = compile1 runInterference "gres"
+runInterferenceMain_ :: FilePath -> IO Interference
+runInterferenceMain_ = compile1 runInterference
 
 -- reads first command line argument, loads that file
 -- calls runLiveness on it, shows it, and returns it.
 runInterferenceMain :: IO ()
 runInterferenceMain = withFileArg $ \f ->
-  compile1 runInterference "lres" f >>= (putStrLn . show . result)
+  compile1 runInterference f >>= (putStrLn . show)
