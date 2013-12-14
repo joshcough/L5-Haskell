@@ -1,20 +1,54 @@
 module L.L2.Spill
   (
+    runSpillMain_
+   ,spillTest
   ) where
 
 import Control.Monad.State
+import Data.Traversable
+import L.CompilationUnit
 import L.L1L2AST
+import L.L1L2Parser
+import L.Read
+import L.Utils
+import Debug.Trace
 
-todo = error "todo"
-spillPrefix = "spilled_var_"
+defaultSpillPrefix = "spilled_var_"
+
+-- example input: ((x <- x)) x -4 s_
+-- the first part is the program
+-- the second is the name of the variable to be spilled
+-- the third is the stack offset to use
+-- the last is the spill prefix
+-- returns a list of instructions (printed), after spilling.
+spillTest :: String -> String
+spillTest input = case (readWithRest input) of 
+  (program, rest) -> 
+    let w = words rest
+        var = w !! 0
+        off = read $ w !! 1
+        pre = w !! 2
+        ins = extract $ parseL2InstList program
+    in showAsList $ spill var off pre ins
+
+runSpillMain_ :: FilePath -> IO (CompilationUnit String)
+runSpillMain_ = compile1 spillTest "sres"
+
+-- TODO: figure out - is this really the top level? 
+-- if not, the state should propagate, and be run later.
+spill :: Variable -> Int -> String -> [L2Instruction] -> [L2Instruction]
+spill spillVar stackOffset spillPrefix ins = 
+  let s :: State Int [[L2Instruction]]
+      s = traverse (spillInst spillVar stackOffset spillPrefix) ins
+  in join . fst $ runState s 0
 
 -- Spill a variable
 --   spillVar is obviously the variable to spill
---   stackOffset is TODO (i don't remember what this is!)
---   memLoc is the location in memory to spill the variable
-spill :: Variable -> Int -> L2MemLoc -> L2Instruction -> State Int [L2Instruction]
-spill spillVar stackOffset memLoc = spillI where
+--   stackOffset is the location in memory to spill the variable
+spillInst :: Variable -> Int -> String -> L2Instruction -> State Int [L2Instruction]
+spillInst spillVar stackOffset spillPrefix = spillI where
 
+  memLoc = MemLoc l2ebp stackOffset
   spillVarX = VarL2X spillVar
   spillVarS = XL2S spillVarX
   readSpillVarInto x = Assign x (MemRead memLoc)
@@ -33,7 +67,7 @@ spill spillVar stackOffset memLoc = spillI where
   withNewVarRW :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
   withNewVarRW f = fmap (\v -> readSpillVarInto v : (f v ++ [writeSpillVar v])) newVar
 
-  spillI (Assign x rhs)                 = todo
+  spillI (Assign x rhs)                 = spillAssignment x rhs
   spillI (CJump c@(Comp s1 _ s2) l1 l2) = spillCJump c l1 l2 
   spillI (MathInst x op s)              = spillMathInst x op s
   spillI (MemWrite loc s)               = spillMemWrite loc s
@@ -47,13 +81,6 @@ spill spillVar stackOffset memLoc = spillI where
   spillI l@(LabelDeclaration _)     = return [l]
   spillI r@Return                   = return [r]
   
-  spillRHS (CompRHS (Comp s1 _ s2)) = todo 
-  spillRHS (Allocate s1 s2)         = todo 
-  spillRHS (Print s)                = todo 
-  spillRHS (ArrayError a n)         = todo 
-  spillRHS (MemRead (MemLoc bp _))  = todo 
-  spillRHS (SRHS s)                 = todo
-
   spillAssignment :: L2X -> AssignRHS L2X L2S -> State Int [L2Instruction]
   -- assignments to variable from variable
   spillAssignment v1@(VarL2X _) rhs@(SRHS (XL2S v2@(VarL2X _)))
@@ -139,7 +166,6 @@ spill spillVar stackOffset memLoc = spillI where
   spillAssignment r p@(Print s)
     | r == l2eax && s == spillVarS = 
        withNewVarR $ \v -> [Assign l2eax (Print (XL2S v))]
-    | otherwise = return [Assign r p]
   spillAssignment r a@(Allocate n init)
     -- (eax <- (allocate x x))
     | r == l2eax && n == spillVarS && init == spillVarS =
@@ -150,7 +176,6 @@ spill spillVar stackOffset memLoc = spillI where
     -- (eax <- (allocate n x))
     | r == l2eax && init == spillVarS =
        withNewVarR $ \v -> [Assign l2eax (Allocate n (XL2S v))]
-    | otherwise = return [Assign r a]
   spillAssignment r ae@(ArrayError a n)
     -- (eax <- (array-error x x))
     | r == l2eax && a == spillVarS && n == spillVarS =
@@ -161,7 +186,6 @@ spill spillVar stackOffset memLoc = spillI where
     -- (eax <- (array-error n x))
     | r == l2eax && n == spillVarS =
        withNewVarR $ \v -> [Assign l2eax (ArrayError a (XL2S v))]
-    | otherwise = return [Assign r ae]
   spillAssignment l r = error $ "bad assignment: " ++ (show $ Assign l r)
 
   spillCJump c@(Comp s1 op s2) l1 l2

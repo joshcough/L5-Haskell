@@ -2,6 +2,7 @@ module L.Read
   (
     SExpr(..)
    ,flatten
+   ,readWithRest
    ,showAsList
    ,sread
   ) where

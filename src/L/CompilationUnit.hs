@@ -24,14 +24,15 @@ instance Functor CompilationUnit where
 
 -- build a CompilationUnit post compilation
 fromOutputFile :: FilePath -> String -> IO (CompilationUnit String)
-fromOutputFile input ext = 
-  CompilationUnit <$> return input <*> return ext <*> readFile (changeExtension ext input)
+fromOutputFile input ext = do f <- readFile (changeExtension ext input)
+                              length f `seq` (return $ CompilationUnit input ext f)
 
 outputFile :: CompilationUnit a -> String
 outputFile c = changeExtension (inputFile c) (outputExt c)
 
 readOutputFile :: CompilationUnit a -> IO String
-readOutputFile = readFile . outputFile
+readOutputFile c = do f <- readFile (outputFile c)
+                      length f `seq` (return f)
 
 writeOutputFile :: (Show a) => CompilationUnit a -> IO ()
 writeOutputFile c = writeFile (outputFile c) (show $ result c)
@@ -47,7 +48,7 @@ compile_ compileFunction ext = fmap (!! 0) getArgs >>= compile1 compileFunction 
 
 -- read the given input file, and compile it to a CompilationUnit
 compile1 :: (String -> a) -> String -> FilePath -> IO (CompilationUnit a)
-compile1 compileFunction ext inputFile =
-  let result = fmap compileFunction (readFile inputFile)
-  in CompilationUnit <$> return inputFile <*> return ext <*> result
+compile1 compileFunction ext inputFile = 
+  do f <- readFile inputFile
+     length f `seq` return (CompilationUnit inputFile ext (compileFunction f))
 

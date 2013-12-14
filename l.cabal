@@ -70,7 +70,6 @@ library
     MonadCatchIO-transformers >= 0.3     && < 0.4,
     mtl                       >= 2       && < 2.2,
     monad-st                  >= 0.2.2   && < 1,
-    optparse-applicative      >= 0.5.2.1 && < 0.6,
     parsers                   >= 0.8     && < 1,
     prelude-extras            >= 0.3     && < 1,
     random                    >= 1.0.0.3 && < 1.1,
@@ -132,14 +131,20 @@ test-suite properties
       unordered-containers,
       void                       >= 0.6     && < 1
 
--- Non QuickCheck tests.
-Test-Suite tests
-  type:       detailed-0.9
-  test-module: LTests
+-- Tasty tests
+test-suite tasty
+  type:           exitcode-stdio-1.0
+  main-is:        test/main.hs
   hs-source-dirs: . test
-  build-depends: 
-    base,
-    Cabal     >= 1.18.0,
-    directory >= 1.2.0.1,
-    l
 
+  if !flag(properties)
+    buildable: False
+  else
+    build-depends:
+      base,
+      directory                  >= 1.2.0.1,
+      l,
+      tasty                      >= 0.5.2,
+      tasty-hunit,
+      test-framework             >= 0.6,
+      test-framework-th          >= 0.2

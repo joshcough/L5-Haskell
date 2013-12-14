@@ -11,14 +11,11 @@ import L.CompilationUnit
 import L.IOHelpers
 import L.L1.L1
 
-mkTests_ :: IO [TestInstance] -> IO [Test]
-mkTests_ ts = fmap (fmap Test) ts
+mkTests :: [TestInstance] -> [Test]
+mkTests = fmap Test
 
-mkTests :: [IO [TestInstance]] -> IO [Test]
-mkTests = mkTests_ . fmap join . sequence
-
-testsFromFiles :: IO [FilePath] -> (FilePath -> IO Progress) -> IO [TestInstance]
-testsFromFiles files f = fmap (fmap $ \file -> mkTest file (f file)) files 
+testsFromFiles :: [FilePath] -> (FilePath -> IO Progress) -> [TestInstance]
+testsFromFiles files f = fmap (\file -> mkTest file (f file)) files 
 
 mkTest :: String -> IO Progress -> TestInstance
 mkTest testName runF = TestInstance
