@@ -6,22 +6,15 @@ import Test.Tasty.HUnit
 
 import Control.Applicative
 import Control.Exception
-import Data.IORef
 import Data.List
-import Data.Ord
-import System.Environment
-import System.IO
 import System.IO.Unsafe
-import System.Directory
 
-import L.CompilationUnit
 import L.IOHelpers
 import L.L1.L1
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
 import L.Read
-import L.Utils
 
 main = defaultMain $ testGroup "Main" $ (unsafePerformIO . sequence) allTests 
 
