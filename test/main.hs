@@ -72,14 +72,11 @@ spillTests = tree $ TestDef {
 }
 
 tree :: (Eq a, Show a) => TestDef a -> IO TestTree
-tree def = 
-  let testsFromFiles :: [FilePath] -> (FilePath -> Assertion) -> [TestTree]
-      testsFromFiles files f = fmap (\file -> testCase file $ f file) files
-      files = getRecursiveContentsByExt (dir def) (inputFileExt def)
-      mkTests fs = testsFromFiles fs $ \file -> do
-        res <- fmap (computeResult   def) $ readFile file
-        exp <- fmap (computeExpected def) $ readFile (changeExtension file (outputFileExt def))
-        res @?= exp
-  in testGroup (name def) . mkTests <$> files
+tree def = testGroup (name def) . fmap mkTest <$> testFiles where
+  testFiles = getRecursiveContentsByExt (dir def) (inputFileExt def)
+  mkTest file = testCase file $ do
+    res <- fmap (computeResult   def) $ readFile file
+    exp <- fmap (computeExpected def) $ readFile (changeExtension file $ outputFileExt def)
+    res @?= exp
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)
