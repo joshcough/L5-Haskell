@@ -40,6 +40,7 @@ library
     L.L2.Interference
     L.L2.Liveness
     L.L2.Spill
+    L.L2.Vars
 
   build-depends:
     ansi-terminal             >= 0.6     && < 0.7,
@@ -143,6 +144,4 @@ test-suite tasty
       directory                  >= 1.2.0.1,
       l,
       tasty                      >= 0.5.2,
-      tasty-hunit,
-      test-framework             >= 0.6,
-      test-framework-th          >= 0.2
+      tasty-hunit
