@@ -4,7 +4,6 @@ Test.*
 test2.*
 tmp
 build
-*.S
 *.o
 *.hi
 *.swp
