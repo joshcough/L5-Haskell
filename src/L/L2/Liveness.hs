@@ -3,10 +3,12 @@
 module L.L2.Liveness
   (
     InstructionInOutSet(..)
+   ,LiveRange(..)
    ,IIOS
    ,liveness
    ,livenessMain_
    ,livenessMain
+   ,liveRanges
    ,runLiveness
    ,showLiveness
   ) where
@@ -169,29 +171,29 @@ inout is =
   -- then fill them in until we reach the fixed point.
   in inout_ [emptyStartSet]
 
-{--
-  def liveRanges(iioss: List[InstructionInOutSet]): List[List[LiveRange]] = {
-    def liveRanges(x: X, sets: List[List[X]]): List[LiveRange] = sets match {
-      case Nil => Nil
-      case y::ys => {
-        if(y contains x) {
-          val (h,t) = sets.span(_.contains(x))
-          LiveRange(x, h.size) :: liveRanges (x, t)
-        } else liveRanges(x, sets.dropWhile(! _.contains(x)))
-      }
-    }
-    val inSets = iioss.map(_.in)
-    val variablesAndRegisters = inSets.foldLeft(Set[X]()){
-      case (acc, s) => acc union s
-    }.filterNot(x => x == ebp || x == esp)
-    for(x <- variablesAndRegisters.toList.sorted) yield liveRanges(x, inSets.map(_.toList))
-  }
-}
---}
+-- TODO: not using usages just yet, but it should be used in ties.
+data LiveRange = LiveRange { x :: L2X, range :: Int, usages :: Int }
+lr x r = LiveRange x r 0
+instance Eq LiveRange where
+  (==) (LiveRange _ r1 _) (LiveRange _ r2 _) = r1 == r2
+instance Ord LiveRange where 
+  compare (LiveRange _ r1 _) (LiveRange _ r2 _) = compare r1 r2
 
-{--
-// TODO: probably should fill in the usages variable.
-case class LiveRange(x:X, range:Int, usages:Int=0) extends Ordered[LiveRange] {
-  def compare(that: LiveRange) = this.range compare that.range
-}
---}
+liveRanges :: [IIOS] -> [[LiveRange]]
+liveRanges iioss =
+  let inSets :: [S.Set L2X]
+      inSets = fmap inSet iioss
+      varsAndRegisters :: [L2X]
+      varsAndRegisters = sort . S.toList $ foldl f S.empty inSets where
+        f acc s = error "todo"
+-- val variablesAndRegisters = inSets.foldLeft(Set[X]()){
+--   -      case (acc, s) => acc union s
+--   -      -    }.filterNot(x => x == ebp || x == esp)
+--   -
+      liveRanges1 :: L2X -> [S.Set L2X] -> [LiveRange]
+      liveRanges1 _ [] = []
+      liveRanges1 x sets@(s:_)
+        | S.member x s = case span (S.member x) sets
+          of (h, t) -> (lr x $ length h) : liveRanges1 x t
+        | otherwise    = liveRanges1 x $ dropWhile (not . S.member x) sets 
+  in fmap (flip liveRanges1 inSets) varsAndRegisters

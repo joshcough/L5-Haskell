@@ -102,39 +102,14 @@ executable InterferenceMain
  main-is: Main.hs
  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
--- QuickCheck tests
-test-suite properties
-  type:           exitcode-stdio-1.0
-  main-is:        properties/properties.hs
-  ghc-options:    -w -threaded -rtsopts -with-rtsopts=-N -v0
-  hs-source-dirs: . properties
-  other-modules:
-    L1Tests
-
-  if !flag(properties)
-    buildable: False
-  else
-    build-depends:
-      base,
-      directory                  >= 1.2.0.1,
-      l,
-      monad-st,
-      prelude-extras,
-      QuickCheck                 >= 2.4,
-      quickcheck-instances       >= 0.3.1,
-      tagged                     >= 0.4.4 && < 1,
-      test-framework             >= 0.6,
-      test-framework-quickcheck2 >= 0.2,
-      test-framework-th          >= 0.2,
-      transformers,
-      unordered-containers,
-      void                       >= 0.6     && < 1
-
--- Tasty tests
-test-suite tasty
+-- QuickCheck and HUnit tests in one!
+test-suite tests
   type:           exitcode-stdio-1.0
   main-is:        test/main.hs
   hs-source-dirs: . test
+  other-modules:
+    LProperties
+    LUnitTests
 
   if !flag(properties)
     buildable: False
@@ -144,5 +119,9 @@ test-suite tasty
       directory                  >= 1.2.0.1,
       HUnit,
       l,
+      QuickCheck                 >= 2.4,
+      quickcheck-instances       >= 0.3.1,
       test-framework             >= 0.6,
-      test-framework-hunit
+      test-framework-hunit,
+      test-framework-quickcheck2 >= 0.2,
+      test-framework-th          >= 0.2
