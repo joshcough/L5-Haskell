@@ -16,7 +16,7 @@ cabal-version:       >=1.8
 
 source-repository head
   type: git
-  location: git://github.com/ekmett/ermine.git
+  location: git@github.com:joshcough/L5-Haskell.git
 
 -- `cabal install --enable-tests -f-tests` to disable tests suite
 flag tests
