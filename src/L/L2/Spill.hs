@@ -2,6 +2,7 @@ module L.L2.Spill
   (
     runSpillMain_
    ,spill
+   ,spillDef
    ,spillTest
   ) where
 
@@ -34,6 +35,8 @@ spillTest input = case (sreadWithRest input) of
 
 runSpillMain_ :: FilePath -> IO String
 runSpillMain_ = compile1 spillTest
+
+spillDef v i = spill v i defaultSpillPrefix
 
 -- TODO: figure out - is this really the top level? 
 -- if not, the state should propagate, and be run later.

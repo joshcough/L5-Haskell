@@ -3,6 +3,7 @@
 module L.L2.Interference 
   (
     Interference
+   ,InterferenceGraph(..)
    ,buildInterferenceGraph
    ,runInterference
    ,runInterferenceMain
@@ -21,6 +22,7 @@ import L.L1L2AST
 import L.Read (showAsList)
 import L.Utils (mkString, traceA)
 import L.L2.Liveness
+import L.L2.Vars
  
 type InterferenceGraph = M.Map L2X (S.Set L2X)
 newtype Interference = Interference InterferenceGraph
@@ -73,10 +75,6 @@ mkGraph edges = addEdges edges empty
 
 edgeSetToGraph :: AsL2X x => S.Set (x, x) -> InterferenceGraph
 edgeSetToGraph edges = addEdges (S.toList edges) empty
-
-isVariable :: L2X -> Bool
-isVariable (VarL2X _) = True
-isVariable _ = False
 
 variables :: InterferenceGraph -> S.Set L2X
 variables = S.filter isVariable . graphMembers
@@ -165,33 +163,7 @@ interference1 iios =
         f (MathInst _ LeftShift  (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
         f (MathInst _ RightShift (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
         f _ = []
-  in union (traceA outInterference) (traceA specialInterference)
-
-vars :: L2Instruction -> S.Set Variable
-vars = varsI where
-  varsI (Assign x rhs)             = S.unions [varsX x,  varsRHS rhs]
-  varsI (MathInst x _ s)           = S.unions [varsX x,  varsS s]
-  varsI (MemWrite (MemLoc bp _) s) = S.unions [varsX bp, varsS s]
-  varsI (Goto _)                   = S.empty
-  varsI (CJump (Comp s1 _ s2) _ _) = S.unions [varsS s1, varsS s2]
-  varsI (LabelDeclaration _)       = S.empty
-  varsI (Call s)                   = varsS s
-  varsI (TailCall s)               = varsS s
-  varsI Return                     = S.empty
-
-  varsX (RegL2X _) = S.empty
-  varsX (VarL2X v) = S.singleton v
-
-  varsS (XL2S x)        = varsX x
-  varsS (NumberL2S n)   = S.empty
-  varsS (LabelL2S l)    = S.empty
-
-  varsRHS (CompRHS (Comp s1 _ s2)) = S.unions [varsS s1, varsS s2] 
-  varsRHS (Allocate s1 s2)         = S.unions [varsS s1, varsS s2] 
-  varsRHS (Print s)                = varsS s
-  varsRHS (ArrayError a n)         = S.unions [varsS a,  varsS n]
-  varsRHS (MemRead (MemLoc bp _))  = varsX bp
-  varsRHS (SRHS s)                 = varsS s
+  in union outInterference specialInterference
 
 {-
   Example:

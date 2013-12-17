@@ -142,6 +142,7 @@ test-suite tasty
     build-depends:
       base,
       directory                  >= 1.2.0.1,
+      HUnit,
       l,
-      tasty                      >= 0.5.2,
-      tasty-hunit
+      test-framework             >= 0.6,
+      test-framework-hunit
