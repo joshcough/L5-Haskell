@@ -138,6 +138,7 @@ parseLabelOrRegister _ f r           = fmap f $ parseRegister r
 
 parseRegister :: String -> Maybe Register
 parseRegister r = registerFromName r
+-- todo add check for divisible by 4
 parseN4 n = case (sread n) of
   AtomNum n -> Right n
   AtomSym s -> Left $ "not a number" ++ n

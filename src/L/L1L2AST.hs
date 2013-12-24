@@ -3,6 +3,7 @@
 module L.L1L2AST where
 
 import L.Read (showAsList)
+import Prelude hiding (LT, EQ)
 
 type Label      = String
 
@@ -26,6 +27,21 @@ data AssignRHS x s =
 
 data X86Op = Increment | Decrement | Multiply | LeftShift | RightShift | BitwiseAnd
   deriving (Eq, Ord)
+
+data Instruction x s =
+  Assign x (AssignRHS x s)   |
+  MathInst x X86Op s         |
+  MemWrite (MemLoc x) s      |
+  Goto Label                 |
+  CJump (Comp s) Label Label |
+  LabelDeclaration Label     |
+  Call s                     |
+  TailCall s                 |
+  Return deriving (Eq, Ord)
+
+data Func x s = Func { body :: [Instruction x s]}
+data Program x s = Program (Func x s) [Func x s]
+
 increment  = Increment
 decrement  = Decrement
 multiply   = Multiply
@@ -47,19 +63,12 @@ x86OpName LeftShift  = "sall"
 x86OpName RightShift = "sarl"
 x86OpName BitwiseAnd = "andl"
 
-data Instruction x s =
-  Assign x (AssignRHS x s)   |
-  MathInst x X86Op s         |
-  MemWrite (MemLoc x) s      |
-  Goto Label                 |
-  CJump (Comp s) Label Label |
-  LabelDeclaration Label     |
-  Call s                     |
-  TailCall s                 |
-  Return deriving (Eq, Ord)
 
-data Func x s = Func { body :: [Instruction x s]}
-data Program x s = Program (Func x s) [Func x s]
+--data X86Op = Increment | Decrement | Multiply | LeftShift | RightShift | BitwiseAnd
+runOp :: X86Op -> Int -> Int -> Int
+runOp Increment = (+)
+runOp Decrement = (-)
+runOp Multiply  = (*)
 
 instance (Show x, Show s) => Show (Program x s) where
   show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
@@ -130,28 +139,29 @@ registerFromName :: String -> Maybe Register
 registerFromName s = maybe (fmap CXR (cxRegisterFromName s)) (Just . XR) (xRegisterFromName s)
 
 instance Show CompOp where
-  show L.L1L2AST.LT   = "<"
-  show L.L1L2AST.LTEQ = "<="
-  show L.L1L2AST.EQ   = "="
+  show LT   = "<"
+  show LTEQ = "<="
+  show EQ   = "="
+
+cmp :: CompOp -> Int -> Int -> Bool
+cmp LT   = (<)
+cmp LTEQ = (<=)
+cmp EQ   = (==)
 
 compOpFromSym :: String -> Either String CompOp
-compOpFromSym "<"  = Right L.L1L2AST.LT
-compOpFromSym "<=" = Right L.L1L2AST.LTEQ
-compOpFromSym "="  = Right L.L1L2AST.EQ
+compOpFromSym "<"  = Right LT
+compOpFromSym "<=" = Right LTEQ
+compOpFromSym "="  = Right EQ
 compOpFromSym s    = Left $ "not a comparison operator" ++ s
 
-runOp L.L1L2AST.LT   n1 n2 = n1 <  n2
-runOp L.L1L2AST.LTEQ n1 n2 = n1 <= n2
-runOp L.L1L2AST.EQ   n1 n2 = n1 == n2
-
 foldOp :: a -> a -> a -> CompOp -> a
-foldOp a _ _ L.L1L2AST.LT   = a
-foldOp _ a _ L.L1L2AST.LTEQ = a
-foldOp _ _ a L.L1L2AST.EQ   = a
+foldOp a _ _ LT   = a
+foldOp _ a _ LTEQ = a
+foldOp _ _ a EQ   = a
 
 -- L1 AST (uses shared L1/L2 AST)
 type L1X = Register
-data L1S = NumberL1S Int | LabelL1S Label | RegL1S Register
+data L1S = NumberL1S Int | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
 type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
 type L1 = Program L1X L1S
@@ -182,7 +192,7 @@ instance Show L2S where
   show (LabelL2S l)    = ":" ++ l
   show (XL2S x)        = show x
 
-instance Eq  L2X where (==) x1 x2 = (show x1) == (show x2)
+instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
 instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
 

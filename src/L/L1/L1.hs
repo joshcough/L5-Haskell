@@ -83,7 +83,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (TailCall s)       = Right ["movl %ebp, %esp", jump s]
   -- special case for two numbers
   genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
-    Right $ if (runOp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
+    Right $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
   genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = Right [
     triple "cmpl" (genS l) (genS r),
@@ -122,7 +122,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genAssignInst cx@(CXR c) (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
     Right $ genCompInst cx r l (setInstruction op)
   genAssignInst cx@(CXR _) (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
-    Right [triple "movl" ("$" ++ (if (runOp op n1 n2) then "1" else "0")) (genReg cx)]
+    Right [triple "movl" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
   genAssignInst (CXR Eax) (Print s) = Right [
     "pushl " ++ genS s,
     "call print",

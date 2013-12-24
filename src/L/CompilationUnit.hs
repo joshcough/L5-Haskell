@@ -2,6 +2,7 @@ module L.CompilationUnit
   (
     compile
    ,compile1
+   ,compile_
   ) where
 
 import Control.Applicative

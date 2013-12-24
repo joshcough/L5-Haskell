@@ -1,6 +1,7 @@
 module L.Utils
   (
-    endsWith
+    (|>)
+   ,endsWith
    ,extract
    ,mkString
    ,traceA
@@ -10,6 +11,8 @@ module L.Utils
 
 import Data.List
 import Debug.Trace
+
+(|>) = flip (.)
 
 mkString :: String -> [String] -> String
 mkString s l = concat $ intersperse s l
