@@ -35,8 +35,8 @@ showOutput cs = mkString "" $ reverse (output cs)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
-memSize = 16 -- twoMeg
-ebpStart = memSize - 1
+memSize = 32 --2048 --twoMeg
+ebpStart = (memSize - 1) * 4
 espStart = ebpStart
 registerStartState = Map.fromList [(eax, 0), (ebx, 0), (ecx, 0), (edx, 0),
                                    (edi, 0), (esi, 0), (ebp, ebpStart), (esp, espStart)]
@@ -57,27 +57,27 @@ readReg r cs =
   maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ registers cs)
 
 writeMem :: Int -> Int -> CompState -> CompState
-writeMem index value cs = newMem (memory cs Vector.// [(index, value)]) cs
+writeMem index value cs = newMem (memory cs Vector.// [(index `div` 4, value)]) cs
 
 readMem :: Int -> CompState -> Int
-readMem i cs = memory cs Vector.! i
+readMem i cs = memory cs Vector.! (i `div` 4)
 
 readArray :: Int -> CompState -> Vector Int
 readArray i cs = 
   let size = readMem i cs
-  in Vector.slice (i+1) size (memory cs)
+  in Vector.slice (i `div` 4 + 1) size (memory cs)
 
 push :: Int -> CompState -> CompState
 push value cs =
   let espVal = readReg esp cs
       newMem = writeMem espVal value cs
-  in writeReg esp (espVal - 1) newMem
+  in writeReg esp (espVal - 4) newMem
 
 pop :: Register -> CompState -> CompState
 pop r cs =
   let espVal   = readReg esp cs
       newState = writeReg r (readMem espVal cs) cs
-  in writeReg esp (espVal + 1) newState
+  in writeReg esp (espVal + 4) newState
 
 adjustNum n = shiftR n 1
 
@@ -86,12 +86,12 @@ allocate :: Int -> Int -> CompState -> (Int, CompState)
 allocate size n cs =
   let size'   = adjustNum size
       ns      = Prelude.replicate size' n
-      indices = [(heapP cs)..]
-      heap    = newMem (memory cs Vector.// (zip indices (size' : ns))) (bumpHeap (size'+1) cs)
+      indices = [(heapP cs `div` 4)..]
+      heap    = newMem (memory cs Vector.// (zip indices (size' : ns))) (bumpHeap ((size'+1)*4) cs)
   in (heapP cs, heap)
 
 l1print :: Int -> CompState -> CompState
-l1print n cs = addOutput (printContent n 0 ++ "\n") cs where --(show $ adjustNum n) cs
+l1print n cs = addOutput (printContent n 0 ++ "\n") cs where
   printContent :: Int -> Int -> String
   printContent n depth
     | depth >= 4   = "..."
@@ -100,8 +100,8 @@ l1print n cs = addOutput (printContent n 0 ++ "\n") cs where --(show $ adjustNum
       let size  = readMem n cs
           arr   = readArray n cs
           contentsV = Vector.map (\n -> printContent n $ depth + 1) arr
-          contents = mkString ", " $ Vector.toList contentsV
-      in "{s:" ++ (show size) ++ ", " ++ contents ++ "}"
+          contents = mkString ", " $ show size : Vector.toList contentsV
+      in "{s:" ++ contents ++ "}"
 
 -- all this should be able to be replaced with Lens
 newReg :: RegisterState -> CompState -> CompState
@@ -134,13 +134,13 @@ interp (Program main fs) = go emptyState where -- starts go at instruction 0
   advanceWR :: Register -> Int -> CompState -> CompState
   advanceWR r i cs = advance $ writeReg r i cs
   go :: CompState -> CompState
-  go cs = f (traceA prog Vector.! (ip cs)) (traceA cs) where
+  go cs = f (prog Vector.! (ip cs)) cs where
     f :: L1Instruction -> CompState -> CompState
      -- Assignment statements
     f (Assign r (CompRHS (Comp s1 op s2))) cs  = advanceWR r 
       (if (cmp op (readS s1 cs) (readS s2 cs)) then 1 else 0) cs
     f (Assign r (MemRead (MemLoc x offset))) cs =
-      let index = (readReg x cs) + (offset `div` 4)
+      let index = (readReg x cs) + offset
       in advanceWR r (readMem index cs) cs
     f (Assign r (Allocate s1 s2)) cs   = 
       let (h, cs') = allocate (readS s1 cs) (readS s2 cs) cs
@@ -158,8 +158,8 @@ interp (Program main fs) = go emptyState where -- starts go at instruction 0
       in go $ goto l cs
     -- MemWrite
     f (MemWrite (MemLoc x offset) s) cs =
-      let index = (readReg x cs) + (traceSA "offset: " $ offset `div` 4)
-      in advance $ writeMem (traceA index) (readS s cs) cs
+      let index = (readReg x cs) + offset
+      in advance $ writeMem index (readS s cs) cs
     -- Goto
     f (Goto l) cs = go $ goto (findLabelIndex l) cs
     -- LabelDec, just advance
