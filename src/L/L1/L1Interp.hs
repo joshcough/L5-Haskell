@@ -22,7 +22,8 @@ data CompState = CompState {
   registers :: RegisterState,
   memory    :: Memory,
   output    :: Output,
-  ip        :: Ip
+  ip        :: Ip,
+  heapP     :: Int -- pointer to top of heap
 } deriving (Show)
 
 --instance Show CompState where
@@ -37,7 +38,7 @@ espStart = ebpStart
 registerStartState = Map.fromList [(eax, 0), (ebx, 0), (ecx, 0), (edx, 0),
                                    (edi, 0), (esi, 0), (ebp, ebpStart), (esp, espStart)]
 emptyMem = Vector.replicate memSize 0
-emptyState = CompState registerStartState emptyMem [] 0
+emptyState = CompState registerStartState emptyMem [] 0 0
 
 nextInst :: CompState -> CompState
 nextInst cs = goto ((ip cs) + 1) cs
@@ -71,13 +72,26 @@ readMem :: Int -> CompState -> Int
 readMem i cs = memory cs Vector.! i
 
 newReg :: RegisterState -> CompState -> CompState
-newReg rs cs = CompState rs (memory cs) (output cs) (ip cs)
+newReg rs cs = CompState rs (memory cs) (output cs) (ip cs) (heapP cs)
 newMem :: Memory -> CompState -> CompState
-newMem m cs = CompState (registers cs) m (output cs) (ip cs)
+newMem m cs = CompState (registers cs) m (output cs) (ip cs) (heapP cs)
 goto :: Ip -> CompState -> CompState
-goto ip cs = CompState (registers cs) (memory cs) (output cs) ip
+goto ip cs = CompState (registers cs) (memory cs) (output cs) ip (heapP cs)
 addOutput :: String -> CompState -> CompState
-addOutput s cs = CompState (registers cs) (memory cs) (s : output cs) (ip cs)
+addOutput s cs = CompState (registers cs) (memory cs) (s : output cs) (ip cs) (heapP cs)
+bumpHeap n cs = CompState (registers cs) (memory cs) (output cs) (ip cs) (heapP cs + n)
+
+adjustNum n = (n - 1) `div` 2
+-- TODO: test if heap runs into stack, and vice-versa
+allocate :: Int -> Int -> CompState -> (Int, CompState)
+allocate size n cs =
+  let size'   = adjustNum size
+      n'      = adjustNum n
+      ns      = Prelude.replicate size' n'
+      indices = [(heapP cs)..]
+      heap    = newMem (memory cs Vector.// (zip indices ns)) (bumpHeap n' cs)
+  in (heapP cs, heap)
+
 
 interp :: L1 -> CompState
 interp (Program main fs) = 
@@ -104,12 +118,20 @@ interp (Program main fs) =
             getSValue (LabelL1S l)  _ = findLabelIndex l
             f :: L1Instruction -> CompState -> CompState
             -- Assignment statements
-            f (Assign r (CompRHS (Comp s1 op s2))) cs = advanceWR r 
+            f (Assign r (CompRHS (Comp s1 op s2))) cs  = advanceWR r 
               (if (cmp op (getSValue s1 cs) (getSValue s1 cs)) then 1 else 0) cs
-            f (Assign r (Allocate s1 s2)) cs   = advanceWR r (error "todo, allocate") cs
-            f (Assign r (Print s)) cs          = advanceWR r 0 (addOutput (show $ getSValue s cs) cs)  
+            -- readMem :: Int -> CompState -> Int
+            f (Assign r (MemRead (MemLoc x offset))) cs =
+              let index = (readReg x cs) + (offset `div` 4)
+              in advanceWR r (readMem index cs) cs
+            -- TODO: implement allocate from runtime.c
+            f (Assign r (Allocate s1 s2)) cs   = 
+              let (h, cs') = allocate (getSValue s1 cs) (getSValue s2 cs) cs
+              in advanceWR r h cs'
+            -- TODO: implement print    from runtime.c
+            f (Assign r (Print s)) cs          = 
+              advanceWR r 0 $ addOutput (show $ adjustNum $ getSValue s cs) cs
             f (Assign r (ArrayError s1 s2)) cs = advanceWR r (error "todo, arrayerror") cs
-            f (Assign r (MemRead loc)) cs      = advanceWR r (error "todo, memread") cs
             f (Assign r (SRHS s)) cs           = advanceWR r (getSValue s cs) cs
             -- Math Inst
             f (MathInst r op s) cs = advance $ 
@@ -139,7 +161,7 @@ interp (Program main fs) =
             f (TailCall s) cs = go $ goto (getSValue s cs) cs
             -- Return
             f Return cs = pop ebp $ set esp ebp cs 
-        in f (traceA i) (traceA cs)
+        in f i cs
   in go emptyState -- starts go at instruction 0
 
 interpL1File = 
