@@ -2,6 +2,7 @@
 
 module L.L1L2AST where
 
+import Data.Bits
 import L.Read (showAsList)
 import Prelude hiding (LT, EQ)
 
@@ -66,9 +67,12 @@ x86OpName BitwiseAnd = "andl"
 
 --data X86Op = Increment | Decrement | Multiply | LeftShift | RightShift | BitwiseAnd
 runOp :: X86Op -> Int -> Int -> Int
-runOp Increment = (+)
-runOp Decrement = (-)
-runOp Multiply  = (*)
+runOp Increment  = (+)
+runOp Decrement  = (-)
+runOp Multiply   = (*)
+runOp LeftShift  = shiftL
+runOp RightShift = shiftR
+runOp BitwiseAnd = (.&.)
 
 instance (Show x, Show s) => Show (Program x s) where
   show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
