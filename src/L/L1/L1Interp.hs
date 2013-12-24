@@ -96,7 +96,7 @@ allocate size n cs =
 interp :: L1 -> CompState
 interp (Program main fs) = 
   let -- put all the instructions into a single vector
-      insts = Prelude.concat $ (body main) : (fmap body fs) ++ [[Return]]
+      insts = Prelude.concat $ (body main ++ [Return]) : (fmap body fs)
       prog :: Vector L1Instruction
       prog = Vector.fromList insts
       instructionsWithIndex = zipWithIndex insts
@@ -105,6 +105,10 @@ interp (Program main fs) =
       findLabelIndex :: Label -> Int
       findLabelIndex l =
         maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) indeces)
+      getSValue :: L1S -> CompState -> Int
+      getSValue (NumberL1S n) _ = n
+      getSValue (RegL1S r)   cs = readReg r cs
+      getSValue (LabelL1S l)  _ = findLabelIndex l
       go :: CompState -> CompState
       go cs = 
         let i = prog Vector.! (ip cs) 
@@ -112,10 +116,6 @@ interp (Program main fs) =
             advance = nextInst |> go
             advanceWR :: Register -> Int -> CompState -> CompState
             advanceWR r i cs = advance $ writeReg r i cs
-            getSValue :: L1S -> CompState -> Int
-            getSValue (NumberL1S n) _ = n
-            getSValue (RegL1S r)   cs = readReg r cs
-            getSValue (LabelL1S l)  _ = findLabelIndex l
             f :: L1Instruction -> CompState -> CompState
             -- Assignment statements
             f (Assign r (CompRHS (Comp s1 op s2))) cs  = advanceWR r 
@@ -131,7 +131,7 @@ interp (Program main fs) =
             -- TODO: implement print    from runtime.c
             f (Assign r (Print s)) cs          = 
               advanceWR r 0 $ addOutput (show $ adjustNum $ getSValue s cs) cs
-            f (Assign r (ArrayError s1 s2)) cs = advanceWR r (error "todo, arrayerror") cs
+            f (Assign r (ArrayError s1 s2)) cs = error "TODO: arrayerror"
             f (Assign r (SRHS s)) cs           = advanceWR r (getSValue s cs) cs
             -- Math Inst
             f (MathInst r op s) cs = advance $ 
