@@ -10,11 +10,13 @@ import Test.HUnit
 import Control.Applicative
 import Control.Exception
 import Data.List
+import Data.String.Utils
 import Data.Traversable
 import System.IO.Unsafe
 
 import L.IOHelpers
 import L.L1.L1
+import L.L1.L1Interp
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
@@ -24,7 +26,8 @@ tests = do
   ts <- traverse tree tests_
   return $ testGroup "Main" ts
 
-tests_ = [l1Tests, livenessTests, interferenceTests, spillTests]
+--tests_ = [l1Tests, livenessTests, interferenceTests, spillTests]
+tests_ = [l1InterpreterTests]
 
 testDir = "./test/test-fest/"
 
@@ -41,7 +44,17 @@ l1Tests = TestDef {
  ,dir  = testDir
  ,inputFileExt = "L1"
  ,outputFileExt = "S"
- ,compute = \r e -> compileL1OrDie r @?= e
+ ,compute = \r e -> strip (compileL1OrDie r) @?= (strip e)
+}
+l1InterpreterTests = TestDef {
+  name = "L1 Interpreter"
+-- ,dir = testDir ++ "1-test"
+-- ,dir = testDir ++ "1-test/robby"
+-- jin (2) robby (2)
+ ,dir = "./L1TestFailures"
+ ,inputFileExt = "L1"
+ ,outputFileExt = "res"
+ ,compute = \r e -> strip (interpL1OrDie r) @?= strip e
 }
 livenessTests = TestDef { 
   name = "Liveness"
