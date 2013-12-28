@@ -2,9 +2,9 @@
 
 module L.L2.Vars
   (
+    HasVars(..),
     isVariable
    ,replaceVarsWithRegisters
-   ,vars
   ) where
 
 import qualified Data.Map as M
@@ -15,8 +15,14 @@ isVariable :: L2X -> Bool
 isVariable (VarL2X _) = True
 isVariable _ = False
 
-vars :: L2Instruction -> S.Set Variable
-vars = varsI where
+class HasVars a where
+  vars :: a -> S.Set Variable
+
+instance HasVars L2Instruction where
+  vars = varsInst
+
+varsInst :: L2Instruction -> S.Set Variable
+varsInst = varsI where
   varsI (Assign x rhs)             = S.unions [varsX x,  varsRHS rhs]
   varsI (MathInst x _ s)           = S.unions [varsX x,  varsS s]
   varsI (MemWrite (MemLoc bp _) s) = S.unions [varsX bp, varsS s]

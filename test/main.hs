@@ -15,5 +15,5 @@ import LUnitTests
 
 main = do
   unitTests <- LUnitTests.tests
-  defaultMain [unitTests, LProperties.tests]
+  defaultMain [unitTests] --, LProperties.tests]
 

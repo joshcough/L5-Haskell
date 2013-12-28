@@ -93,6 +93,7 @@ test-suite tests
       directory                  >= 1.2.0.1,
       HUnit,
       l,
+      MissingH,
       QuickCheck                 >= 2.4,
       quickcheck-instances       >= 0.3.1,
       test-framework             >= 0.6,
