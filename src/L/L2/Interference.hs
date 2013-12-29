@@ -31,8 +31,8 @@ newtype Interference = Interference InterferenceGraph
 instance HasVars (S.Set L2X) where
   vars s = S.fromList [ v | VarL2X v <- S.toList s ]
 
-instance HasVars Interference where
-  vars (Interference g) = vars $ variables g
+instance HasVars InterferenceGraph where
+  vars g = vars $ variables g
 
 empty :: InterferenceGraph
 empty = M.empty
