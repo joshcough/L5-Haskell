@@ -36,7 +36,7 @@ showOutput cs = mkString "" $ reverse (output cs)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
-memSize = 4 --twoMeg
+memSize = 2048 -- twoMeg
 ebpStart = (memSize - 1) * 4
 espStart = ebpStart
 registerStartState = Map.fromList [(eax, 0), (ebx, 0), (ecx, 0), (edx, 0),
@@ -80,8 +80,9 @@ readArray addr cs =
 push :: Int -> Computer -> Computer
 push value cs =
   let espVal = readReg esp cs
-      newMem = writeMem espVal value cs
-  in writeReg esp (espVal - 4) newMem
+      incEsp = writeReg esp (espVal - 4) cs
+      newMem = writeMem (espVal - 4) value incEsp
+  in newMem
 
 -- pop the top value off the stack into the given register
 -- adjust esp accordingly.
@@ -167,7 +168,9 @@ interp (Program main fs) = go emptyState where -- starts go at instruction 0
   advanceWR r i cs = advance $ writeReg r i cs
   -- the main loop
   go :: Computer -> Computer
-  go cs = f (prog Vector.! (ip cs)) (traceA cs) where
+  go cs = g (ip cs) (prog Vector.! (ip cs)) cs where
+    --g ip inst comp = f (traceSA (show ip ++ ": ") inst) (traceA comp)
+    g ip inst comp = f inst comp
     f :: L1Instruction -> Computer -> Computer
      -- Assignment statements
     f (Assign r (CompRHS (Comp s1 op s2))) cs  = advanceWR r 
