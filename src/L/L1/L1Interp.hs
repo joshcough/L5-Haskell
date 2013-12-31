@@ -77,11 +77,14 @@ readArray addr cs =
 
 -- push the given int argument onto the top of the stack
 -- adjust esp accordingly
+-- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
+-- "push first decrements ESP by 4, then places its operand 
+--  into the contents of the 32-bit location at address [ESP]."
 push :: Int -> Computer -> Computer
 push value cs =
-  let espVal = readReg esp cs
-      incEsp = writeReg esp (espVal - 4) cs
-      newMem = writeMem (espVal - 4) value incEsp
+  let espVal = readReg esp cs - 4
+      incEsp = writeReg esp espVal cs
+      newMem = writeMem espVal value incEsp
   in newMem
 
 -- pop the top value off the stack into the given register

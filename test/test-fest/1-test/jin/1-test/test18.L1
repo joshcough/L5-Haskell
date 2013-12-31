@@ -4,6 +4,5 @@
   (eax += 5)
   (eax <- (print eax))
   (eax <- (mem esp -4))
-  (eax += 5)
   (eax <- (print eax))
   ))
