@@ -181,8 +181,8 @@ interp (Program main fs) = go emptyState where -- starts go at instruction 0
     f (Assign r (MemRead (MemLoc x offset))) cs =
       let index = (readReg x cs) + offset
       in advanceWR r (readMem index cs) cs
-    f (Assign r (Allocate s1 s2)) cs   = 
-      let (h, cs') = allocate (readS s1 cs) (readS s2 cs) cs
+    f (Assign r (Allocate size datum)) cs   = 
+      let (h, cs') = allocate (readS size cs) (readS datum cs) cs
       in advanceWR r h cs'
     f (Assign r (Print s)) cs          = 
       advanceWR r 1 $ l1print  (readS s cs)  cs
