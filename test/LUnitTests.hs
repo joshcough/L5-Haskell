@@ -26,7 +26,8 @@ tests = do
   ts <- traverse tree tests_
   return $ testGroup "Main" ts
 
-tests_ = [l1Tests, livenessTests, interferenceTests, spillTests, l1InterpreterTests]
+--tests_ = [l1Tests, livenessTests, interferenceTests, spillTests, l1InterpreterTests]
+tests_ = [l1InterpreterTests]
 
 testDir = "./test/test-fest/"
 
@@ -47,7 +48,7 @@ l1Tests = TestDef {
 }
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
- ,dir = testDir ++ "1-test"
+ ,dir = testDir ++ "1-test/cough"
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
  ,compute = \r e -> strip (interpL1OrDie r) @?= strip e
