@@ -8,17 +8,25 @@ import Prelude hiding (LT, EQ)
 
 type Label      = String
 
-data XRegister  = Esi | Edi | Ebp | Esp deriving Eq
-data CXRegister = Eax | Ebx | Ecx | Edx deriving Eq
+data XRegister  = Esi | Rsi | Edi | Rdi | Ebp | Rbp | Esp | Rsp deriving Eq
+data CXRegister = Eax | Rax | Ebx | Rbx | Ecx | Rcx | Edx | Rdx deriving Eq
 data Register   = CXR CXRegister | XR XRegister  deriving Eq
 esi = XR Esi
 edi = XR Edi
 ebp = XR Ebp
 esp = XR Esp
+rsi = XR Rsi
+rdi = XR Rdi
+rbp = XR Rbp
+rsp = XR Rsp
 eax = CXR Eax
 ebx = CXR Ebx
 ecx = CXR Ecx
 edx = CXR Edx
+rax = CXR Rax
+rbx = CXR Rbx
+rcx = CXR Rcx
+rdx = CXR Rdx
 data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
 data Comp s     = Comp s CompOp s deriving (Eq, Ord)
@@ -96,11 +104,19 @@ instance Show XRegister where
   show Edi = "edi"
   show Ebp = "ebp"
   show Esp = "esp"
+  show Rsi = "rsi"
+  show Rdi = "rdi"
+  show Rbp = "rbp"
+  show Rsp = "rsp"
 instance Show CXRegister where
   show Eax = "eax"
   show Ebx = "ebx"
   show Ecx = "ecx"
   show Edx = "edx"
+  show Rax = "rax"
+  show Rbx = "rbx"
+  show Rcx = "rcx"
+  show Rdx = "rdx"
 
 instance Show Register where
   show (CXR cxr) = show cxr
@@ -141,6 +157,20 @@ cxRegisterFromName _     = Nothing
 
 registerFromName :: String -> Maybe Register
 registerFromName s = maybe (fmap CXR (cxRegisterFromName s)) (Just . XR) (xRegisterFromName s)
+
+is32Bit :: Register -> Bool
+is32Bit (XR Esi)  = True
+is32Bit (XR Edi)  = True
+is32Bit (XR Ebp)  = True
+is32Bit (XR Esp)  = True
+is32Bit (CXR Eax) = True
+is32Bit (CXR Ebx) = True
+is32Bit (CXR Ecx) = True
+is32Bit (CXR Edx) = True
+is32Bit _ = False
+
+is64Bit :: Register -> Bool
+is64Bit = (not . is32Bit)
 
 instance Show CompOp where
   show LT   = "<"

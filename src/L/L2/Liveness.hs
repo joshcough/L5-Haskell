@@ -98,7 +98,7 @@ liveness = head . inout
 
 -- calculate the liveness for a string containing a list of instructions
 runLiveness :: String -> [IIOS]
-runLiveness = liveness . extract . parseL2InstList . sread
+runLiveness = liveness . extract . parseL264InstList . sread
 
 -- calculate the liveness for a string containing a list of instructions
 -- that string is read from the given filepath

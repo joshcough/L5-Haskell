@@ -1,9 +1,13 @@
 module L.L1.L1 
   (
-    compileL1
-   ,compileL1OrDie
-   ,compileL1File
-   ,compileL1File_
+    compileL132
+   ,compileL132OrDie
+   ,compileL132File
+   ,compileL132File_
+   ,compileL164
+   ,compileL164OrDie
+   ,compileL164File
+   ,compileL164File_
   ) where
 
 import Control.Monad.State
@@ -21,16 +25,28 @@ import L.L1.L164
 import System.Environment 
 import System.IO
 
-compileL1 :: String -> Either String String
-compileL1 code = parseL1 (sread code) >>= genX8632Code
+compileL132 :: String -> Either String String
+compileL132 code = parseL132 (sread code) >>= genX8632Code
 
-compileL1OrDie :: String -> String
-compileL1OrDie = (either error id) . compileL1
+compileL132OrDie :: String -> String
+compileL132OrDie = (either error id) . compileL132
 
 -- reads first command line argument, loads that file
 -- compiles it, writes the result to same file location
 -- except with .S as the extension instead of .L1
-compileL1File :: IO ()
-compileL1File = compile compileL1OrDie "S"
-compileL1File_ :: FilePath -> IO String
-compileL1File_ = compile1 compileL1OrDie
+compileL132File :: IO ()
+compileL132File = compile compileL132OrDie "S"
+compileL132File_ :: FilePath -> IO String
+compileL132File_ = compile1 compileL132OrDie
+
+
+compileL164 :: String -> Either String String
+compileL164 code = parseL164 (sread code) >>= genX8664Code
+
+compileL164OrDie :: String -> String
+compileL164OrDie = (either error id) . compileL164
+
+compileL164File :: IO ()
+compileL164File = compile compileL164OrDie "S"
+compileL164File_ :: FilePath -> IO String
+compileL164File_ = compile1 compileL164OrDie

@@ -43,7 +43,7 @@ l1Tests = TestDef {
  ,dir  = testDir
  ,inputFileExt = "L1"
  ,outputFileExt = "S"
- ,compute = \r e -> strip (compileL1OrDie r) @?= (strip e)
+ ,compute = \r e -> strip (compileL132OrDie r) @?= (strip e)
 }
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"

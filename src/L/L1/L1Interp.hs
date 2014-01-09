@@ -220,7 +220,7 @@ interp (Program main fs) = go emptyState where -- starts go at instruction 0
     f Return cs = pop ebp $ set esp ebp cs 
 
 interpL1 :: String -> Either String String
-interpL1 code = showOutput . interp <$> parseL1 (sread code)
+interpL1 code = showOutput . interp <$> parseL164 (sread code)
 
 interpL1OrDie :: String -> String
 interpL1OrDie = (either error id) . interpL1

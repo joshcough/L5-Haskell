@@ -30,7 +30,7 @@ import L.L2.Vars
 -- the last case results in error.
 
 compileL2 :: String -> Either String L1
-compileL2 code = genL1Code <$> parseL2 (sread code) where
+compileL2 code = genL1Code <$> parseL264 (sread code) where
   genL1Code :: L2 -> L1
   genL1Code (Program main fs) = 
     -- TODO: in scala, I stripped off the main label if it was present
@@ -75,7 +75,7 @@ attemptAllocation :: Interference -> Maybe (Map Variable Register)
 attemptAllocation i@(Interference g) = let 
     vs = vars g
     pairings :: Map Variable Register
-    pairings = foldl (findPair g) Map.empty (Set.toList vs) -- TODO: sort list here
+    pairings = foldl (findMatch g) Map.empty (Set.toList vs) -- TODO: sort list here
     unpairedVars :: Set Variable
     unpairedVars = vs Set.\\ Map.keysSet pairings
   in if Set.null unpairedVars then Just pairings else Nothing
@@ -83,8 +83,8 @@ attemptAllocation i@(Interference g) = let
 -- try to assign a register to a variable
 --   if its not possible, just return the input map
 --   if it is, return the input map + (v, r)
-findPair :: InterferenceGraph -> Map Variable Register -> Variable -> Map Variable Register
-findPair g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
+findMatch :: InterferenceGraph -> Map Variable Register -> Variable -> Map Variable Register
+findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   -- everything v conflicts with (reisters and variables)
   conflicts    :: Set L2X
   conflicts    = connections v g

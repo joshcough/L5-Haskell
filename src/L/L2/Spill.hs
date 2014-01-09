@@ -30,7 +30,7 @@ spillTest input = case (sreadWithRest input) of
         var = w !! 0
         off = read $ w !! 1
         pre = w !! 2
-        ins = extract $ parseL2InstList program
+        ins = extract $ parseL264InstList program
     in showAsList $ fmap show $ spill var off pre ins
 
 runSpillMain_ :: FilePath -> IO String
