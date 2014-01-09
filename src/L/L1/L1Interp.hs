@@ -104,6 +104,14 @@ pop r c =
       newState = writeReg r (readMem espVal c) c
   in writeReg esp (espVal + 4) newState
 
+ret :: Computer -> Computer
+ret c = 
+  let espVal = readReg esp c
+      done   = espVal >= Vector.length (memory c) * 4
+      c'     = writeReg esp (espVal + 4) c
+      c''    = goto (readMem espVal c') c'
+  in if done then halt c else c''
+
 adjustNum n = shiftR n 1
 
 -- TODO: test if heap runs into stack, and vice-versa
@@ -134,7 +142,7 @@ l1print n c = addOutput (printContent n 0 ++ "\n") c where
 
 -- print an array error
 arrayError :: Int -> Int -> Computer -> Computer
-arrayError a x c = halt msg c where
+arrayError a x c = haltWith msg c where
   pos  = show $ adjustNum x
   size = show $ readMem a c
   msg  = "attempted to use position " ++ pos ++ 
@@ -164,19 +172,23 @@ addOutput s c = Computer (registers c) (memory c) (program c) (labels c) (s : ou
                            (ip c) (heapP c) (halted c)
 bumpHeap n c = Computer (registers c) (memory c) (program c) (labels c) (output c) 
                           (ip c) (heapP c + n) (halted c)
-halt msg c = Computer (registers c) (memory c) (program c) (labels c) (msg : output c)
+haltWith msg c = Computer (registers c) (memory c) (program c) (labels c) (msg : output c)
                         (ip c) (heapP c) True
-currentInst c = (program c) Vector.! (ip c)
-hasNextInst c = ip c < Vector.length (program c) - 1
+halt c = Computer (registers c) (memory c) (program c) (labels c) (output c)
+                  (ip c) (heapP c) True
+currentInst c = program c Vector.! ip c
+hasNextInst c = ip c < Vector.length (program c)
 
 -- run the computer with the given L1 program
 interp :: L1 -> Computer
-interp p  = go $ newComputer p where -- starts go at instruction 0
-  -- the main loop
-  go :: Computer -> Computer
-  -- TODO: check if halted, check if done (ip > number of instructions)
-  go c = let c' = step (currentInst c) c
-         in if halted c' || not (hasNextInst c') then c' else go c'
+interp p  = go (newComputer p) where -- starts go at instruction 0
+
+-- the main loop
+go :: Computer -> Computer
+-- TODO: check if halted, check if done (ip > number of instructions)
+go c 
+  | halted c || not (hasNextInst c) = c
+  | otherwise = go $ step (currentInst c) c
 
 advance :: Computer -> Computer
 advance = nextInst
@@ -186,9 +198,9 @@ advanceWR r i c = advance $ writeReg r i c
 step :: L1Instruction -> Computer -> Computer
 -- Assignment statements
 step (Assign r (CompRHS (Comp s1 op s2))) c  = advanceWR r 
-  (if (cmp op (readS s1 c) (readS s2 c)) then 1 else 0) c
+  (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
 step (Assign r (MemRead (MemLoc x offset))) c =
-  let index = (readReg x c) + offset
+  let index = readReg x c + offset
   in advanceWR r (readMem index c) c
 step (Assign r (Allocate size datum)) c   = 
   let (h, c') = allocate (readS size c) (readS datum c) c
@@ -209,7 +221,7 @@ step (CJump (Comp s1 op s2) l1 l2) c =
   in goto l c
 -- MemWrite
 step (MemWrite (MemLoc x offset) s) c =
-  let index = (readReg x c) + offset
+  let index = readReg x c + offset
   in advance $ writeMem index (readS s c) c
 -- Goto
 step (Goto l) c = goto (findLabelIndex l c) c
@@ -217,17 +229,19 @@ step (Goto l) c = goto (findLabelIndex l c) c
 step (LabelDeclaration _) c = advance c
 -- Call
 --   TODO: push return location onto stack, have return goto it.
-step (Call s) c  = 
-  let func     = readS s c
-      newStack = push (readReg ebp c) c -- pushl %ebp
-      newEbp   = set ebp esp newStack   -- movl %esp, %ebp
-      res      = goto func newEbp
-  -- TODO: what if calling s threw an error?
-  in goto (ip c + 1) res
+step (Call s) c = 
+  let func      = readS s c
+      newStack  = push (ip c + 1) c
+      newStack' = push (readReg ebp newStack) newStack -- pushl %ebp
+      newEbp    = set ebp esp newStack'                -- movl %esp, %ebp
+  in goto func newEbp
 -- TailCall
 step (TailCall s) c = goto (readS s c) c
 -- Return
-step Return c = pop ebp $ set esp ebp c 
+step Return c = 
+  let newEsp    = set esp ebp c
+      newEbp    = pop ebp newEsp
+  in ret newEbp
 
 interpL1 :: String -> Either String String
 interpL1 code = showOutput . interp <$> parseL164 (sread code)
