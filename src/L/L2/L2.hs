@@ -2,6 +2,7 @@
 module L.L2.L2 where
 
 import Control.Applicative
+import Control.Lens
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -87,7 +88,7 @@ findMatch :: InterferenceGraph -> Map Variable Register -> Variable -> Map Varia
 findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   -- everything v conflicts with (reisters and variables)
   conflicts    :: Set L2X
-  conflicts    = connections v g
+  conflicts    = connections (_Variable # v) g
   -- just the variables v conflicts with
   varConflicts :: Set Variable
   varConflicts = vars conflicts

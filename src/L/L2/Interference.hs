@@ -40,14 +40,14 @@ empty = M.empty
 union :: InterferenceGraph -> InterferenceGraph -> InterferenceGraph
 union = M.unionWith S.union
 
-connections :: AsL2X x => x -> InterferenceGraph -> S.Set L2X
-connections x g = fromMaybe S.empty (M.lookup (asL2X x) g)
+connections :: L2X -> InterferenceGraph -> S.Set L2X
+connections x g = fromMaybe S.empty (M.lookup x g)
 
-singleton :: AsL2X x => x -> InterferenceGraph
-singleton x = M.singleton (asL2X x) S.empty
+singleton :: L2X -> InterferenceGraph
+singleton x = M.singleton x S.empty
 
-graphMember :: AsL2X x => x -> InterferenceGraph -> Bool
-graphMember = M.member . asL2X
+graphMember :: L2X -> InterferenceGraph -> Bool
+graphMember = M.member
 
 graphMembers :: InterferenceGraph -> S.Set L2X
 graphMembers = M.keysSet
@@ -59,23 +59,21 @@ addNodes xs g = foldl (flip addNode) g xs
 unions ::[InterferenceGraph] -> InterferenceGraph
 unions gs = foldl union empty gs
 
-addEdges :: (AsL2X x, AsL2X y) => [(x, y)] -> InterferenceGraph -> InterferenceGraph
+addEdges :: [(L2X, L2X)] -> InterferenceGraph -> InterferenceGraph
 addEdges edges g = foldl (flip addEdge) g edges where
-  addEdge :: (AsL2X x, AsL2X y) => (x, y) -> InterferenceGraph -> InterferenceGraph
+  addEdge :: (L2X, L2X) -> InterferenceGraph -> InterferenceGraph
   addEdge (x1, x2) g
     -- dont bother adding ebp or esp
-    | (asL2X x1) == (RegL2X ebp) = g
-    | (asL2X x1) == (RegL2X esp) = g
-    | (asL2X x2) == (RegL2X ebp) = g
-    | (asL2X x2) == (RegL2X esp) = g
-    | (asL2X x1) == (asL2X x2)   = g -- dont add edge between a variable or register and itself...duh
+    | x1 == ebp = g
+    | x1 == esp = g
+    | x2 == ebp = g
+    | x2 == esp = g
+    | x1 == x2  = g -- dont add edge between a variable or register and itself...duh
     | otherwise = unions [g, singletonEdge x1 x2] where
-    singletonEdge :: (AsL2X x, AsL2X y) => x -> y -> InterferenceGraph
+    singletonEdge :: L2X -> L2X -> InterferenceGraph
     singletonEdge x1 x2
-      | (asL2X x1) == (asL2X x2) = singleton x1
-      | otherwise = union
-         (M.singleton (asL2X x1) (S.singleton (asL2X x2)))
-         (M.singleton (asL2X x2) (S.singleton (asL2X x1)))
+      | x1 == x2 = singleton x1
+      | otherwise = M.fromList [(x1,S.singleton x2) ,(x2,S.singleton x1)]
   
 mkGraph :: [(L2X, L2X)] -> InterferenceGraph
 mkGraph edges = addEdges edges empty

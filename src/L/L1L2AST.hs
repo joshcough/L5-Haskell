@@ -275,9 +275,6 @@ type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 type L2 = Program L2X L2S
 
--- l2ebp = RegL2X ebp
--- l2eax = RegL2X eax
-
 instance Show L2X where
   show (RegL2X r) = show r
   show (VarL2X v) = v
@@ -289,17 +286,6 @@ instance Show L2S where
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
--- instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
-
-
-class (Eq a, Ord a, Show a) => AsL2X a where 
-  asL2X :: a -> L2X
-instance AsL2X Register where 
-  asL2X = RegL2X
-instance AsL2X Variable where 
-  asL2X = VarL2X
-instance AsL2X L2X where
-  asL2X = id
 
 orderedPair :: Ord a => a -> a -> (a, a)
 orderedPair a1 a2 = if (a1 < a2) then (a1, a2) else (a2, a1)
