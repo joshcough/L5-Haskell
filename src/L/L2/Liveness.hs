@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, NoMonomorphismRestriction #-}
 
 module L.L2.Liveness
   (
@@ -13,6 +13,7 @@ module L.L2.Liveness
    ,showLiveness
   ) where
 
+import Control.Lens hiding (index)
 import Control.Monad
 import Data.List
 import Data.Maybe
@@ -39,14 +40,14 @@ showLiveness is =
       go f = mkString " " $ fmap (showAsList . fmap show) (fmap (S.toList . f) is) 
   in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
-set :: AsL2X x => [x] -> S.Set L2X
-set = S.fromList . fmap asL2X
+-- set :: [L2X] -> S.Set L2X
+-- set = S.fromList
 
-callerSave     = set [eax, ebx, ecx, edx]
-x86CallerSave  = set [eax, ecx, edx]
-calleeSave     = set [edi, esi]
-arguments      = set [eax, ecx, edx]
-resultRegister = set [eax]
+callerSave     = S.fromList [eax, ebx, ecx, edx]
+x86CallerSave  = S.fromList [eax, ecx, edx]
+calleeSave     = S.fromList [edi, esi]
+arguments      = S.fromList [eax, ecx, edx]
+resultRegister = S.fromList [eax]
 
 -- generate the gen set for an instruction
 -- (what things are alive during that instruction)
@@ -65,8 +66,7 @@ gen i = genI i where
   genI Return                     = S.unions [resultRegister, calleeSave]
 
   genX :: L2X -> S.Set L2X
-  genX (RegL2X r) = set [r]
-  genX (VarL2X v) = set [v]
+  genX r = S.fromList [r]
 
   genS :: L2S -> S.Set L2X
   genS (XL2S x)        = genX x
@@ -87,8 +87,8 @@ kill :: L2Instruction -> S.Set L2X
 kill (Assign x (Print s))         = S.insert x x86CallerSave
 kill (Assign x (Allocate a init)) = S.insert x x86CallerSave
 kill (Assign x (ArrayError a n))  = S.insert x x86CallerSave
-kill (Assign x _)                 = set [x]
-kill (MathInst x _ _)             = set [x]
+kill (Assign x _)                 = S.fromList [x]
+kill (MathInst x _ _)             = S.fromList [x]
 kill (Call s)                     = S.unions [callerSave, resultRegister]
 kill _                            = S.empty
 

@@ -1,32 +1,71 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, NoMonomorphismRestriction, DefaultSignatures #-}
 
 module L.L1L2AST where
 
+import Control.Lens
 import Data.Bits
 import L.Read (showAsList)
 import Prelude hiding (LT, EQ)
 
+
 type Label      = String
 
-data XRegister  = Esi | Rsi | Edi | Rdi | Ebp | Rbp | Esp | Rsp deriving Eq
-data CXRegister = Eax | Rax | Ebx | Rbx | Ecx | Rcx | Edx | Rdx deriving Eq
-data Register   = CXR CXRegister | XR XRegister  deriving Eq
-esi = XR Esi
-edi = XR Edi
-ebp = XR Ebp
-esp = XR Esp
-rsi = XR Rsi
-rdi = XR Rdi
-rbp = XR Rbp
-rsp = XR Rsp
-eax = CXR Eax
-ebx = CXR Ebx
-ecx = CXR Ecx
-edx = CXR Edx
-rax = CXR Rax
-rbx = CXR Rbx
-rcx = CXR Rcx
-rdx = CXR Rdx
+data XRegister  = Esi | Rsi | Edi | Rdi | Ebp | Rbp | Esp | Rsp deriving (Eq,Ord,Enum,Bounded)
+
+class AsXRegister t where
+  _XR :: Prism' t XRegister
+  default _XR :: AsRegister t => Prism' t XRegister
+  _XR = _Register._XR
+
+instance AsXRegister XRegister where
+  _XR = id
+
+
+data CXRegister = Eax | Rax | Ebx | Rbx | Ecx | Rcx | Edx | Rdx deriving (Eq,Ord,Enum,Bounded)
+
+class AsCXRegister t where
+  _CXR :: Prism' t CXRegister
+  default _CXR :: AsRegister t => Prism' t CXRegister
+  _CXR = _Register._CXR
+ 
+instance AsCXRegister CXRegister where
+  _CXR = id
+
+data Register   = CXR CXRegister | XR XRegister  deriving (Eq,Ord)
+
+class (AsXRegister t, AsCXRegister t) => AsRegister t where
+  _Register :: Prism' t Register
+
+instance AsRegister Register where
+  _Register = id
+
+instance AsXRegister Register where
+  _XR = prism XR $ \r -> case r of
+    XR x -> Right x
+    _ -> Left r
+
+instance AsCXRegister Register where
+  _CXR = prism CXR $ \r -> case r of
+    CXR x -> Right x
+    _ -> Left r
+
+esi = _XR # Esi
+edi = _XR # Edi
+ebp = _XR # Ebp
+esp = _XR # Esp
+rsi = _XR # Rsi
+rdi = _XR # Rdi
+rbp = _XR # Rbp
+rsp = _XR # Rsp
+eax = _CXR # Eax
+ebx = _CXR # Ebx
+ecx = _CXR # Ecx
+edx = _CXR # Edx
+rax = _CXR # Rax
+rbx = _CXR # Rbx
+rcx = _CXR # Rcx
+rdx = _CXR # Rdx
+
 data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
 data Comp s     = Comp s CompOp s deriving (Eq, Ord)
@@ -208,14 +247,36 @@ instance Show L1S where
 -- L2 AST (uses shared L1/L2 AST)
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
 type Variable = String
+
+class AsVariable t where
+  _Variable :: Prism' t String
+
+instance AsVariable String where
+  _Variable = id
+
 data L2X = RegL2X Register | VarL2X Variable
+
+instance AsRegister L2X where
+  _Register = prism RegL2X $ \r -> case r of
+    RegL2X x -> Right x
+    _        -> Left r
+
+instance AsVariable L2X where
+  _Variable = prism VarL2X $ \r -> case r of
+    VarL2X x -> Right x
+    _        -> Left r
+
+instance AsXRegister L2X
+instance AsCXRegister L2X
+
 data L2S = XL2S L2X | NumberL2S Int | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 type L2 = Program L2X L2S
-l2ebp = RegL2X ebp
-l2eax = RegL2X eax
+
+-- l2ebp = RegL2X ebp
+-- l2eax = RegL2X eax
 
 instance Show L2X where
   show (RegL2X r) = show r
@@ -228,7 +289,8 @@ instance Show L2S where
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
-instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
+-- instance Ord Register where compare x1 x2 = compare (show x1) (show x2)
+
 
 class (Eq a, Ord a, Show a) => AsL2X a where 
   asL2X :: a -> L2X

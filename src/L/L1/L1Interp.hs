@@ -6,6 +6,7 @@ module L.L1.L1Interp (
  ) where
 
 import Control.Applicative
+-- import Control.Lens
 import Data.Bits
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -24,14 +25,14 @@ type Output = [String]
 type Ip = Int -- instruction pointer
 
 data Computer = Computer {
-  registers :: RegisterState
- ,memory    :: Memory
- ,program   :: Vector L1Instruction
- ,labels    :: Map L1Instruction Int
- ,output    :: Output
- ,ip        :: Ip
- ,heapP     :: Int -- pointer to top of heap
- ,halted    :: Bool
+   registers :: RegisterState
+ , memory    :: Memory
+ , program   :: Vector L1Instruction
+ , labels    :: Map L1Instruction Int
+ , output    :: Output
+ , ip        :: Ip
+ , heapP     :: Int -- pointer to top of heap
+ , halted    :: Bool
 } deriving (Show)
 
 showOutput c = mkString "" $ reverse (output c)

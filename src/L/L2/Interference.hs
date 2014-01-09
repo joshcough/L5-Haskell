@@ -77,10 +77,10 @@ addEdges edges g = foldl (flip addEdge) g edges where
          (M.singleton (asL2X x1) (S.singleton (asL2X x2)))
          (M.singleton (asL2X x2) (S.singleton (asL2X x1)))
   
-mkGraph :: (AsL2X x, AsL2X y) => [(x, y)] -> InterferenceGraph
+mkGraph :: [(L2X, L2X)] -> InterferenceGraph
 mkGraph edges = addEdges edges empty
 
-edgeSetToGraph :: AsL2X x => S.Set (x, x) -> InterferenceGraph
+edgeSetToGraph :: S.Set (L2X, L2X) -> InterferenceGraph
 edgeSetToGraph edges = addEdges (S.toList edges) empty
 
 variables :: InterferenceGraph -> S.Set L2X
