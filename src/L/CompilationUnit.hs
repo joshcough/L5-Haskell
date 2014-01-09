@@ -11,10 +11,10 @@ import System.Environment
 
 -- just read the first file here. i suppose later on i could compile many files...
 -- compile that file, and write it's result out
-compile :: Show a => (String -> a) -> String -> IO ()
+compile :: (String -> String) -> String -> IO ()
 compile compileFunction newExt = do
-  (f, a) <- compile_ compileFunction
-  writeFile (changeExtension f newExt) (show a)
+  (f, s) <- compile_ compileFunction
+  writeFile (changeExtension f newExt) s
 
 -- read input file from fist command line arg, and compile it 
 compile_ :: (String -> a) -> IO (FilePath, a)
