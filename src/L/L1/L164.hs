@@ -3,6 +3,7 @@ module L.L1.L164
     genX8664Code
   ) where
 
+import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Error
 import Data.List
@@ -25,14 +26,17 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS (Program main funcs) = do
     x86Main  <- genMain main
     x86Funcs <- genFunc $ concat $ map body funcs
-    return $ dump $ concat [header, x86Main, x86Funcs] where
+    return $ dump $ concat [x86Main, x86Funcs, ["\n"]] where
     dump :: [X8664Inst] -> String
     dump insts = mkString "\n" $ map adjust insts
     adjust i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
-    header = [
+
+  genMain :: L1Func -> ErrorT String (State Int) [X8664Inst]
+  genMain (Func insts) =  genFunc_ (tail insts) mainHeader mainFooter where
+    mainHeader = [
       ".file\t\"prog.c\"",
       ".text",
-      ".globl go",
+      ".globl _go",
       "_go:",
       "pushq %rbp",
       "movq %rsp, %rbp",
@@ -40,9 +44,6 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "pushq %rsi",
       "pushq %rdi",
       "pushq %rbp" ]
-
-  genMain :: L1Func -> ErrorT String (State Int) [X8664Inst]
-  genMain (Func insts) =  (flip fmap) (genFunc (tail insts)) (++ mainFooter) where
     mainFooter = [
       "popq %rbp",
       "popq %rdi",
@@ -52,23 +53,29 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "ret" ]
 
   genFunc :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
-  genFunc insts = (traverse genInstS insts) >>= return . concat
+  genFunc insts = do
+    labl <- genInstS (head insts)
+    body <- compile  (tail insts)
+    return $ concat [labl, header, body] where
+      header = [
+        "pushq %rbp",
+        "movq %rsp, %rbp" ]
+ 
+  genFunc_ :: [L1Instruction] -> [String] -> [String] -> ErrorT String (State Int) [X8664Inst]
+  genFunc_ insts header footer = wrap header footer <$> (compile insts) where
+    wrap header footer body = concat [header, body, footer]
+
+  compile :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
+  compile insts = traverse genInstS insts >>= return . concat
   
   genInstS :: L1Instruction -> ErrorT String (State Int) [X8664Inst]
-  genInstS (Call s) = fmap (\i -> call $ "Generated_Label_" ++ show i) postIncrement where
-    postIncrement = do { x <- get; put (x+1); return x }
-    call label = [
-      "pushl " ++ (genS $ LabelL1S label),
-      "pushl %ebp",
-      "movl %esp, %ebp",
-      jump s,
-      declare label ]
+  genInstS (Call s) = return [call s]
   genInstS i = either throwError return $ genInst i
 
   genInst :: L1Instruction -> Either String [X8664Inst]
   genInst (LabelDeclaration label)     = Right [declare label]
   genInst (Assign l r)       = genAssignInst l r
-  genInst (MemWrite loc  s)  = Right [triple "movl"  (genS s) (genLoc loc)]
+  genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
   genInst (MathInst r op s)  = Right [triple (x86OpName op) (genS s) (genReg r)]
   genInst (Goto s)           = Right [jump (LabelL1S s)]
   genInst (TailCall s)       = Right ["movl %ebp, %esp", jump s]
@@ -85,14 +92,13 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
   genInst Return = Right [
-    "movl %ebp, %esp",
-    "popl %ebp",
+    "leave",
     "ret" ]
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS s)      = Right [triple "movl" (genS s) (genReg r)]
-  genAssignInst r (MemRead loc) = Right [triple "movl" (genLoc loc) (genReg r)]
+  genAssignInst r (SRHS s)      = Right [triple "movq" (genS s) (genReg r)]
+  genAssignInst r (MemRead loc) = Right [triple "movq" (genLoc loc) (genReg r)]
   {-
   cmp assignments have to be with CXRegisters on LHS
   (eax <- ebx < ecx)
@@ -113,18 +119,18 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genAssignInst cx@(CXR c) (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
     Right $ genCompInst cx r l (setInstruction op)
   genAssignInst cx@(CXR _) (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
-    Right [triple "movl" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
+    Right [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
   genAssignInst (CXR Eax) (Print s) = Right [
-    triple "movl" (genS s) (genReg edi),
-    "call print" ]
+    triple "movq" (genS s) (genReg edi),
+    "call _print" ]
   genAssignInst (CXR Eax) (Allocate s n) = Right [
-    triple "movl" (genS s) (genReg edi),
-    triple "movl" (genS n) (genReg esi),
-    "call allocate" ]
+    triple "movq" (genS s) (genReg edi),
+    triple "movq" (genS n) (genReg esi),
+    "call _allocate" ]
   genAssignInst (CXR Eax) (ArrayError s n) = Right [
-    triple "movl" (genS s) (genReg edi),
-    triple "movl" (genS n) (genReg esi),
-    "call print_error" ]
+    triple "movq" (genS s) (genReg edi),
+    triple "movq" (genS n) (genReg esi),
+    "call _print_error" ]
   genAssignInst l r = Left $ "bad assignment statement: " ++ show (Assign l r)
   
   genCompInst cx@(CXR c) l r x = [
@@ -148,6 +154,9 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   jump :: L1S -> String
   jump (LabelL1S name) = "jmp L1_" ++ name
   jump l               = "jmp *" ++ (genS l)
+
+  call :: L1S -> String
+  call (LabelL1S name) = "call L1_" ++ name
   
   setInstruction = foldOp "setl" "setle" "sete"
   
