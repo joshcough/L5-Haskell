@@ -49,14 +49,14 @@ instance AsCXRegister Register where
     CXR x -> Right x
     _ -> Left r
 
-esi = _XR # Esi
-edi = _XR # Edi
-ebp = _XR # Ebp
-esp = _XR # Esp
-rsi = _XR # Rsi
-rdi = _XR # Rdi
-rbp = _XR # Rbp
-rsp = _XR # Rsp
+esi = _XR  # Esi
+edi = _XR  # Edi
+ebp = _XR  # Ebp
+esp = _XR  # Esp
+rsi = _XR  # Rsi
+rdi = _XR  # Rdi
+rbp = _XR  # Rbp
+rsp = _XR  # Rsp
 eax = _CXR # Eax
 ebx = _CXR # Ebx
 ecx = _CXR # Ecx
@@ -111,8 +111,6 @@ x86OpName LeftShift  = "sall"
 x86OpName RightShift = "sarl"
 x86OpName BitwiseAnd = "andl"
 
-
---data X86Op = Increment | Decrement | Multiply | LeftShift | RightShift | BitwiseAnd
 runOp :: X86Op -> Int -> Int -> Int
 runOp Increment  = (+)
 runOp Decrement  = (-)

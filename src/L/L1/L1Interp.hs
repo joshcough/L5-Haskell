@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module L.L1.L1Interp (
   Computer(..)
  ,interp
@@ -6,7 +8,7 @@ module L.L1.L1Interp (
  ) where
 
 import Control.Applicative
--- import Control.Lens
+import Control.Lens hiding (set)
 import Data.Bits
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -14,6 +16,7 @@ import Data.Tuple
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import L.CompilationUnit
+import L.IOHelpers
 import L.L1L2AST
 import L.L1L2Parser
 import L.Read
@@ -25,17 +28,19 @@ type Output = [String]
 type Ip = Int -- instruction pointer
 
 data Computer = Computer {
-   registers :: RegisterState
- , memory    :: Memory
- , program   :: Vector L1Instruction
- , labels    :: Map L1Instruction Int
- , output    :: Output
- , ip        :: Ip
- , heapP     :: Int -- pointer to top of heap
- , halted    :: Bool
+   _registers :: RegisterState
+ , _memory    :: Memory
+ , _program   :: Vector L1Instruction
+ , _labels    :: Map L1Instruction Int
+ , _output    :: Output
+ , _ip        :: Ip
+ , _heapP     :: Int -- pointer to top of heap
+ , _halted    :: Bool
 } deriving (Show)
 
-showOutput c = mkString "" $ reverse (output c)
+makeClassy ''Computer
+
+showOutput c = mkString "" $ reverse (c^.output)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
@@ -54,13 +59,9 @@ newComputer (Program main fs) = Computer rss emptyMem prog indices [] 0 0 False 
   indices :: Map L1Instruction Int
   indices = Map.fromList $ zipWithIndex insts
 
--- advance the computer to the next instruction
-nextInst :: Computer -> Computer
-nextInst c = goto (ip c + 1) c
-
 -- set the value of a register to an int value
 writeReg :: Register -> Int -> Computer -> Computer
-writeReg reg newValue c = newReg (Map.insert reg newValue $ registers c) c
+writeReg reg newValue c = newReg (Map.insert reg newValue $ c^.registers) c
 
 -- set the value of r1 to the value of r2
 set :: Register -> Register -> Computer -> Computer
@@ -69,21 +70,21 @@ set r1 r2 c = writeReg r1 (readReg r2 c) c
 -- read the value of a register
 readReg :: Register -> Computer -> Int
 readReg r c = 
-  maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ registers c)
+  maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ c^.registers)
 
 -- write an int into memory at the given address
 writeMem :: Int -> Int -> Computer -> Computer
-writeMem addr value c = newMem (memory c Vector.// [(addr `div` 4, value)]) c
+writeMem addr value c = newMem ((c^.memory) Vector.// [(addr `div` 4, value)]) c
 
 -- read a single int from memory
 readMem :: Int -> Computer -> Int
-readMem addr c = memory c Vector.! (addr `div` 4)
+readMem addr c = (c^.memory) Vector.! (addr `div` 4)
 
 -- read an array from memory
 readArray :: Int -> Computer -> Vector Int
 readArray addr c = 
   let size = readMem addr c
-  in Vector.slice (addr `div` 4 + 1) size (memory c)
+  in Vector.slice (addr `div` 4 + 1) size (c^.memory)
 
 -- push the given int argument onto the top of the stack
 -- adjust esp accordingly
@@ -108,7 +109,7 @@ pop r c =
 ret :: Computer -> Computer
 ret c = 
   let espVal = readReg esp c
-      done   = espVal >= Vector.length (memory c) * 4
+      done   = espVal >= Vector.length (c^.memory) * 4
       c'     = writeReg esp (espVal + 4) c
       c''    = goto (readMem espVal c') c'
   in if done then halt c else c''
@@ -120,10 +121,10 @@ allocate :: Int -> Int -> Computer -> (Int, Computer)
 allocate size n c =
   let size'   = adjustNum size
       ns      = Prelude.replicate size' n
-      indices = [(heapP c `div` 4)..]
-      heap    = newMem (memory c Vector.// (zip indices (size' : ns)))
+      indices = [(c^.heapP `div` 4)..]
+      heap    = newMem ((c^.memory) Vector.// (zip indices (size' : ns)))
                        (bumpHeap ((size'+1)*4) c)
-  in (heapP c, heap)
+  in (c^.heapP, heap)
 
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
@@ -138,7 +139,7 @@ l1print n c = addOutput (printContent n 0 ++ "\n") c where
       let size  = readMem n c
           arr   = readArray n c
           contentsV = Vector.map (\n -> printContent n $ depth + 1) arr
-          contents = mkString ", " $ show size : Vector.toList contentsV
+          contents  = mkString ", " $ show size : Vector.toList contentsV
       in "{s:" ++ contents ++ "}"
 
 -- print an array error
@@ -151,69 +152,59 @@ arrayError a x c = haltWith msg c where
 
 findLabelIndex :: Label -> Computer -> Int
 findLabelIndex l c =
-  maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) (labels c))
+  maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) (c^.labels))
 
 readS :: L1S -> Computer -> Int
 readS (NumberL1S n) _ = n
 readS (RegL1S r)    c = readReg r c
 readS (LabelL1S l)  c = findLabelIndex l c
 
--- all this should be able to be replaced with Lens
 newReg :: RegisterState -> Computer -> Computer
-newReg rs c = Computer rs (memory c) (program c) (labels c) (output c) 
-                         (ip c) (heapP c) (halted c)
+newReg r c = c & registers .~ r
 newMem :: Memory -> Computer -> Computer
-newMem m c = Computer (registers c) m (program c) (labels c) (output c) 
-                        (ip c) (heapP c) (halted c)
+newMem m c = c & memory .~ m
 goto :: Ip -> Computer -> Computer
-goto ip c = Computer (registers c) (memory c) (program c) (labels c) (output c) 
-                       ip (heapP c) (halted c)
+goto m c = c & ip .~ m
 addOutput :: String -> Computer -> Computer
-addOutput s c = Computer (registers c) (memory c) (program c) (labels c) (s : output c) 
-                           (ip c) (heapP c) (halted c)
-bumpHeap n c = Computer (registers c) (memory c) (program c) (labels c) (output c) 
-                          (ip c) (heapP c + n) (halted c)
-haltWith msg c = Computer (registers c) (memory c) (program c) (labels c) (msg : output c)
-                        (ip c) (heapP c) True
-halt c = Computer (registers c) (memory c) (program c) (labels c) (output c)
-                  (ip c) (heapP c) True
-currentInst c = program c Vector.! ip c
-hasNextInst c = ip c < Vector.length (program c)
+addOutput s c = c & output %~ (s:)
+bumpHeap  n c = c & heapP +~ n
+haltWith msg c = c & addOutput msg & halted .~ True
+halt c = c & halted .~ True
+currentInst c = (c^.program) Vector.! (c^.ip)
+hasNextInst c = (c^.ip) < Vector.length (c^.program)
+-- advance the computer to the next instruction
+nextInst :: Computer -> Computer
+nextInst c = goto (c^.ip + 1) c
+-- goto the next instruction after writing a register
+nextInstWR :: Register -> Int -> Computer -> Computer
+nextInstWR r i c = nextInst $ writeReg r i c
 
--- run the computer with the given L1 program
+-- run the given L1 program to completion on a new computer
+-- return the computer as the final result.
 interp :: L1 -> Computer
-interp p  = go (newComputer p) where -- starts go at instruction 0
+interp p = go (newComputer p)
 
--- the main loop
+-- the main loop, runs a computer until completion
 go :: Computer -> Computer
--- TODO: check if halted, check if done (ip > number of instructions)
 go c 
-  | halted c || not (hasNextInst c) = c
+  | c^.halted || not (hasNextInst c) = c
   | otherwise = go $ step (currentInst c) c
-
-advance :: Computer -> Computer
-advance = nextInst
-advanceWR :: Register -> Int -> Computer -> Computer
-advanceWR r i c = advance $ writeReg r i c
 
 step :: L1Instruction -> Computer -> Computer
 -- Assignment statements
-step (Assign r (CompRHS (Comp s1 op s2))) c  = advanceWR r 
+step (Assign r (CompRHS (Comp s1 op s2))) c  = nextInstWR r 
   (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
 step (Assign r (MemRead (MemLoc x offset))) c =
   let index = readReg x c + offset
-  in advanceWR r (readMem index c) c
+  in nextInstWR r (readMem index c) c
 step (Assign r (Allocate size datum)) c   = 
   let (h, c') = allocate (readS size c) (readS datum c) c
-  in advanceWR r h c'
-step (Assign r (Print s)) c          = 
-  advanceWR r 1 $ l1print  (readS s c)  c
-step (Assign r (ArrayError s1 s2)) c = 
-  arrayError (readS s1 c) (readS s2 c) c
-step (Assign r (SRHS s)) c           = 
-  advanceWR r (readS s c) c
+  in nextInstWR r h c'
+step (Assign r (Print s)) c = nextInstWR r 1 $ l1print  (readS s c)  c
+step (Assign r (ArrayError s1 s2)) c = arrayError (readS s1 c) (readS s2 c) c
+step (Assign r (SRHS s)) c = nextInstWR r (readS s c) c
 -- Math Inst
-step (MathInst r op s) c = advance $ 
+step (MathInst r op s) c = nextInst $ 
   writeReg r (runOp op (readReg r c) (readS s c)) c
 -- CJump
 step (CJump (Comp s1 op s2) l1 l2) c = 
@@ -223,16 +214,16 @@ step (CJump (Comp s1 op s2) l1 l2) c =
 -- MemWrite
 step (MemWrite (MemLoc x offset) s) c =
   let index = readReg x c + offset
-  in advance $ writeMem index (readS s c) c
+  in nextInst $ writeMem index (readS s c) c
 -- Goto
 step (Goto l) c = goto (findLabelIndex l c) c
 -- LabelDec, just advance
-step (LabelDeclaration _) c = advance c
+step (LabelDeclaration _) c = nextInst c
 -- Call
 --   TODO: push return location onto stack, have return goto it.
 step (Call s) c = 
   let func      = readS s c
-      newStack  = push (ip c + 1) c
+      newStack  = push (c^.ip + 1) c
       newStack' = push (readReg ebp newStack) newStack -- pushl %ebp
       newEbp    = set ebp esp newStack'                -- movl %esp, %ebp
   in goto func newEbp
