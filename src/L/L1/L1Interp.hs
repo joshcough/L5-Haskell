@@ -1,13 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveFunctor #-}
 
-module L.L1.L1Interp (
-  Computer(..)
- ,interp
- ,interpL1File
- ,interpL1OrDie
- ) where
+module L.L1.L1Interp where
+
 
 import Control.Applicative
+import Control.Monad (ap)
+import Control.Monad.ST
+import Control.Monad.State.Class
 import Control.Lens hiding (set)
 import Data.Bits
 import Data.Map (Map)
@@ -36,9 +38,39 @@ data Computer = Computer {
  , _ip        :: Ip
  , _heapP     :: Int -- pointer to top of heap
  , _halted    :: Bool
-} deriving (Show)
+} deriving Show
 
 makeClassy ''Computer
+
+data Result a 
+  = OK !Computer a
+  | Halted !Computer
+  deriving (Functor, Show)
+
+instance HasComputer (Result a) where
+  computer f (OK c a) = (`OK` a) <$> f c
+  computer f (Halted c) = Halted <$> f c
+
+newtype M s a = M { unM :: Computer -> ST s (Result a) }
+  deriving Functor
+
+instance Applicative (M s) where
+  pure = return
+  (<*>) = ap
+
+instance Monad (M s) where
+  return a = M $ \c -> return $ OK c a
+  fail _ = M $ \c -> return $ Halted c
+  M m >>= f = M $ \c -> m c >>= \r -> case r of
+    OK c' a   -> unM (f a) c'
+    Halted c' -> return $ Halted c'
+
+instance MonadState Computer (M s) where
+  get = M $ \c -> return $ OK c c
+  put c = M $ \_ -> return $ OK c ()
+
+runM :: (forall s. M s a) -> Computer -> Result a
+runM m c = runST (unM m c)
 
 showOutput c = mkString "" $ reverse (c^.output)
 
@@ -94,17 +126,16 @@ readArray addr c =
 push :: Int -> Computer -> Computer
 push value c =
   let espVal = readReg esp c - 4
-      incEsp = writeReg esp espVal c
-      newMem = writeMem espVal value incEsp
-  in newMem
+      c'     = writeReg esp espVal c
+  in  writeMem espVal value c'
 
 -- pop the top value off the stack into the given register
 -- adjust esp accordingly.
 pop :: Register -> Computer -> Computer
 pop r c =
   let espVal   = readReg esp c
-      newState = writeReg r (readMem espVal c) c
-  in writeReg esp (espVal + 4) newState
+      c' = writeReg r (readMem espVal c) c
+  in writeReg esp (espVal + 4) c'
 
 ret :: Computer -> Computer
 ret c = 
@@ -123,7 +154,7 @@ allocate size n c =
       ns      = Prelude.replicate size' n
       indices = [(c^.heapP `div` 4)..]
       heap    = newMem ((c^.memory) Vector.// (zip indices (size' : ns)))
-                       (bumpHeap ((size'+1)*4) c)
+                       (c & heapP +~ ((size'+1)*4))
   in (c^.heapP, heap)
 
 -- print a number or an array
@@ -167,7 +198,6 @@ goto :: Ip -> Computer -> Computer
 goto m c = c & ip .~ m
 addOutput :: String -> Computer -> Computer
 addOutput s c = c & output %~ (s:)
-bumpHeap  n c = c & heapP +~ n
 haltWith msg c = c & addOutput msg & halted .~ True
 halt c = c & halted .~ True
 currentInst c = (c^.program) Vector.! (c^.ip)
@@ -222,18 +252,15 @@ step (LabelDeclaration _) c = nextInst c
 -- Call
 --   TODO: push return location onto stack, have return goto it.
 step (Call s) c = 
-  let func      = readS s c
-      newStack  = push (c^.ip + 1) c
-      newStack' = push (readReg ebp newStack) newStack -- pushl %ebp
-      newEbp    = set ebp esp newStack'                -- movl %esp, %ebp
-  in goto func newEbp
+  let func = readS s c
+      c'   = push (c^.ip + 1) c
+      c''  = push (readReg ebp c') c' -- pushl %ebp
+      c''' = set ebp esp c''          -- movl %esp, %ebp
+  in goto func c'''
 -- TailCall
 step (TailCall s) c = goto (readS s c) c
 -- Return
-step Return c = 
-  let newEsp    = set esp ebp c
-      newEbp    = pop ebp newEsp
-  in ret newEbp
+step Return c = ret $ pop ebp $ set esp ebp c
 
 interpL1 :: String -> Either String String
 interpL1 code = showOutput . interp <$> parseL164 (sread code)
