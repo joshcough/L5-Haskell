@@ -8,6 +8,7 @@ module L.L1.L1
    ,compileL164OrDie
    ,compileL164File
    ,compileL164File_
+   ,runNative
   ) where
 
 import Control.Monad.State
@@ -22,6 +23,7 @@ import L.Read
 import L.Utils
 import L.L1.L132
 import L.L1.L164
+import System.Cmd
 import System.Environment 
 import System.IO
 
@@ -50,3 +52,16 @@ compileL164File :: IO ()
 compileL164File = compile compileL164OrDie "S"
 compileL164File_ :: FilePath -> IO String
 compileL164File_ = compile1 compileL164OrDie
+
+runNative :: FilePath -> IO String
+runNative inputFile = do
+  s64 <- compileL164File_ $ traceA inputFile
+  let sFile   = changeExtension inputFile "S64"
+  let oFile   = changeExtension inputFile "S64.o"
+  let outFile = changeExtension inputFile "S64.out"
+  let resFile = changeExtension inputFile "S64.res"
+  _ <- writeFile sFile s64
+  _ <- rawSystem "as"  ["-o", oFile,   sFile]
+  _ <- rawSystem "gcc" ["-o", outFile, oFile, "bin/runtime.o"]
+  _ <- rawSystem "bin/run.sh" [outFile, resFile]
+  readFile resFile

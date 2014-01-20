@@ -183,6 +183,10 @@ xRegisterFromName "esi" = Just Esi
 xRegisterFromName "edi" = Just Edi
 xRegisterFromName "ebp" = Just Ebp
 xRegisterFromName "esp" = Just Esp
+xRegisterFromName "rsi" = Just Rsi
+xRegisterFromName "rdi" = Just Rdi
+xRegisterFromName "rbp" = Just Rbp
+xRegisterFromName "rsp" = Just Rsp
 xRegisterFromName _     = Nothing
 
 cxRegisterFromName :: String -> Maybe CXRegister
@@ -190,6 +194,10 @@ cxRegisterFromName "eax" = Just Eax
 cxRegisterFromName "ebx" = Just Ebx
 cxRegisterFromName "ecx" = Just Ecx
 cxRegisterFromName "edx" = Just Edx
+cxRegisterFromName "rax" = Just Rax
+cxRegisterFromName "rbx" = Just Rbx
+cxRegisterFromName "rcx" = Just Rcx
+cxRegisterFromName "rdx" = Just Rdx
 cxRegisterFromName _     = Nothing
 
 registerFromName :: String -> Maybe Register
@@ -207,7 +215,7 @@ is32Bit (CXR Edx) = True
 is32Bit _ = False
 
 is64Bit :: Register -> Bool
-is64Bit = (not . is32Bit)
+is64Bit = not . is32Bit
 
 instance Show CompOp where
   show LT   = "<"

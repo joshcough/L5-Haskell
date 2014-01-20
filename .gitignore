@@ -24,3 +24,4 @@ wiki
 wip
 .cabal-sandbox
 goo
+*.S64*

@@ -53,6 +53,7 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "ret" ]
 
   genFunc :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
+  genFunc [] = return []
   genFunc insts = do
     labl <- genInstS (head insts)
     body <- compile  (tail insts)
@@ -75,10 +76,10 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst :: L1Instruction -> Either String [X8664Inst]
   genInst (LabelDeclaration label)     = Right [declare label]
   genInst (Assign l r)       = genAssignInst l r
-  genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
+  genInst (MemWrite loc  s)  = Right [triple "movl"  (genS s) (genLoc loc)]
   genInst (MathInst r op s)  = Right [triple (x86OpName op) (genS s) (genReg r)]
   genInst (Goto s)           = Right [jump (LabelL1S s)]
-  genInst (TailCall s)       = Right ["movl %ebp, %esp", jump s]
+  genInst (TailCall s)       = Right ["movq %rbp, %rsp", jump s]
   -- special case for two numbers
   genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
     Right $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
@@ -97,8 +98,8 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS s)      = Right [triple "movq" (genS s) (genReg r)]
-  genAssignInst r (MemRead loc) = Right [triple "movq" (genLoc loc) (genReg r)]
+  genAssignInst r (SRHS s)      = Right [triple "movl" (genS s) (genReg r)]
+  genAssignInst r (MemRead loc) = Right [triple "movl" (genLoc loc) (genReg r)]
   {-
   cmp assignments have to be with CXRegisters on LHS
   (eax <- ebx < ecx)
@@ -119,13 +120,13 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genAssignInst cx@(CXR c) (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
     Right $ genCompInst cx r l (setInstruction op)
   genAssignInst cx@(CXR _) (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
-    Right [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
+    Right [triple "movl" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
   genAssignInst (CXR Eax) (Print s) = Right [
-    triple "movq" (genS s) (genReg edi),
+    triple "movl" (genS s) (genReg edi),
     "call _print" ]
   genAssignInst (CXR Eax) (Allocate s n) = Right [
-    triple "movq" (genS s) (genReg edi),
-    triple "movq" (genS n) (genReg esi),
+    triple "movl" (genS s) (genReg edi),
+    triple "movl" (genS n) (genReg esi),
     "call _allocate" ]
   genAssignInst (CXR Eax) (ArrayError s n) = Right [
     triple "movq" (genS s) (genReg edi),
