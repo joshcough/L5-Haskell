@@ -1,0 +1,41 @@
+((
+  (esp -= 16)
+  (eax <- (allocate 9 3)) ; size 4 array of 1's. you can only allocate into eax.
+  (edi <- eax) ; save the array pointer in edi
+
+  ((mem edi 0)  <- 5) ; set the first element to 2 
+  ((mem edi 8)  <- 7) ; set the first element to 3 
+  ((mem edi 16) <- 9) ; set the first element to 4 
+  ((mem edi 24) <- 11) ; set the first element to 5 
+
+  ; print the elements in the array and print them
+
+  (esi <- (mem edi 0)) ; put the 1st element into edi
+  ((mem esp 0) <- esi) ; save esi
+  ((mem esp 8) <- edi) ; save edi
+  (eax <- (print esi)) ; print it
+  (edi <- (mem esp 8)) ; restore edi
+  (esi <- (mem esp 0)) ; restore esi
+
+  (esi <- (mem edi 8)) ; put the 2nd element into edi
+  ((mem esp 0) <- esi) ; save esi
+  ((mem esp 8) <- edi) ; save edi
+  (eax <- (print esi)) ; print it
+  (edi <- (mem esp 8)) ; restore edi
+  (esi <- (mem esp 0)) ; restore esi
+
+  (esi <- (mem edi 16)) ; put the 3rd element into edi
+  ((mem esp 0) <- esi) ; save esi
+  ((mem esp 8) <- edi) ; save edi
+  (eax <- (print esi)) ; print it
+  (edi <- (mem esp 8)) ; restore edi
+  (esi <- (mem esp 0)) ; restore esi
+
+  (esi <- (mem edi 24)) ; put the 4th element into edi
+  ((mem esp 0) <- esi) ; save esi
+  ((mem esp 8) <- edi) ; save edi
+  (eax <- (print esi)) ; print it
+  (edi <- (mem esp 8)) ; restore edi
+  (esi <- (mem esp 0)) ; restore esi
+  (esp += 16)
+))

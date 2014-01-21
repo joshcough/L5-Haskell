@@ -1,6 +1,7 @@
 module L.IOHelpers
   (
-    changeExtension
+    changeDir
+   ,changeExtension
    ,fileArgMain
    ,getExtension
    ,getRecursiveContents
@@ -112,6 +113,12 @@ takeRightWhile f = reverse . takeWhile f . reverse
 
 getExtension :: FilePath -> String
 getExtension = takeRightWhile (\c -> not (c == '.'))
+
+getFileName :: FilePath -> String
+getFileName = takeRightWhile (\c -> not (c == '/'))
+
+changeDir :: FilePath -> FilePath -> FilePath
+changeDir file newDir = newDir ++ "/" ++ getFileName file
 
 changeExtension :: String -> String -> String
 changeExtension file newExt = (dropRightWhile (\c -> not (c == '.')) file) ++ newExt

@@ -38,18 +38,20 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".text",
       ".globl _go",
       "_go:",
-      "pushq %rbp",
-      "movq %rsp, %rbp",
-      "pushq %rbx",
-      "pushq %rsi",
-      "pushq %rdi",
-      "pushq %rbp" ]
+      "subq $8, %rsp" ]
+      --"pushq %rbp",
+      --"movq %rsp, %rbp",
+      --"pushq %rbx",
+      --"pushq %rsi",
+      --"pushq %rdi",
+      --"pushq %rbp" ]
     mainFooter = [
-      "popq %rbp",
-      "popq %rdi",
-      "popq %rsi",
-      "popq %rbx",
-      "leave",
+      --"popq %rbp",
+      --"popq %rdi",
+      --"popq %rsi",
+      --"popq %rbx",
+      --"leave",
+      "addq $8, %rsp",
       "ret" ]
 
   genFunc :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
@@ -76,8 +78,8 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst :: L1Instruction -> Either String [X8664Inst]
   genInst (LabelDeclaration label)     = Right [declare label]
   genInst (Assign l r)       = genAssignInst l r
-  genInst (MemWrite loc  s)  = Right [triple "movl"  (genS s) (genLoc loc)]
-  genInst (MathInst r op s)  = Right [triple (x86OpName op) (genS s) (genReg r)]
+  genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
+  genInst (MathInst r op s)  = Right [triple (x8664OpName op) (genS s) (genReg r)]
   genInst (Goto s)           = Right [jump (LabelL1S s)]
   genInst (TailCall s)       = Right ["movq %rbp, %rsp", jump s]
   -- special case for two numbers
@@ -85,11 +87,11 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     Right $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
   genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = Right [
-    triple "cmpl" (genS l) (genS r),
+    triple "cmpq" (genS l) (genS r),
     foldOp (jumpIfGreater l1) (jumpIfGreaterOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
   genInst (CJump (Comp s1 op s2) l1 l2) = Right [
-    triple "cmpl" (genS s2) (genS s1),
+    triple "cmpq" (genS s2) (genS s1),
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
   genInst Return = Right [
@@ -98,8 +100,8 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS s)      = Right [triple "movl" (genS s) (genReg r)]
-  genAssignInst r (MemRead loc) = Right [triple "movl" (genLoc loc) (genReg r)]
+  genAssignInst r (SRHS s)      = Right [triple "movq" (genS s) (genReg r)]
+  genAssignInst r (MemRead loc) = Right [triple "movq" (genLoc loc) (genReg r)]
   {-
   cmp assignments have to be with CXRegisters on LHS
   (eax <- ebx < ecx)
@@ -120,13 +122,13 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genAssignInst cx@(CXR c) (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
     Right $ genCompInst cx r l (setInstruction op)
   genAssignInst cx@(CXR _) (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
-    Right [triple "movl" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
+    Right [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
   genAssignInst (CXR Eax) (Print s) = Right [
-    triple "movl" (genS s) (genReg edi),
+    triple "movq" (genS s) (genReg edi),
     "call _print" ]
   genAssignInst (CXR Eax) (Allocate s n) = Right [
-    triple "movl" (genS s) (genReg edi),
-    triple "movl" (genS n) (genReg esi),
+    triple "movq" (genS s) (genReg edi),
+    triple "movq" (genS n) (genReg esi),
     "call _allocate" ]
   genAssignInst (CXR Eax) (ArrayError s n) = Right [
     triple "movq" (genS s) (genReg edi),
@@ -137,14 +139,13 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCompInst cx@(CXR c) l r x = [
     triple "cmp" (genS l) (genS r),
     x ++ " " ++ (low8 c),
-    triple "movzbl" (low8 c) (genReg cx) ]
+    triple "movzbq" (low8 c) (genReg cx) ]
     where low8 cx = "%" ++ [show cx !! 1] ++ "l"
   
   declare label = "L1_" ++ label ++ ":"
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
-  genReg (CXR cx) = "%" ++ show cx
-  genReg (XR x)   = "%" ++ show x
+  genReg r = "%" ++ (show $ get64BitReg r)
   genS :: L1S -> String
   genS (NumberL1S i) = "$" ++ show i
   genS (LabelL1S  l) = "$L1_" ++ l

@@ -53,15 +53,17 @@ compileL164File = compile compileL164OrDie "S"
 compileL164File_ :: FilePath -> IO String
 compileL164File_ = compile1 compileL164OrDie
 
-runNative :: FilePath -> IO String
-runNative inputFile = do
-  s64 <- compileL164File_ $ traceA inputFile
-  let sFile   = changeExtension inputFile "S64"
-  let oFile   = changeExtension inputFile "S64.o"
-  let outFile = changeExtension inputFile "S64.out"
-  let resFile = changeExtension inputFile "S64.res"
-  _ <- writeFile sFile s64
-  _ <- rawSystem "as"  ["-o", oFile,   sFile]
-  _ <- rawSystem "gcc" ["-o", outFile, oFile, "bin/runtime.o"]
-  _ <- rawSystem "bin/run.sh" [outFile, resFile]
-  readFile resFile
+runNative :: FilePath -> FilePath -> IO String
+runNative inputFile outputDir = 
+  let f newExt = changeDir (changeExtension inputFile newExt) outputDir
+      sFile   = f "S64"
+      oFile   = f "S64.o"
+      outFile = f "S64.out"
+      resFile = f "S64.res"
+  in do
+    s64 <- compileL164File_ inputFile
+    _ <- writeFile sFile s64
+    _ <- rawSystem "as"  ["-o", oFile,   sFile]
+    _ <- rawSystem "gcc" ["-o", outFile, oFile, "bin/runtime.o"]
+    _ <- rawSystem "bin/run.sh" [outFile, resFile]
+    readFile resFile

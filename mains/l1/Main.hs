@@ -6,5 +6,5 @@ import System.Environment
 
 main = do
   inputFile <- fmap (!! 0) getArgs
-  res <- runNative inputFile
+  res <- runNative inputFile "tmp"
   putStrLn res

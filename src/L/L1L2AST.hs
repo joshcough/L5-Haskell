@@ -111,6 +111,13 @@ x86OpName LeftShift  = "sall"
 x86OpName RightShift = "sarl"
 x86OpName BitwiseAnd = "andl"
 
+x8664OpName Increment  = "addq"
+x8664OpName Decrement  = "subq"
+x8664OpName Multiply   = "imulq"
+x8664OpName LeftShift  = "salq"
+x8664OpName RightShift = "sarq"
+x8664OpName BitwiseAnd = "andq"
+
 runOp :: X86Op -> Int -> Int -> Int
 runOp Increment  = (+)
 runOp Decrement  = (-)
@@ -154,6 +161,16 @@ instance Show CXRegister where
   show Rbx = "rbx"
   show Rcx = "rcx"
   show Rdx = "rdx"
+
+get64BitReg :: Register -> Register
+get64BitReg (XR Esi)  = XR  Rsi
+get64BitReg (XR Edi)  = XR  Rdi
+get64BitReg (XR Ebp)  = XR  Rbp
+get64BitReg (XR Esp)  = XR  Rsp
+get64BitReg (CXR Eax) = CXR Rax
+get64BitReg (CXR Ebx) = CXR Rbx
+get64BitReg (CXR Ecx) = CXR Rcx
+get64BitReg (CXR Edx) = CXR Rdx
 
 instance Show Register where
   show (CXR cxr) = show cxr
