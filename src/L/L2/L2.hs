@@ -47,10 +47,10 @@ allocate isMain f = let
     label = body allocatedFunction !! 0
     bodyWithoutLabel = tail $ body allocatedFunction
     decEsp :: L2Instruction
-    decEsp = MathInst (RegL2X esp) decrement (NumberL2S (- espOffset))
+    decEsp = MathInst (RegL2X esp) decrement (NumberL2S (- (fromIntegral espOffset)))
     incEspMaybe :: [L2Instruction]
     incEspMaybe = if isMain 
-                  then [MathInst (RegL2X esp) increment (NumberL2S (- espOffset))] 
+                  then [MathInst (RegL2X esp) increment (NumberL2S (- (fromIntegral espOffset)))] 
                   else []
     finalFunction = Func $ concat [[label], [decEsp], bodyWithoutLabel, incEspMaybe]
   in replaceVarsWithRegisters allocs finalFunction
@@ -59,12 +59,12 @@ allocateCompletely :: L2Func -> ((L2Func, Map Variable Register), Int)
 allocateCompletely originalF = let
   -- TODO: looks like this just spills everything :(
   varsToSpill = nub $ body originalF >>= (Set.toList . vars)
-  spill_ b (sv, i) = spillDef sv (-i * 4) b
+  spill_ b (sv, i) = spillDef sv (-i * 8) b
   newBody = foldl spill_ (body originalF) (zipWithIndex varsToSpill)
   g = buildInterferenceGraph $ liveness newBody
   in case attemptAllocation g of
     Just registerMap -> 
-      ((Func newBody, registerMap), (- (length varsToSpill) * 4))
+      ((Func newBody, registerMap), (- (length varsToSpill) * 8))
     Nothing -> error "allocation impossible"
 
 -- TODO: this stuff should be someplace better than this

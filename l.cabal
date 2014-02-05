@@ -50,7 +50,7 @@ library
     containers                >= 0.3     && < 0.6,
     directory                 >= 1.2.0.1,
     filepath                  >= 1.3     && < 1.4,
-    lens                      >= 3.9     && < 4,
+    lens                      >= 4,
     mtl                       >= 2       && < 2.2,
     process                   >= 1.1.0.2,
     vector                    >= 0.10.0.1
@@ -97,7 +97,7 @@ test-suite tests
   main-is:        test/main.hs
   hs-source-dirs: . test
   other-modules:
-    LProperties
+    --LProperties
     LUnitTests
 
   if !flag(tests)
@@ -108,9 +108,9 @@ test-suite tests
       directory                  >= 1.2.0.1,
       HUnit,
       l,
-      MissingH,
+      --MissingH,
       QuickCheck                 >= 2.4,
-      quickcheck-instances       >= 0.3.1,
+      --quickcheck-instances     >= 0.1,
       test-framework             >= 0.6,
       test-framework-hunit,
       test-framework-quickcheck2 >= 0.2,

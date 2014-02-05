@@ -10,7 +10,7 @@ import Test.HUnit
 import Data.List
 import Data.Traversable
 
-import LProperties
+--import LProperties
 import LUnitTests
 
 main = do

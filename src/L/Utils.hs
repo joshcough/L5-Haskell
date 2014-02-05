@@ -4,6 +4,7 @@ module L.Utils
    ,endsWith
    ,extract
    ,mkString
+   ,strip
    ,traceA
    ,traceSA
    ,zipWithIndex
@@ -23,7 +24,6 @@ endsWith = isSuffixOf
 extract :: Either String a -> a
 extract = either error id
 
--- TODO: really? this could be somewhere...
 zipWithIndex :: [a] -> [(a, Int)]
 zipWithIndex as = zip as [0..]
 
@@ -32,3 +32,17 @@ traceA a = traceShow a a
 
 traceSA :: Show a => String -> a -> a
 traceSA s a = trace (s ++ " " ++ show a) a
+
+wschars :: String
+wschars = " \t\r\n"
+
+strip :: String -> String
+strip = lstrip . rstrip
+
+lstrip :: String -> String
+lstrip s = case s of
+  [] -> []
+  (x:xs) -> if elem x wschars then lstrip xs else s
+
+rstrip :: String -> String
+rstrip = reverse . lstrip . reverse

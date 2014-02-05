@@ -4,6 +4,7 @@ module L.L1L2AST where
 
 import Control.Lens
 import Data.Bits
+import Data.Int
 import L.Read (showAsList)
 import Prelude hiding (LT, EQ)
 
@@ -118,13 +119,13 @@ x8664OpName LeftShift  = "salq"
 x8664OpName RightShift = "sarq"
 x8664OpName BitwiseAnd = "andq"
 
-runOp :: X86Op -> Int -> Int -> Int
-runOp Increment  = (+)
-runOp Decrement  = (-)
-runOp Multiply   = (*)
-runOp LeftShift  = shiftL
-runOp RightShift = shiftR
-runOp BitwiseAnd = (.&.)
+runOp :: X86Op -> Int32 -> Int32 -> Int32
+runOp Increment  l r = l + r
+runOp Decrement  l r = l - r
+runOp Multiply   l r = l * r
+runOp LeftShift  i amount = shiftL i (fromIntegral amount)
+runOp RightShift i amount = shiftR i (fromIntegral amount)
+runOp BitwiseAnd l r = l .&. r
 
 instance (Show x, Show s) => Show (Program x s) where
   show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
@@ -239,7 +240,7 @@ instance Show CompOp where
   show LTEQ = "<="
   show EQ   = "="
 
-cmp :: CompOp -> Int -> Int -> Bool
+cmp :: CompOp -> Int32 -> Int32 -> Bool
 cmp LT   = (<)
 cmp LTEQ = (<=)
 cmp EQ   = (==)
@@ -257,7 +258,7 @@ foldOp _ _ a EQ   = a
 
 -- L1 AST (uses shared L1/L2 AST)
 type L1X = Register
-data L1S = NumberL1S Int | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
+data L1S = NumberL1S Int32 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
 type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
 type L1 = Program L1X L1S
@@ -292,7 +293,7 @@ instance AsVariable L2X where
 instance AsXRegister L2X
 instance AsCXRegister L2X
 
-data L2S = XL2S L2X | NumberL2S Int | LabelL2S Label deriving (Eq, Ord)
+data L2S = XL2S L2X | NumberL2S Int32 | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S

@@ -156,7 +156,7 @@ l1Parser64 = l1Parser X64
 l1Parser mode = Parser mode parseL1Reg parseL1S where
   parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister mode s)
   parseL1S s = case (sread s) of
-    AtomNum n -> Right $ NumberL1S n
+    AtomNum n -> Right $ NumberL1S (fromIntegral n)
     AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister mode LabelL1S RegL1S s
 
 parseL132 = parseProgram l1Parser32
@@ -170,7 +170,7 @@ l2Parser64 = l2Parser X64
 l2Parser mode = Parser mode (parseX VarL2X RegL2X) parseL2S where
   parseX v r  s = Right $ maybe (v s) r (parseRegister mode s)
   parseL2S    s = case (sread s) of
-    AtomNum n -> Right $ NumberL2S n
+    AtomNum n -> Right $ NumberL2S (fromIntegral n)
     AtomSym s -> maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
                    parseLabelOrRegister mode LabelL2S (XL2S . RegL2X) s
 

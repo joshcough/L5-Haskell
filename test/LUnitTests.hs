@@ -10,7 +10,7 @@ import Test.HUnit
 import Control.Applicative
 import Control.Exception
 import Data.List
-import Data.String.Utils
+--import Data.String.Utils
 import Data.Traversable
 import System.IO.Unsafe
 
@@ -21,6 +21,7 @@ import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
 import L.Read
+import L.Utils
 
 tests = do
   ts <- traverse tree tests_
@@ -30,8 +31,8 @@ tests_ = [
   l1Tests
  ,livenessTests
  ,interferenceTests
- ,spillTests
- ,l1InterpreterTests 
+ ,spillTests 
+ ,l1InterpreterTests
  ,l164Tests ]
 
 testDir = "./test/test-fest/"
