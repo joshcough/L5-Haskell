@@ -119,7 +119,7 @@ x8664OpName LeftShift  = "salq"
 x8664OpName RightShift = "sarq"
 x8664OpName BitwiseAnd = "andq"
 
-runOp :: X86Op -> Int32 -> Int32 -> Int32
+runOp :: (Num a, Bits a, Integral a) => X86Op -> a -> a -> a
 runOp Increment  l r = l + r
 runOp Decrement  l r = l - r
 runOp Multiply   l r = l * r
@@ -240,7 +240,7 @@ instance Show CompOp where
   show LTEQ = "<="
   show EQ   = "="
 
-cmp :: CompOp -> Int32 -> Int32 -> Bool
+cmp :: Ord a => CompOp -> a -> a -> Bool
 cmp LT   = (<)
 cmp LTEQ = (<=)
 cmp EQ   = (==)
@@ -258,12 +258,22 @@ foldOp _ _ a EQ   = a
 
 -- L1 AST (uses shared L1/L2 AST)
 type L1X = Register
-data L1S = NumberL1S Int32 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
-type L1Instruction = Instruction L1X L1S
-type L1Func = Func L1X L1S
-type L1 = Program L1X L1S
+data L1S intsize = NumberL1S intsize | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
+type L1Instruction intsize = Instruction L1X (L1S intsize)
+type L1Func intsize = Func L1X (L1S intsize)
+type L1 intsize = Program L1X (L1S intsize)
 
-instance Show L1S where
+type L132S = L1S Int32
+type L132Instruction = L1Instruction Int32
+type L132Func = L1Func Int32
+type L132 = L1 Int32
+
+type L164S = L1S Int64
+type L164Instruction = L1Instruction Int64
+type L164Func = L1Func Int64
+type L164 = L1 Int64
+
+instance Show intsize => Show (L1S intsize) where
   show (NumberL1S n) = show n
   show (LabelL1S l)  = ":" ++ l
   show (RegL1S r)    = show r
@@ -293,17 +303,29 @@ instance AsVariable L2X where
 instance AsXRegister L2X
 instance AsCXRegister L2X
 
-data L2S = XL2S L2X | NumberL2S Int32 | LabelL2S Label deriving (Eq, Ord)
+data L2S intsize = XL2S L2X | NumberL2S intsize | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X
-type L2Instruction = Instruction L2X L2S
-type L2Func = Func L2X L2S
-type L2 = Program L2X L2S
+type L2Instruction intsize = Instruction L2X (L2S intsize)
+type L2Func intsize = Func L2X (L2S intsize)
+type L2 intsize = Program L2X (L2S intsize)
+
+type L232S = L2S Int32
+type L232Instruction = L2Instruction Int32
+type L232Func = L2Func Int32
+type L232 = L2 Int32
+
+type L264S = L2S Int64
+type L264Instruction = L2Instruction Int64
+type L264Func = L2Func Int64
+type L264 = L2 Int64
+
+
 
 instance Show L2X where
   show (RegL2X r) = show r
   show (VarL2X v) = v
 
-instance Show L2S where
+instance Show intsize => Show (L2S intsize) where
   show (NumberL2S n)   = show n
   show (LabelL2S l)    = ":" ++ l
   show (XL2S x)        = show x

@@ -28,7 +28,10 @@ import System.Environment
 import System.IO
 
 compileL132 :: String -> Either String String
-compileL132 code = parseL132 (sread code) >>= genX8632Code
+compileL132 code = 
+  let l1 :: Either String L132 
+      l1 = parseL132 (sread code)
+  in l1 >>= genX8632Code
 
 compileL132OrDie :: String -> String
 compileL132OrDie = (either error id) . compileL132

@@ -19,9 +19,9 @@ import System.IO
 -- X86 Generation code
 type X8632Inst = String
 
-genX8632Code :: L1 -> Either String String
+genX8632Code :: L132 -> Either String String
 genX8632Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
-  genCodeS :: L1 -> ErrorT String (State Int) String
+  genCodeS :: L132 -> ErrorT String (State Int) String
   genCodeS (Program main funcs) = do
     x86Main  <- genMain main
     x86Funcs <- genFunc $ concat $ map body funcs
@@ -47,7 +47,7 @@ genX8632Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".ident\t\"GCC: (Ubuntu 4.3.2-1ubuntu12) 4.3.2\"",
       ".section\t.note.GNU-stack,\"\",@progbits\n" ]
 
-  genMain :: L1Func -> ErrorT String (State Int) [X8632Inst]
+  genMain :: L132Func -> ErrorT String (State Int) [X8632Inst]
   genMain (Func insts) =  (flip fmap) (genFunc (tail insts)) (++ mainFooter) where
     mainFooter = [
       "popl %ebp",
@@ -57,10 +57,10 @@ genX8632Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "leave",
       "ret" ]
   
-  genFunc :: [L1Instruction] -> ErrorT String (State Int) [X8632Inst]
+  genFunc :: [L132Instruction] -> ErrorT String (State Int) [X8632Inst]
   genFunc insts = (traverse genInstS insts) >>= return . concat
   
-  genInstS :: L1Instruction -> ErrorT String (State Int) [X8632Inst]
+  genInstS :: L132Instruction -> ErrorT String (State Int) [X8632Inst]
   genInstS (Call s) = fmap (\i -> call $ "Generated_Label_" ++ show i) postIncrement where
     postIncrement = do { x <- get; put (x+1); return x }
     call label = [
@@ -71,7 +71,7 @@ genX8632Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       declare label ]
   genInstS i = either throwError return $ genInst i
 
-  genInst :: L1Instruction -> Either String [X8632Inst]
+  genInst :: L132Instruction -> Either String [X8632Inst]
   genInst (LabelDeclaration label)     = Right [declare label]
   genInst (Assign l r)       = genAssignInst l r
   genInst (MemWrite loc  s)  = Right [triple "movl"  (genS s) (genLoc loc)]
@@ -147,14 +147,14 @@ genX8632Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genReg :: Register -> String
   genReg (CXR cx) = "%" ++ show cx
   genReg (XR x)   = "%" ++ show x
-  genS :: L1S -> String
+  genS :: L132S -> String
   genS (NumberL1S i) = "$" ++ show i
   genS (LabelL1S  l) = "$L1_" ++ l
   genS (RegL1S    r) = genReg r
   --genS (RegL1S    r) = "%" ++ (show r)
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
-  jump :: L1S -> String
+  jump :: L132S -> String
   jump (LabelL1S name) = "jmp L1_" ++ name
   jump l               = "jmp *" ++ (genS l)
   

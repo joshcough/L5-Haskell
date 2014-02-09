@@ -100,7 +100,7 @@ registerInterference = mkGraph [
     Except that the variables x and y do not interfere if the instruction was (x <- y)
     All real registers interfere with each other
 -}
-buildInterferenceGraph :: [IIOS] -> Interference
+buildInterferenceGraph :: [IIOS a] -> Interference
 buildInterferenceGraph iioss = 
   let 
     -- start with a graph containing all of the variables and registers
@@ -126,7 +126,7 @@ buildInterferenceGraph iioss =
     outAndSpecialInterference
   ]
 
-interference1 :: IIOS -> InterferenceGraph
+interference1 :: IIOS a -> InterferenceGraph
 interference1 iios =
   let outInterference :: InterferenceGraph
       outInterference = 
@@ -146,7 +146,7 @@ interference1 iios =
             -- x gets killed here, but doesn't interfere with y
             -- (unless x gets used again later, but then x and y will
             --  interfere because of different rules)
-            assignmentRemovals :: L2Instruction -> Maybe (L2X, L2X)
+            assignmentRemovals :: L2Instruction a -> Maybe (L2X, L2X)
             assignmentRemovals (Assign v@(VarL2X _) (SRHS (XL2S x)))            = jop v x
             assignmentRemovals (Assign r@(RegL2X _) (SRHS (XL2S v@(VarL2X _)))) = jop r v
             assignmentRemovals _ = Nothing

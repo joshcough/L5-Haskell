@@ -40,16 +40,16 @@ spillDef v i = spill v i defaultSpillPrefix
 
 -- TODO: figure out - is this really the top level? 
 -- if not, the state should propagate, and be run later.
-spill :: Variable -> Int -> String -> [L2Instruction] -> [L2Instruction]
+spill :: (Eq a, Show a) => Variable -> Int -> String -> [L2Instruction a] -> [L2Instruction a]
 spill spillVar stackOffset spillPrefix ins = 
-  let s :: State Int [[L2Instruction]]
+  let --s :: (Eq a, Show a) => State Int [[L2Instruction a]]
       s = traverse (spillInst spillVar stackOffset spillPrefix) ins
   in join . fst $ runState s 0
 
 -- Spill a variable
 --   spillVar is obviously the variable to spill
 --   stackOffset is the location in memory to spill the variable
-spillInst :: Variable -> Int -> String -> L2Instruction -> State Int [L2Instruction]
+spillInst :: (Eq a, Show a) => Variable -> Int -> String -> L2Instruction a -> State Int [L2Instruction a]
 spillInst spillVar stackOffset spillPrefix = spillI where
 
   memLoc = MemLoc ebp stackOffset
@@ -66,9 +66,9 @@ spillInst spillVar stackOffset spillPrefix = spillI where
 
   withNewVar   :: (L2X -> a) -> State Int a
   withNewVar   f = fmap f newVar
-  withNewVarR  :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
+  withNewVarR  :: (L2X -> [L2Instruction a]) -> State Int [L2Instruction a]
   withNewVarR  f = fmap (\v -> readSpillVarInto v : f v) newVar
-  withNewVarRW :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
+  withNewVarRW :: (L2X -> [L2Instruction a]) -> State Int [L2Instruction a]
   withNewVarRW f = fmap (\v -> readSpillVarInto v : (f v ++ [writeSpillVar v])) newVar
 
   spillI (Assign x rhs)                 = spillAssignment x rhs
@@ -85,7 +85,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
   spillI l@(LabelDeclaration _)     = return [l]
   spillI r@Return                   = return [r]
   
-  spillAssignment :: L2X -> AssignRHS L2X L2S -> State Int [L2Instruction]
+  spillAssignment :: (Eq a, Show a) => L2X -> AssignRHS L2X (L2S a) -> State Int [L2Instruction a]
   -- assignments to variable from variable
   spillAssignment v1@(VarL2X _) rhs@(SRHS (XL2S v2@(VarL2X _)))
     -- if we have x <- x, just remove it.
@@ -212,7 +212,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
   -- if x or s is being spilled, 
   -- create a new var and read the spilled vars value from memory into it
   -- then do the original computation using the new var instead of x or s
-  spillMathInst :: L2X -> X86Op -> L2S -> State Int [L2Instruction]
+  spillMathInst :: (Eq a) => L2X -> X86Op -> L2S a -> State Int [L2Instruction a]
   spillMathInst x op s 
     -- (x += x) for any op, where x is being spilled (x is now in memory)
     | x == spillVarX && XL2S x == s = withNewVarRW $ \v -> [MathInst v op (XL2S v)]  
@@ -224,7 +224,7 @@ spillInst spillVar stackOffset spillPrefix = spillI where
     -- spill var is not in the instruction, so just return it.
     | otherwise = return [MathInst x op s]
 
-  spillMemWrite :: L2MemLoc -> L2S -> State Int [L2Instruction] 
+  spillMemWrite :: (Eq a) => L2MemLoc -> L2S a -> State Int [L2Instruction a] 
   spillMemWrite loc@(MemLoc bp off) s
     -- ((mem x 4) <- x)
     -- (s_0 <- (mem ebp stackOffset))

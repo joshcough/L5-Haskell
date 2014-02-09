@@ -151,7 +151,9 @@ parseN4 n = case (sread n) of
 parseCXRegister cx = fmap CXR (cxRegisterFromName cx)
 
 -- L1 Parser (uses shared L1/L2 Parser)
+l1Parser32 :: Parser L1X L132S
 l1Parser32 = l1Parser X32
+l1Parser64 :: Parser L1X L164S
 l1Parser64 = l1Parser X64
 l1Parser mode = Parser mode parseL1Reg parseL1S where
   parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister mode s)
@@ -165,7 +167,9 @@ parseL164 = parseProgram l1Parser64
 parseL164InstList = parseInstructionList l1Parser64
 
 -- L2 Parser (uses shared L1/L2 Parser)
+l2Parser32 :: Parser L2X L232S
 l2Parser32 = l2Parser X32
+l2Parser64 :: Parser L2X L264S
 l2Parser64 = l2Parser X64
 l2Parser mode = Parser mode (parseX VarL2X RegL2X) parseL2S where
   parseX v r  s = Right $ maybe (v s) r (parseRegister mode s)

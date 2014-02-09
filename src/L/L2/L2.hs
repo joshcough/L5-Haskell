@@ -30,9 +30,9 @@ import L.L2.Vars
 -- it does this until either a) it works, or b) it is out of variables to spill.
 -- the last case results in error.
 
-compileL2 :: String -> Either String L1
+compileL2 :: String -> Either String L164
 compileL2 code = genL1Code <$> parseL264 (sread code) where
-  genL1Code :: L2 -> L1
+  --genL1Code :: L2 -> L1
   genL1Code (Program main fs) = 
     -- TODO: in scala, I stripped off the main label if it was present
     -- in the main function. Why did I do that? Do I need to here?
@@ -40,22 +40,22 @@ compileL2 code = genL1Code <$> parseL264 (sread code) where
 
 -- gives back a fully allocated function (if its possible to allocate it)
 -- with all of the variables replaced with the assigned registers.
-allocate :: Bool -> L2Func -> L1Func
+allocate :: (Num a, Ord a, Show a) => Bool -> L2Func a -> L1Func a
 allocate isMain f = let
     ((allocatedFunction, allocs), espOffset) = allocateCompletely (initialRewrite f)
     -- adjust the stack at the start of the function right here.
     label = body allocatedFunction !! 0
     bodyWithoutLabel = tail $ body allocatedFunction
-    decEsp :: L2Instruction
+    decEsp :: Num a => L2Instruction a
     decEsp = MathInst (RegL2X esp) decrement (NumberL2S (- (fromIntegral espOffset)))
-    incEspMaybe :: [L2Instruction]
+    incEspMaybe :: Num a => [L2Instruction a]
     incEspMaybe = if isMain 
                   then [MathInst (RegL2X esp) increment (NumberL2S (- (fromIntegral espOffset)))] 
                   else []
     finalFunction = Func $ concat [[label], [decEsp], bodyWithoutLabel, incEspMaybe]
   in replaceVarsWithRegisters allocs finalFunction
 
-allocateCompletely :: L2Func -> ((L2Func, Map Variable Register), Int)
+allocateCompletely :: (Num a, Ord a, Show a) => L2Func a -> ((L2Func a, Map Variable Register), Int)
 allocateCompletely originalF = let
   -- TODO: looks like this just spills everything :(
   varsToSpill = nub $ body originalF >>= (Set.toList . vars)
@@ -116,7 +116,7 @@ findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   choice = listToMaybe $ Set.toList availableRegisters -- TODO: sort list here.
 
 -- sets up the function so that edi and esi can be spilled.
-initialRewrite :: L2Func -> L2Func
+initialRewrite :: L2Func a -> L2Func a
 initialRewrite f = let
   z1In  = Assign (VarL2X "__z1") $ SRHS $ (XL2S . RegL2X) edi
   z2In  = Assign (VarL2X "__z2") $ SRHS $ (XL2S . RegL2X) esi
@@ -124,7 +124,7 @@ initialRewrite f = let
   z2Out = Assign (RegL2X esi)    $ SRHS $ (XL2S . VarL2X) "__z2"
   -- this business arranges to make sure that edi and esi
   -- get put back properly before a return or a tail-call.
-  returnAdjustment :: L2Instruction -> [L2Instruction]
+  returnAdjustment :: L2Instruction a -> [L2Instruction a]
   returnAdjustment r@Return       = [z1Out, z2Out, r]
   returnAdjustment t@(TailCall _) = [z1Out, z2Out, t]
   returnAdjustment i              = [i]

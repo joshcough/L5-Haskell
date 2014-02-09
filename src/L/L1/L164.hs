@@ -20,9 +20,9 @@ import System.IO
 -- X86 Generation code
 type X8664Inst = String
 
-genX8664Code :: L1 -> Either String String
+genX8664Code :: L164 -> Either String String
 genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
-  genCodeS :: L1 -> ErrorT String (State Int) String
+  genCodeS :: L164 -> ErrorT String (State Int) String
   genCodeS (Program main funcs) = do
     x86Main  <- genMain main
     x86Funcs <- genFunc $ concat $ map body funcs
@@ -31,7 +31,7 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     dump insts = mkString "\n" $ map adjust insts
     adjust i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
 
-  genMain :: L1Func -> ErrorT String (State Int) [X8664Inst]
+  genMain :: L164Func -> ErrorT String (State Int) [X8664Inst]
   genMain (Func insts) =  genFunc_ (tail insts) mainHeader mainFooter where
     mainHeader = [
       ".file\t\"prog.c\"",
@@ -54,7 +54,7 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "addq $8, %rsp",
       "ret" ]
 
-  genFunc :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
+  genFunc :: [L164Instruction] -> ErrorT String (State Int) [X8664Inst]
   genFunc [] = return []
   genFunc insts = do
     labl <- genInstS (head insts)
@@ -64,18 +64,18 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
         "pushq %rbp",
         "movq %rsp, %rbp" ]
  
-  genFunc_ :: [L1Instruction] -> [String] -> [String] -> ErrorT String (State Int) [X8664Inst]
+  genFunc_ :: [L164Instruction] -> [String] -> [String] -> ErrorT String (State Int) [X8664Inst]
   genFunc_ insts header footer = wrap header footer <$> (compile insts) where
     wrap header footer body = concat [header, body, footer]
 
-  compile :: [L1Instruction] -> ErrorT String (State Int) [X8664Inst]
+  compile :: [L164Instruction] -> ErrorT String (State Int) [X8664Inst]
   compile insts = traverse genInstS insts >>= return . concat
   
-  genInstS :: L1Instruction -> ErrorT String (State Int) [X8664Inst]
+  genInstS :: L164Instruction -> ErrorT String (State Int) [X8664Inst]
   genInstS (Call s) = return [call s]
   genInstS i = either throwError return $ genInst i
 
-  genInst :: L1Instruction -> Either String [X8664Inst]
+  genInst :: L164Instruction -> Either String [X8664Inst]
   genInst (LabelDeclaration label)     = Right [declare label]
   genInst (Assign l r)       = genAssignInst l r
   genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
@@ -146,18 +146,18 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
   genReg r = "%" ++ (show $ get64BitReg r)
-  genS :: L1S -> String
+  genS :: L164S -> String
   genS (NumberL1S i) = "$" ++ show i
   genS (LabelL1S  l) = "$L1_" ++ l
   genS (RegL1S    r) = genReg r
   --genS (RegL1S    r) = "%" ++ (show r)
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
-  jump :: L1S -> String
+  jump :: L164S -> String
   jump (LabelL1S name) = "jmp L1_" ++ name
   jump l               = "jmp *" ++ (genS l)
 
-  call :: L1S -> String
+  call :: L164S -> String
   call (LabelL1S name) = "call L1_" ++ name
   
   setInstruction = foldOp "setl" "setle" "sete"
