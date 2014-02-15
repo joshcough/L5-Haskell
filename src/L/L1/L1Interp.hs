@@ -5,7 +5,16 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module L.L1.L1Interp where
+module L.L1.L1Interp 
+  (
+    Computer(..)
+   ,interpL1
+   ,interpL1File
+   ,interpL1OrDie
+   ,interpL1String
+   ,showOutput
+  )
+where
 
 import Control.Applicative
 import Control.Monad (ap)
@@ -198,8 +207,8 @@ nextInstWR r i c = nextInst $ writeReg r i c
 
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
-interp :: WordSize ws => L1 ws -> Computer ws
-interp p = go (newComputer p)
+interpL1 :: WordSize ws => L1 ws -> Computer ws
+interpL1 p = go (newComputer p)
 
 -- the main loop, runs a computer until completion
 go :: WordSize ws => Computer ws -> Computer ws
@@ -249,12 +258,12 @@ step (TailCall s) c = goto (readS s c) c
 -- Return
 step Return c = ret $ pop ebp $ set esp ebp c
 
-interpL1 :: String -> Either String String
-interpL1 code = showOutput . interp <$> parseL132 (sread code)
+interpL1String :: String -> Either String String
+interpL1String code = showOutput . interpL1 <$> parseL132 (sread code)
 
 interpL1OrDie :: String -> String
-interpL1OrDie = (either error id) . interpL1
+interpL1OrDie = (either error id) . interpL1String
 
 interpL1File = 
-  do s <- compile_ $ (either error id) . interpL1
+  do s <- compile_ $ (either error id) . interpL1String
      putStrLn (snd s)

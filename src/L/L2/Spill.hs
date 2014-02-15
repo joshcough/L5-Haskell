@@ -6,6 +6,7 @@ module L.L2.Spill
    ,spillTest
   ) where
 
+import Control.Applicative
 import Control.Monad.State
 import Data.Traversable
 import L.CompilationUnit
@@ -31,26 +32,22 @@ spillTest input = case (sreadWithRest input) of
         off = read $ w !! 1
         pre = w !! 2
         ins = extract $ parseL264InstList program
-    in showAsList $ fmap show $ spill var off pre ins
+    in showAsList $ fmap show $ fst $ runState (spill pre (var, off) ins) 0
 
 runSpillMain_ :: FilePath -> IO String
 runSpillMain_ = compile1 spillTest
 
-spillDef v i = spill v i defaultSpillPrefix
+spillDef (v,i) = spill defaultSpillPrefix (v, i)
 
--- TODO: figure out - is this really the top level? 
--- if not, the state should propagate, and be run later.
-spill :: (Eq a, Show a) => Variable -> Int -> String -> [L2Instruction a] -> [L2Instruction a]
-spill spillVar stackOffset spillPrefix ins = 
-  let --s :: (Eq a, Show a) => State Int [[L2Instruction a]]
-      s = traverse (spillInst spillVar stackOffset spillPrefix) ins
-  in join . fst $ runState s 0
+spill :: (Eq a, Show a) => String -> (Variable, Int) -> [L2Instruction a] -> State Int [L2Instruction a]
+spill spillPrefix (spillVar, stackOffset) ins = 
+  join <$> traverse (spillInst spillPrefix (spillVar, stackOffset)) ins
 
 -- Spill a variable
 --   spillVar is obviously the variable to spill
 --   stackOffset is the location in memory to spill the variable
-spillInst :: (Eq a, Show a) => Variable -> Int -> String -> L2Instruction a -> State Int [L2Instruction a]
-spillInst spillVar stackOffset spillPrefix = spillI where
+spillInst :: (Eq a, Show a) => String -> (Variable, Int) -> L2Instruction a -> State Int [L2Instruction a]
+spillInst spillPrefix (spillVar, stackOffset) = spillI where
 
   memLoc = MemLoc ebp stackOffset
   spillVarX = VarL2X spillVar

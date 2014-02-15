@@ -39,18 +39,7 @@ genX8664Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".globl _go",
       "_go:",
       "subq $8, %rsp" ]
-      --"pushq %rbp",
-      --"movq %rsp, %rbp",
-      --"pushq %rbx",
-      --"pushq %rsi",
-      --"pushq %rdi",
-      --"pushq %rbp" ]
     mainFooter = [
-      --"popq %rbp",
-      --"popq %rdi",
-      --"popq %rsi",
-      --"popq %rbx",
-      --"leave",
       "addq $8, %rsp",
       "ret" ]
 

@@ -1,6 +1,8 @@
 module L.L1.L1 
   (
-    compileL132
+    compileL1AndRunNative
+   ,compileL1FileAndRunNative
+   ,compileL132
    ,compileL132OrDie
    ,compileL132File
    ,compileL132File_
@@ -44,7 +46,6 @@ compileL132File = compile compileL132OrDie "S"
 compileL132File_ :: FilePath -> IO String
 compileL132File_ = compile1 compileL132OrDie
 
-
 compileL164 :: String -> Either String String
 compileL164 code = parseL164 (sread code) >>= genX8664Code
 
@@ -56,16 +57,32 @@ compileL164File = compile compileL164OrDie "S"
 compileL164File_ :: FilePath -> IO String
 compileL164File_ = compile1 compileL164OrDie
 
+compileL1FileAndRunNative :: FilePath -> FilePath -> IO String
+compileL1FileAndRunNative l1File outputDir = do
+  s64 <- compileL164File_ l1File
+  _   <- writeFile sFile s64
+  runNative sFile outputDir where 
+  sFile = changeDir (changeExtension l1File "S64") outputDir
+
+-- the second argument is represents where the original code came from
+-- maybe it came from an L5-L2 file. 
+-- or, maybe it didn't come from a file at all
+compileL1AndRunNative :: L164 -> Maybe FilePath -> FilePath -> IO String
+compileL1AndRunNative l1 inputFile outputDir = do
+  _   <- writeFile sFile s64
+  runNative sFile outputDir where 
+  s64 = either error id $ genX8664Code l1
+  sFile = case inputFile of
+    Just f  -> changeDir (changeExtension f "S64") outputDir
+    Nothing -> outputDir ++ "tmp.S64"
+
 runNative :: FilePath -> FilePath -> IO String
-runNative inputFile outputDir = 
-  let f newExt = changeDir (changeExtension inputFile newExt) outputDir
-      sFile   = f "S64"
+runNative sFile outputDir = 
+  let f newExt = changeDir (changeExtension sFile newExt) outputDir
       oFile   = f "S64.o"
       outFile = f "S64.out"
       resFile = f "S64.res"
   in do
-    s64 <- compileL164File_ inputFile
-    _ <- writeFile sFile s64
     _ <- rawSystem "as"  ["-o", oFile,   sFile]
     _ <- rawSystem "gcc" ["-o", outFile, oFile, "bin/runtime.o"]
     _ <- rawSystem "bin/run.sh" [outFile, resFile]

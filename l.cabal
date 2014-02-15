@@ -79,6 +79,12 @@ executable L1Interp
   main-is: Main.hs
   build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
+-- executable for the L2-L1 Interpreter
+executable L2Interp
+  hs-source-dirs: mains/l2Interp
+  main-is: Main.hs
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+
 -- executable for Liveness
 executable LivenessMain
  hs-source-dirs: mains/liveness

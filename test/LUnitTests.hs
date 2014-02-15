@@ -10,13 +10,13 @@ import Test.HUnit
 import Control.Applicative
 import Control.Exception
 import Data.List
---import Data.String.Utils
 import Data.Traversable
 import System.IO.Unsafe
 
 import L.IOHelpers
 import L.L1.L1
 import L.L1.L1Interp
+import L.L2.L2 (compileL2FileAndRunNative)
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
@@ -26,6 +26,8 @@ import L.Utils
 tests = do
   ts <- traverse tree tests_
   return $ testGroup "Main" ts
+
+tests2_ = [l2Tests]
 
 tests_ = [
   l1Tests
@@ -65,7 +67,7 @@ l164Tests = TestDef {
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
  ,compute = \r _ e -> do 
-   res <- runNative r "tmp"
+   res <- compileL1FileAndRunNative r "tmp"
    strip res @?= strip e
 }
 livenessTests = TestDef { 
@@ -88,6 +90,15 @@ spillTests = TestDef {
  ,inputFileExt  = "L2f"
  ,outputFileExt = "sres"
  ,compute = \_ r e -> sread (spillTest r) @?= sread e
+}
+l2Tests = TestDef {
+  name = "L2"
+ ,dir  = testDir ++ "2-test/tmp"
+ ,inputFileExt = "L2"
+ ,outputFileExt = "L1"
+ ,compute = \l2f _ l1f -> do
+   actual <- compileL2FileAndRunNative l2f "tmp"
+   strip actual @?= strip (interpL1OrDie l1f)
 }
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
