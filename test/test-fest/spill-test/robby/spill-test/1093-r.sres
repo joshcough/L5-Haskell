@@ -1,4 +1,4 @@
-((cjump eax = eax :y :hvym)
- (cjump eax = eax :y :hvym)
- (cjump eax = eax :y :hvym)
- (cjump eax = eax :y :hvym))
+((cjump rax = rax :y :hvym)
+ (cjump rax = rax :y :hvym)
+ (cjump rax = rax :y :hvym)
+ (cjump rax = rax :y :hvym))

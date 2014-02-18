@@ -1,1 +1,1 @@
-((edi <- :Rl <= edi) (edi <- :Rl <= edi) (edi <- :Rl <= edi) (edi <- :Rl <= edi)) r -4 s
+((rdi <- :Rl <= rdi) (rdi <- :Rl <= rdi) (rdi <- :Rl <= rdi) (rdi <- :Rl <= rdi)) r -4 s

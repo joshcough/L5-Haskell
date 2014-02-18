@@ -2,4 +2,4 @@
   (goto :end)
   (cvar += 2)
   :end
-  (eax <- (print cvar))))
+  (rax <- (print cvar))))

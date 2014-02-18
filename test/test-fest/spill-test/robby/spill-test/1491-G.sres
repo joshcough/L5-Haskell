@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -24)) (eax <- (allocate s0 edx)))
+((s0 <- (mem ebp -24)) (rax <- (allocate s0 rdx)))

@@ -1,1 +1,1 @@
-((ebx <<= H) (ebx <<= H) (ebx <<= H) (ebx <<= H))
+((rbx <<= H) (rbx <<= H) (rbx <<= H) (rbx <<= H))

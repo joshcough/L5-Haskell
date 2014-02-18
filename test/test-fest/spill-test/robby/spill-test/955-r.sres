@@ -1,1 +1,1 @@
-((esi <- eax = esi) (esi <- eax = esi))
+((rsi <- rax = rsi) (rsi <- rax = rsi))

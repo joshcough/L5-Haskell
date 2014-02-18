@@ -1,1 +1,1 @@
-((cjump eax <= eax :N :t)) r -12 s
+((cjump rax <= rax :N :t)) r -12 s

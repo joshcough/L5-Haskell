@@ -1,1 +1,1 @@
-((eax <- (allocate Z m))) r 0 s
+((rax <- (allocate Z m))) r 0 s

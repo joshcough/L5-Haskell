@@ -1,13 +1,13 @@
-(((eax <- 1234567)
+(((rax <- 1234567)
   (call :zeroit)
   :fakereturn
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:zeroit
-  (ebx <- 0)
-  (eax &= ebx)
-  (eax += 1)
+  (rbx <- 0)
+  (rax &= rbx)
+  (rax += 1)
   (goto :return)
-  (eax &= ebx)
+  (rax &= rbx)
   (goto :fakereturn)
   :return
   (return)))

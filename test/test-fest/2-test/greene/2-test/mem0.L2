@@ -1,9 +1,9 @@
 (((y <- 45)
-  (eax <- (allocate y 3))
-  (x <- eax)
+  (rax <- (allocate y 3))
+  (x <- rax)
   ((mem x 0) <- 11)
   ((mem x 4) <- 13)
   ((mem x 8) <- 15)
   (z <- (mem x 0))
-  (eax <- (print z))))
+  (rax <- (print z))))
   

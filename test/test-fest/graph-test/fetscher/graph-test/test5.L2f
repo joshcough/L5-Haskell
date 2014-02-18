@@ -1,4 +1,4 @@
 (:start
     (z <- 2)
-    (eax <- z)
-    (tail-call edx))
+    (rax <- z)
+    (tail-call rdx))

@@ -6,6 +6,6 @@
 (x *= tmp3)
 (x *= 2)
 (x += 1)
-(eax <- (print x))
+(rax <- (print x))
 )
 )

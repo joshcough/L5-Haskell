@@ -1,1 +1,1 @@
-((edi <- (mem ebx 4))) r -24 s
+((rdi <- (mem rbx 4))) r -24 s

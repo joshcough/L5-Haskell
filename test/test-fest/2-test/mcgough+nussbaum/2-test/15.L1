@@ -1,5 +1,5 @@
 ;;17
-(((eax <- 18)
-  (eax *= 2)
-  (eax -= 1)
-  (eax <- (print eax))))
+(((rax <- 18)
+  (rax *= 2)
+  (rax -= 1)
+  (rax <- (print rax))))

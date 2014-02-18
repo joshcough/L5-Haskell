@@ -1,1 +1,1 @@
-((cjump D = :l :edi :r)) r -24 s
+((cjump D = :l :rdi :r)) r -24 s

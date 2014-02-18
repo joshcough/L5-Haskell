@@ -1,8 +1,8 @@
-(((eax <- 3)
-  (cjump eax = 1 :then :else)
+(((rax <- 3)
+  (cjump rax = 1 :then :else)
   :then
-  (eax <- (print 3))
+  (rax <- (print 3))
   (goto :done)
   :else
-  (eax <- (print 1))
+  (rax <- (print 1))
   :done))

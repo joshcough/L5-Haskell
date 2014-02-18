@@ -1,8 +1,8 @@
 ((;;5 + 4 = 9
-  (ebx <- 5)
-  (ecx <- 4)
-  (ebx += ecx)
+  (rbx <- 5)
+  (rcx <- 4)
+  (rbx += rcx)
   ;; Encode for printing
-  (ebx *= 2)
-  (ebx += 1)
-  (eax <- (print ebx))))
+  (rbx *= 2)
+  (rbx += 1)
+  (rax <- (print rbx))))

@@ -1,1 +1,1 @@
-((call eax) (call eax))
+((call rax) (call rax))

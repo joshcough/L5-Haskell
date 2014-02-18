@@ -1,1 +1,1 @@
-((edi >>= esi) (edi >>= esi) (edi >>= esi) (edi >>= esi)) r -24 s
+((rdi >>= rsi) (rdi >>= rsi) (rdi >>= rsi) (rdi >>= rsi)) r -24 s

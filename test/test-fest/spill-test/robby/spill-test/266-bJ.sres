@@ -1,4 +1,4 @@
 ((s0 <- (mem ebp -32))
- (eax <- (mem s0 0))
+ (rax <- (mem s0 0))
  (s1 <- (mem ebp -32))
- (eax <- (mem s1 0)))
+ (rax <- (mem s1 0)))

@@ -1,7 +1,7 @@
-(((eax <- 21)  ;21 & 7
-  (edx <- 7)
-  (eax &= edx)
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax))))
+(((rax <- 21)  ;21 & 7
+  (rdx <- 7)
+  (rax &= rdx)
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax))))
   

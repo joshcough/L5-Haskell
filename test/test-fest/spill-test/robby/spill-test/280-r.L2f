@@ -1,1 +1,1 @@
-(((mem ebx 0) <- ebx)) r -8 s
+(((mem rbx 0) <- rbx)) r -8 s

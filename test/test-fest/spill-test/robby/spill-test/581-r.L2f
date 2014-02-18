@@ -1,1 +1,1 @@
-((eax <<= eax) (eax <<= eax) (eax <<= eax) (eax <<= eax)) r -28 s
+((rax <<= rax) (rax <<= rax) (rax <<= rax) (rax <<= rax)) r -28 s

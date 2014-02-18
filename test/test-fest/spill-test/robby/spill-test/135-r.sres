@@ -1,1 +1,1 @@
-((i <- edi) (i <- edi))
+((i <- rdi) (i <- rdi))

@@ -1,9 +1,9 @@
-(((esi <- 999)
-  (edi <- 999)
-  (cjump esi = edi :true :false)
+(((rsi <- 999)
+  (rdi <- 999)
+  (cjump rsi = rdi :true :false)
   :true
-  (eax <- (print 3))
+  (rax <- (print 3))
   (goto :done)
   :false
-  (eax <- (print 1))
+  (rax <- (print 1))
   :done))

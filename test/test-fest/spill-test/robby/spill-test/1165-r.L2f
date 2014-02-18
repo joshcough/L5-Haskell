@@ -1,1 +1,1 @@
-((cjump :d < edi :r :o) (cjump :d < edi :r :o)) r -32 s
+((cjump :d < rdi :r :o) (cjump :d < rdi :r :o)) r -32 s

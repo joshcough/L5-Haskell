@@ -1,1 +1,1 @@
-((esi <<= BLI) (esi <<= BLI) (esi <<= BLI))
+((rsi <<= BLI) (rsi <<= BLI) (rsi <<= BLI))

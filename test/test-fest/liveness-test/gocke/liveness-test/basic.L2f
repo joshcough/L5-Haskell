@@ -1,4 +1,4 @@
-((eax <- 1)
- (ebx += eax)
- (eax <- ebx)
+((rax <- 1)
+ (rbx += rax)
+ (rax <- rbx)
  (return))

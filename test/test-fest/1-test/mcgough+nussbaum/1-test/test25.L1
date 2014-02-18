@@ -1,13 +1,13 @@
 ((
-(eax <- 1)
-(edx <- 8)
+(rax <- 1)
+(rdx <- 8)
 :top
-(edx *= eax)
-(cjump eax < 67 :increment :edxcheck)
+(rdx *= rax)
+(cjump rax < 67 :increment :rdxcheck)
 :increment
-(eax += 2)
-:edxcheck
-(cjump edx < 799 :top :done)
+(rax += 2)
+:rdxcheck
+(cjump rdx < 799 :top :done)
 :done
-(eax += edx)
-(eax <- (print eax))))
+(rax += rdx)
+(rax <- (print rax))))

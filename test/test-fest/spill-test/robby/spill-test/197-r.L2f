@@ -1,1 +1,1 @@
-((esi <- (mem CiGY 8)) (esi <- (mem CiGY 8)) (esi <- (mem CiGY 8)) (esi <- (mem CiGY 8))) r -24 s
+((rsi <- (mem CiGY 8)) (rsi <- (mem CiGY 8)) (rsi <- (mem CiGY 8)) (rsi <- (mem CiGY 8))) r -24 s

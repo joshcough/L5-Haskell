@@ -1,1 +1,1 @@
-((apx <<= edi)) r -24 s
+((apx <<= rdi)) r -24 s

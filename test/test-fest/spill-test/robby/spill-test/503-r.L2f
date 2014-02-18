@@ -1,1 +1,1 @@
-((h *= edi) (h *= edi)) r -8 s
+((h *= rdi) (h *= rdi)) r -8 s

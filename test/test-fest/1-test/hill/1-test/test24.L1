@@ -1,32 +1,32 @@
 ;; #24 coroutines
-(((eax <- 8)
+(((rax <- 8)
   (call :FN_A))
   
  (:FN_A
-  (edi <- eax)
-  (ecx <- eax)
-  (ecx <<= 1)
-  (ecx += 1)
-  (eax <- (print ecx))
-  (eax <- edi)
-  (cjump 0 < eax :GO_A :QUIT_A)
+  (rdi <- rax)
+  (rcx <- rax)
+  (rcx <<= 1)
+  (rcx += 1)
+  (rax <- (print rcx))
+  (rax <- rdi)
+  (cjump 0 < rax :GO_A :QUIT_A)
   :GO_A
-  (eax -= 2)
+  (rax -= 2)
   (call :FN_B)
   (return)
   :QUIT_A
   (return))
  
  (:FN_B
-  (edi <- eax)
-  (ecx <- eax)
-  (ecx <<= 1)
-  (ecx += 1)
-  (eax <- (print ecx))
-  (eax <- edi)
-  (cjump 0 < eax :GO_B :QUIT_B)
+  (rdi <- rax)
+  (rcx <- rax)
+  (rcx <<= 1)
+  (rcx += 1)
+  (rax <- (print rcx))
+  (rax <- rdi)
+  (cjump 0 < rax :GO_B :QUIT_B)
   :GO_B
-  (eax += 1)
+  (rax += 1)
   (call :FN_A)
   (return)
   :QUIT_B

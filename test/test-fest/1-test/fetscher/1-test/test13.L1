@@ -1,5 +1,5 @@
 (((call :a)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:a
   (cjump 1 < 2 :true :false)
   :true
@@ -17,16 +17,16 @@
   (call :e)
   (return))
  (:c
-  (eax <- 0)
+  (rax <- 0)
   (return))
  (:d
   (cjump 1 = 2 :trued :falsed)
   :trued
-  (eax <- 0)
+  (rax <- 0)
   (return)
   :falsed
-  (eax <- 1)
+  (rax <- 1)
   (return))
  (:e
-  (eax <- 0)
+  (rax <- 0)
   (return)))

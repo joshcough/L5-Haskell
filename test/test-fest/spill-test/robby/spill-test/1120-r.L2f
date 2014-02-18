@@ -1,1 +1,1 @@
-((cjump edx = eax :h :v) (cjump edx = eax :h :v) (cjump edx = eax :h :v)) r -12 s
+((cjump rdx = rax :h :v) (cjump rdx = rax :h :v) (cjump rdx = rax :h :v)) r -12 s

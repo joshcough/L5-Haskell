@@ -1,1 +1,1 @@
-((eax <- (allocate :S edi)) (eax <- (allocate :S edi))) r -16 s
+((rax <- (allocate :S rdi)) (rax <- (allocate :S rdi))) r -16 s

@@ -1,1 +1,1 @@
-((in (eax ecx edi edx esi) (eax ecx edi edx esi x) (eax ecx edi edx esi x y) (eax ecx edi edx esi) (eax ecx edi edx esi x)) (out (eax ecx edi edx esi x) (eax ecx edi edx esi x y) (eax ecx edi edx esi) (eax ecx edi edx esi x) ()))
+((in (rax rcx rdi rdx rsi) (rax rcx rdi rdx rsi x) (rax rcx rdi rdx rsi x y) (rax rcx rdi rdx rsi) (rax rcx rdi rdx rsi x)) (out (rax rcx rdi rdx rsi x) (rax rcx rdi rdx rsi x y) (rax rcx rdi rdx rsi) (rax rcx rdi rdx rsi x) ()))

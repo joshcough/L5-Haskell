@@ -1,4 +1,4 @@
-((cjump :v = ecx :edx :e)
- (cjump :v = ecx :edx :e)
- (cjump :v = ecx :edx :e)
- (cjump :v = ecx :edx :e))
+((cjump :v = rcx :rdx :e)
+ (cjump :v = rcx :rdx :e)
+ (cjump :v = rcx :rdx :e)
+ (cjump :v = rcx :rdx :e))

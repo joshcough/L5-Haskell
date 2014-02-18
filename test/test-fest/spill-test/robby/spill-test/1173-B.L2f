@@ -1,1 +1,1 @@
-((cjump B = edi :I :Nv)) B -28 s
+((cjump B = rdi :I :Nv)) B -28 s

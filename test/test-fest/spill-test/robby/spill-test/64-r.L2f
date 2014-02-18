@@ -1,1 +1,1 @@
-((edi <- ecx)) r -36 s
+((rdi <- rcx)) r -36 s

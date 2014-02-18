@@ -1,5 +1,5 @@
-((eax <- 5)
+((rax <- 5)
  ((mem ebp -4) <- 3)
  (pre_0 <- (mem ebp -4))
- (pre_0 *= eax)
+ (pre_0 *= rax)
  ((mem ebp -4) <- pre_0))

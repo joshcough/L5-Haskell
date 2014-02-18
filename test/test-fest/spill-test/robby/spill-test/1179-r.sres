@@ -1,1 +1,1 @@
-((cjump :c <= edx :ft :d) (cjump :c <= edx :ft :d) (cjump :c <= edx :ft :d))
+((cjump :c <= rdx :ft :d) (cjump :c <= rdx :ft :d) (cjump :c <= rdx :ft :d))

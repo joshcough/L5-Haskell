@@ -1,4 +1,4 @@
 (:one
     (call :two)
-    (eax <- (print eax))
+    (rax <- (print rax))
     (return))

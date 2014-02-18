@@ -1,1 +1,1 @@
-((eax <- (allocate W phP)) (eax <- (allocate W phP))) r -28 s
+((rax <- (allocate W phP)) (rax <- (allocate W phP))) r -28 s

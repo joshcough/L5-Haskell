@@ -1,1 +1,1 @@
-((F <- (mem ebx 0))) r -24 s
+((F <- (mem rbx 0))) r -24 s

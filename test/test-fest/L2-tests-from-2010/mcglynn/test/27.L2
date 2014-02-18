@@ -1,14 +1,14 @@
-(((edx <- 10)
+(((rdx <- 10)
   (call :fib_rec)
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax)))
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax)))
 
 (:fib_rec
- (arg <- edx)
+ (arg <- rdx)
  (cjump arg <= 1 :base :recurse)
  :base
- (eax <- 1)
+ (rax <- 1)
  (return)
 
  :recurse
@@ -17,13 +17,13 @@
  (n2 <- arg)
  (n2 -= 2)
 
- (edx <- n1)
+ (rdx <- n1)
  (call :fib_rec)
- (sum <- eax)
+ (sum <- rax)
 
- (edx <- n2)
+ (rdx <- n2)
  (call :fib_rec)
- (sum += eax)
+ (sum += rax)
  
- (eax <- sum)
+ (rax <- sum)
  (return)))

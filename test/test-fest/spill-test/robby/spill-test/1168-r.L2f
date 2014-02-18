@@ -1,1 +1,1 @@
-((cjump :lk < esi :W :z) (cjump :lk < esi :W :z)) r -8 s
+((cjump :lk < rsi :W :z) (cjump :lk < rsi :W :z)) r -8 s

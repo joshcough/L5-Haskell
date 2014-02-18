@@ -1,7 +1,7 @@
 ((goto :keep_going)
 :keep_going
-(eax <- (print ebx))
+(rax <- (print rbx))
 (goto :end)
-(eax <- (print ecx)) ; should not be printed
+(rax <- (print rcx)) ; should not be printed
 :end
-(eax <- (print 7)))
+(rax <- (print 7)))

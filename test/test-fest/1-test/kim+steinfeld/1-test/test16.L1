@@ -1,8 +1,8 @@
 ((
-(esi <- 9)
-(eax <- (allocate esi 11))
-(edi <- eax)      ;; base pointer
+(rsi <- 9)
+(rax <- (allocate rsi 11))
+(rdi <- rax)      ;; base pointer
 
-((mem edi 4) <- 21)
-(eax <- (print edi))
+((mem rdi 4) <- 21)
+(rax <- (print rdi))
 ))

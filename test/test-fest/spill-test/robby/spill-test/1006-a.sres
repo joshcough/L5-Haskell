@@ -1,1 +1,1 @@
-((s0 <- edx <= :z) ((mem ebp -16) <- s0))
+((s0 <- rdx <= :z) ((mem ebp -16) <- s0))

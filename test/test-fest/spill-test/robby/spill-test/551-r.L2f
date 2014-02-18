@@ -1,1 +1,1 @@
-((G -= :ecx) (G -= :ecx) (G -= :ecx)) r 0 s
+((G -= :rcx) (G -= :rcx) (G -= :rcx)) r 0 s

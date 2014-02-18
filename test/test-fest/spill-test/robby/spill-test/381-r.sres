@@ -1,1 +1,1 @@
-(((mem eax 0) <- esi))
+(((mem rax 0) <- rsi))

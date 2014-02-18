@@ -1,1 +1,1 @@
-((eax <- (array-error edx x))) x -24 s
+((rax <- (array-error rdx x))) x -24 s

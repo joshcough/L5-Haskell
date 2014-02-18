@@ -1,1 +1,1 @@
-((oN <- edi) (oN <- edi) (oN <- edi) (oN <- edi)) r -24 s
+((oN <- rdi) (oN <- rdi) (oN <- rdi) (oN <- rdi)) r -24 s

@@ -1,1 +1,1 @@
-(((mem rLov 0) <- ebx) ((mem rLov 0) <- ebx)) rLov 0 s
+(((mem rLov 0) <- rbx) ((mem rLov 0) <- rbx)) rLov 0 s

@@ -1,1 +1,1 @@
-(((eax <- 3) (call :f)) (:f (eax <- (print eax)) (return)))
+(((rax <- 3) (call :f)) (:f (rax <- (print rax)) (return)))

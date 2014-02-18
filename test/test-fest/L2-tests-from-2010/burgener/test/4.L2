@@ -2,7 +2,7 @@
   (num2 <- 8)
   (num1 += num2)
   (call :fun)
-  (eax <- (print num1)))
+  (rax <- (print num1)))
  (:fun
   (num1 <- 5)
   (num2 <- 7)

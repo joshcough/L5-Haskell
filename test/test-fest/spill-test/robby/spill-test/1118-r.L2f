@@ -1,1 +1,1 @@
-((cjump eax = :y :s :n) (cjump eax = :y :s :n)) r -24 s
+((cjump rax = :y :s :n) (cjump rax = :y :s :n)) r -24 s

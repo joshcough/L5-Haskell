@@ -1,1 +1,1 @@
-((eax <- (allocate edx Ub))) Ub 0 s
+((rax <- (allocate rdx Ub))) Ub 0 s

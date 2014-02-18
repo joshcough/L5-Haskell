@@ -1,1 +1,1 @@
-((cjump edx < :rO :W :U))
+((cjump rdx < :rO :W :U))

@@ -1,1 +1,1 @@
-((esi <- eax = aj) (esi <- eax = aj) (esi <- eax = aj) (esi <- eax = aj)) aj -32 s
+((rsi <- rax = aj) (rsi <- rax = aj) (rsi <- rax = aj) (rsi <- rax = aj)) aj -32 s

@@ -1,1 +1,1 @@
-((gq >>= esi) (gq >>= esi))
+((gq >>= rsi) (gq >>= rsi))

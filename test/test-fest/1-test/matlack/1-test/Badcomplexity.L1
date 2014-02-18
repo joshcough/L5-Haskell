@@ -1,18 +1,18 @@
-(((eax <- 5)
-  (ecx <- eax)
-  (ecx -= 1)
+(((rax <- 5)
+  (rcx <- rax)
+  (rcx -= 1)
   (call :bad)
   (call :complexity)
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax)))
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax)))
  (:bad
   :loop
-  (eax *= ecx)
-  (ecx -= 1)
-  (cjump ecx = 0 :done :loop)
+  (rax *= rcx)
+  (rcx -= 1)
+  (cjump rcx = 0 :done :loop)
   :done
   (return))
  (:complexity
-  (eax *= eax)
+  (rax *= rax)
   (return)))

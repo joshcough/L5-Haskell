@@ -1,4 +1,4 @@
 ;;0
-(((eax <- 3)
-  (eax &= 1)
-  (eax <- (print eax))))
+(((rax <- 3)
+  (rax &= 1)
+  (rax <- (print rax))))

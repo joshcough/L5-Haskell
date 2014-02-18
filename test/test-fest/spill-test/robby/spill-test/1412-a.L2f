@@ -1,1 +1,1 @@
-((eax <- (allocate edi a))) a -32 s
+((rax <- (allocate rdi a))) a -32 s

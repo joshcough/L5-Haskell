@@ -1,1 +1,1 @@
-((ebx <<= n) (ebx <<= n) (ebx <<= n) (ebx <<= n)) n -36 s
+((rbx <<= n) (rbx <<= n) (rbx <<= n) (rbx <<= n)) n -36 s

@@ -1,1 +1,1 @@
-((ecx >>= eax)) r -36 s
+((rcx >>= rax)) r -36 s

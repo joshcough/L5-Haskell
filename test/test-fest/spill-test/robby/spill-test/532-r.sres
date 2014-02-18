@@ -1,1 +1,1 @@
-((eax += esi) (eax += esi) (eax += esi))
+((rax += rsi) (rax += rsi) (rax += rsi))

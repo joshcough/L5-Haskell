@@ -1,1 +1,1 @@
-((cjump :s = edi :T :I)) r -36 s
+((cjump :s = rdi :T :I)) r -36 s

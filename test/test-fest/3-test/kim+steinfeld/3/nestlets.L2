@@ -2,5 +2,5 @@
   (x <- 9)
   (y <- 13)
   (x <- 25)
-  (eax <- (print x))
+  (rax <- (print x))
 ))

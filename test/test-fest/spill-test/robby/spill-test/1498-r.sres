@@ -1,1 +1,1 @@
-((eax <- (allocate Ex :hr)))
+((rax <- (allocate Ex :hr)))

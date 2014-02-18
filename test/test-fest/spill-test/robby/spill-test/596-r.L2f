@@ -1,1 +1,1 @@
-((ebx >>= esi)) r -24 s
+((rbx >>= rsi)) r -24 s

@@ -1,1 +1,1 @@
-((esi <<= BLI) (esi <<= BLI)) BLI -20 s
+((rsi <<= BLI) (rsi <<= BLI)) BLI -20 s

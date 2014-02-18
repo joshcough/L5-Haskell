@@ -1,4 +1,4 @@
-((eax <- (allocate d G))
- (eax <- (allocate d G))
- (eax <- (allocate d G))
- (eax <- (allocate d G)))
+((rax <- (allocate d G))
+ (rax <- (allocate d G))
+ (rax <- (allocate d G))
+ (rax <- (allocate d G)))

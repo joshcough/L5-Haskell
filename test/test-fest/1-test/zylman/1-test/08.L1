@@ -1,2 +1,2 @@
-(((eax <- (allocate 3 3))
-  (eax <- (print eax))))
+(((rax <- (allocate 3 3))
+  (rax <- (print rax))))

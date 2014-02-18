@@ -1,1 +1,1 @@
-((TU <- edi = M) (TU <- edi = M))
+((TU <- rdi = M) (TU <- rdi = M))

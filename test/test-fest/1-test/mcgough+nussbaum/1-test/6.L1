@@ -1,7 +1,7 @@
 ;;3
-(((eax <- 3)
+(((rax <- 3)
  (goto :label)
- (eax += 2)
+ (rax += 2)
  :label
- (eax += 4)
- (eax <- (print eax))))
+ (rax += 4)
+ (rax <- (print rax))))

@@ -1,1 +1,1 @@
-((edx <- o < edx) (edx <- o < edx)) o 0 s
+((rdx <- o < rdx) (rdx <- o < rdx)) o 0 s

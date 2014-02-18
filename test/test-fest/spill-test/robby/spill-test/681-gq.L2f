@@ -1,1 +1,1 @@
-((gq >>= esi) (gq >>= esi)) gq -24 s
+((gq >>= rsi) (gq >>= rsi)) gq -24 s

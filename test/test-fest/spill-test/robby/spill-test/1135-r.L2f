@@ -1,1 +1,1 @@
-((cjump ebx < :J :N :Ca) (cjump ebx < :J :N :Ca) (cjump ebx < :J :N :Ca) (cjump ebx < :J :N :Ca)) r -12 s
+((cjump rbx < :J :N :Ca) (cjump rbx < :J :N :Ca) (cjump rbx < :J :N :Ca) (cjump rbx < :J :N :Ca)) r -12 s

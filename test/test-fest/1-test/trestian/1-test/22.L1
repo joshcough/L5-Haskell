@@ -1,12 +1,12 @@
 ((
-(edi <- 3)
-(esi <- 5)
+(rdi <- 3)
+(rsi <- 5)
 
-(cjump edi < esi :then :else)
+(cjump rdi < rsi :then :else)
 :then
-(eax <- (print edi))
+(rax <- (print rdi))
 (goto :done)
 :else
-(eax <- (print esi))
+(rax <- (print rsi))
 :done
 ))

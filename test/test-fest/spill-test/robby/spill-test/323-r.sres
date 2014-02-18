@@ -1,1 +1,1 @@
-(((mem esi 0) <- ebx) ((mem esi 0) <- ebx))
+(((mem rsi 0) <- rbx) ((mem rsi 0) <- rbx))

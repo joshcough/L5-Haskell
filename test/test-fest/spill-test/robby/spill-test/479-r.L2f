@@ -1,1 +1,1 @@
-((ecx *= 0) (ecx *= 0) (ecx *= 0) (ecx *= 0)) r -16 s
+((rcx *= 0) (rcx *= 0) (rcx *= 0) (rcx *= 0)) r -16 s

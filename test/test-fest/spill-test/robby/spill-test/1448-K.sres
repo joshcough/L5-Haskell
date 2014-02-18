@@ -1,4 +1,4 @@
 ((s0 <- (mem ebp -20))
- (eax <- (allocate :n s0))
+ (rax <- (allocate :n s0))
  (s1 <- (mem ebp -20))
- (eax <- (allocate :n s1)))
+ (rax <- (allocate :n s1)))

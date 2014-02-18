@@ -1,7 +1,7 @@
 (((call :L_4))
  (:L_4
-  (eax <- (print 3))
-  (__1 <- eax)
+  (rax <- (print 3))
+  (__1 <- rax)
   (x_5 <- -3)
   (x_5 >>= 1)
   (x_2 <- 7)
@@ -9,6 +9,6 @@
   (x_2 *= x_5)
   (x_2 += x_2)
   (x_2 += 1)
-  (eax <- (print x_2))
-  (eax <- eax)
+  (rax <- (print x_2))
+  (rax <- rax)
   (return)))

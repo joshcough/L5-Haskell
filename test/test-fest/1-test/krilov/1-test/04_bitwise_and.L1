@@ -1,7 +1,7 @@
 ; Test bitwise AND
 ((
-  (eax <- 11)   ; 1011
-  (ebx <- 13)   ; 1101
-  (ebx &= eax)	; 1001 = 9, but this is encoded, so it actually represents 4 when printed
-  (eax <- (print ebx))))  ; 4
+  (rax <- 11)   ; 1011
+  (rbx <- 13)   ; 1101
+  (rbx &= rax)	; 1001 = 9, but this is encoded, so it actually represents 4 when printed
+  (rax <- (print rbx))))  ; 4
 ))

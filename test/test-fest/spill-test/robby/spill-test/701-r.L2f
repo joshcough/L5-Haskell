@@ -1,1 +1,1 @@
-((ecx >>= as) (ecx >>= as) (ecx >>= as) (ecx >>= as)) r -24 s
+((rcx >>= as) (rcx >>= as) (rcx >>= as) (rcx >>= as)) r -24 s

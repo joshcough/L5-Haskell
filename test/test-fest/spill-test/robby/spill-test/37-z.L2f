@@ -1,1 +1,1 @@
-((ebx <- z) (ebx <- z) (ebx <- z) (ebx <- z)) z -4 s
+((rbx <- z) (rbx <- z) (rbx <- z) (rbx <- z)) z -4 s

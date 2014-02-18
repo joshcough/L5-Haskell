@@ -1,1 +1,1 @@
-((eax <- (allocate N :s)) (eax <- (allocate N :s)) (eax <- (allocate N :s))) N -24 s
+((rax <- (allocate N :s)) (rax <- (allocate N :s)) (rax <- (allocate N :s))) N -24 s

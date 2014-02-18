@@ -1,1 +1,1 @@
-((ebx &= Rf) (ebx &= Rf) (ebx &= Rf) (ebx &= Rf)) r -32 s
+((rbx &= Rf) (rbx &= Rf) (rbx &= Rf) (rbx &= Rf)) r -32 s

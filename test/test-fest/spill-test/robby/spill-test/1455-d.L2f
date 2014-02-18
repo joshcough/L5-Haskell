@@ -1,1 +1,1 @@
-((eax <- (allocate d G))) d -24 s
+((rax <- (allocate d G))) d -24 s

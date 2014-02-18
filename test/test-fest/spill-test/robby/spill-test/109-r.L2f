@@ -1,1 +1,1 @@
-((ecx <- eax)) r -8 s
+((rcx <- rax)) r -8 s

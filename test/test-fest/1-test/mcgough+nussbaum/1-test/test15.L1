@@ -1,15 +1,15 @@
 ((
 (call :foo)
-(edx <- eax)
+(rdx <- rax)
 (call :bar)
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
-(eax <- (allocate 5 1))
-((mem eax 4) <- 53)
-((mem eax 0) <- 1)
-(eax <- (mem eax 4))
+(rax <- (allocate 5 1))
+((mem rax 4) <- 53)
+((mem rax 0) <- 1)
+(rax <- (mem rax 4))
 (return))
 (:bar
-(eax <- edx)
-(eax += 2)
+(rax <- rdx)
+(rax += 2)
 (return)))

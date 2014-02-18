@@ -1,4 +1,4 @@
-((a <- eax)
+((a <- rax)
  (b <- 7)
  (c <- 1)
  (a *= a)
@@ -6,10 +6,10 @@
  (e <- -3)
  (a -= a)
  (f <- -9)
- (eax <- (print f))
+ (rax <- (print f))
  (g <- 5)
  (h <- -15)
- (eax <- a)
+ (rax <- a)
  (return))
 a
 -12

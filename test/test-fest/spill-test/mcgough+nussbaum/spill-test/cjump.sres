@@ -1,12 +1,12 @@
 (((mem ebp -4) <- 3)
- (eax <- 5)
+ (rax <- 5)
  (pre_0 <- (mem ebp -4))
- (cjump pre_0 < eax :true :false)
+ (cjump pre_0 < rax :true :false)
  :true
  (pre_1 <- (mem ebp -4))
- (eax += pre_1)
+ (rax += pre_1)
  (goto :done)
  :false
  (pre_2 <- (mem ebp -4))
- (eax -= pre_2)
+ (rax -= pre_2)
  :done)

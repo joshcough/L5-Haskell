@@ -1,1 +1,1 @@
-((edx <- esi) (edx <- esi) (edx <- esi)) r -36 s
+((rdx <- rsi) (rdx <- rsi) (rdx <- rsi)) r -36 s

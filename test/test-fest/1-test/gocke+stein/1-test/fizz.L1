@@ -1,13 +1,13 @@
 ;; Print all multiples of 3 below 10
-(((esi <- 0) 
+(((rsi <- 0)
   :loop
-  (ecx <- esi) ;; Convert
-  (ecx *= 2)
-  (ecx += 1)
+  (rcx <- rsi) ;; Convert
+  (rcx *= 2)
+  (rcx += 1)
 
-  (eax <- (print ecx)) ;; Print
+  (rax <- (print rcx)) ;; Print
 
-  (esi += 3) ;; Increment counter
-  (cjump esi < 10 :loop :out)
+  (rsi += 3) ;; Increment counter
+  (cjump rsi < 10 :loop :out)
   :out
-  (eax <- eax)))
+  (rax <- rax)))

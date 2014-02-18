@@ -1,1 +1,1 @@
-((N &= esi) (N &= esi) (N &= esi)) N -16 s
+((N &= rsi) (N &= rsi) (N &= rsi)) N -16 s

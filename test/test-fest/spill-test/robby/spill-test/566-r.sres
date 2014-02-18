@@ -1,1 +1,1 @@
-((eax >>= eax) (eax >>= eax))
+((rax >>= rax) (rax >>= rax))

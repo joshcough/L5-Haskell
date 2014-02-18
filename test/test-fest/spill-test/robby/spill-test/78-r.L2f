@@ -1,1 +1,1 @@
-((ecx <- E) (ecx <- E) (ecx <- E)) r 0 s
+((rcx <- E) (rcx <- E) (rcx <- E)) r 0 s

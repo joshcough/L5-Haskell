@@ -2,6 +2,6 @@
  ((mem ebp -16) <- 5)
  (goto :end)
  :end
- (eax <- (mem ebp -16))
+ (rax <- (mem ebp -16))
  (y_0 <- (mem ebp -16))
- (eax <- (print y_0)))
+ (rax <- (print y_0)))

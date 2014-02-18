@@ -5,9 +5,9 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $L1_Generated_Label_0
@@ -16,55 +16,55 @@ go:
 	jmp L1_L_1
 L1_Generated_Label_0:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_L_1:
-	movl %esi, %esi
-	movl %edi, %edi
-	movl $3, %ecx
-	movl $5, %edx
+	movl %rsi, %rsi
+	movl %rdi, %rdi
+	movl $3, %rcx
+	movl $5, %rdx
 	pushl $L1_Generated_Label_1
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_f
 L1_Generated_Label_1:
-	movl %eax, %ebx
-	pushl %ebx
+	movl %rax, %rbx
+	pushl %rbx
 	call print
 	addl $4, %esp
-	movl %eax, %eax
-	movl %esi, %esi
-	movl %edi, %edi
+	movl %rax, %rax
+	movl %rsi, %rsi
+	movl %rdi, %rdi
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_f:
-	movl %esi, %ebx
-	movl %edi, %edi
-	movl %ecx, %eax
-	movl %edx, %esi
-	cmp %esi, %eax
+	movl %rsi, %rbx
+	movl %rdi, %rdi
+	movl %rcx, %rax
+	movl %rdx, %rsi
+	cmp %rsi, %rax
 	setl %al
-	movzbl %al, %eax
-	addl %eax, %eax
-	addl $1, %eax
-	cmpl $1, %eax
+	movzbl %al, %rax
+	addl %rax, %rax
+	addl $1, %rax
+	cmpl $1, %rax
 	je L1_L_3
 	jmp L1_L_2
 L1_L_3:
-	movl $5, %eax
-	movl %ebx, %esi
-	movl %edi, %edi
+	movl $5, %rax
+	movl %rbx, %rsi
+	movl %rdi, %rdi
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_L_2:
-	movl $3, %eax
-	movl %ebx, %esi
-	movl %edi, %edi
+	movl $3, %rax
+	movl %rbx, %rsi
+	movl %rdi, %rdi
 	movl %ebp, %esp
 	popl %ebp
 	ret

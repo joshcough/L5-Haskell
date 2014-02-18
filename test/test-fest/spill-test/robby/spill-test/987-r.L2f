@@ -1,1 +1,1 @@
-((ebx <- :k = E) (ebx <- :k = E) (ebx <- :k = E) (ebx <- :k = E)) r -12 s
+((rbx <- :k = E) (rbx <- :k = E) (rbx <- :k = E) (rbx <- :k = E)) r -12 s

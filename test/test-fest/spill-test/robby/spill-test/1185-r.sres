@@ -1,4 +1,4 @@
-((cjump :O <= eax :e :X)
- (cjump :O <= eax :e :X)
- (cjump :O <= eax :e :X)
- (cjump :O <= eax :e :X))
+((cjump :O <= rax :e :X)
+ (cjump :O <= rax :e :X)
+ (cjump :O <= rax :e :X)
+ (cjump :O <= rax :e :X))

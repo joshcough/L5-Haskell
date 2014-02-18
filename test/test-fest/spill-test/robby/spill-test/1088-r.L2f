@@ -1,1 +1,1 @@
-((cjump ecx < ecx :FyY :m) (cjump ecx < ecx :FyY :m) (cjump ecx < ecx :FyY :m) (cjump ecx < ecx :FyY :m)) r -36 s
+((cjump rcx < rcx :FyY :m) (cjump rcx < rcx :FyY :m) (cjump rcx < rcx :FyY :m) (cjump rcx < rcx :FyY :m)) r -36 s

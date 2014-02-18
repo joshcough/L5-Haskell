@@ -1,1 +1,1 @@
-((o <- ebx < ebx)) r -32 s
+((o <- rbx < rbx)) r -32 s

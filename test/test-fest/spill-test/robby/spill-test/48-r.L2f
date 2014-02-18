@@ -1,1 +1,1 @@
-((ecx <- ebx) (ecx <- ebx)) r -36 s
+((rcx <- rbx) (rcx <- rbx)) r -36 s

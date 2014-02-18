@@ -2,7 +2,7 @@
  (z <- y)
  (cjump y <= z :a :b)
  :a
- (eax <- (print y))
+ (rax <- (print y))
  :b
- (eax <- (print z))
+ (rax <- (print z))
  (call :c))

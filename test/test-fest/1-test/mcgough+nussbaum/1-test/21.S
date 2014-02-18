@@ -5,26 +5,26 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	jmp L1_start
 L1__a1A:
-	movl $5, %eax
+	movl $5, %rax
 	jmp L1_done
 L1_start:
-	movl $3, %eax
+	movl $3, %rax
 	jmp L1__a1A
 L1_done:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

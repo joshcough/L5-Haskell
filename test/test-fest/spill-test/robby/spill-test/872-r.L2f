@@ -1,1 +1,1 @@
-((eax <- :r = :i) (eax <- :r = :i)) r -12 s
+((rax <- :r = :i) (rax <- :r = :i)) r -12 s

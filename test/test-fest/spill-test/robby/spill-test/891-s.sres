@@ -1,4 +1,4 @@
-((s10 <- edi < :b)
+((s10 <- rdi < :b)
  ((mem ebp -20) <- s10)
- (s11 <- edi < :b)
+ (s11 <- rdi < :b)
  ((mem ebp -20) <- s11))

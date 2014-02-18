@@ -1,1 +1,1 @@
-((edi <- :goto <= :ebx) (edi <- :goto <= :ebx))
+((rdi <- :goto <= :rbx) (rdi <- :goto <= :rbx))

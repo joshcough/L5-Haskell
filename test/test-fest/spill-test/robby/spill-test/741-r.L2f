@@ -1,1 +1,1 @@
-((eax <- eax = :N)) r -28 s
+((rax <- rax = :N)) r -28 s

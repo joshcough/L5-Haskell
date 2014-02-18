@@ -1,1 +1,1 @@
-((h <<= ecx) (h <<= ecx) (h <<= ecx) (h <<= ecx)) r -12 s
+((h <<= rcx) (h <<= rcx) (h <<= rcx) (h <<= rcx)) r -12 s

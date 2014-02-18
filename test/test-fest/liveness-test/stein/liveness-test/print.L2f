@@ -1,2 +1,2 @@
 ((x <- 65)
- (eax <- (print x)))
+ (rax <- (print x)))

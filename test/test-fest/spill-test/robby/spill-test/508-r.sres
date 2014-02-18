@@ -1,1 +1,1 @@
-((d &= ecx) (d &= ecx))
+((d &= rcx) (d &= rcx))

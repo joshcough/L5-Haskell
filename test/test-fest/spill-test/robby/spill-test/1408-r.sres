@@ -1,4 +1,4 @@
-((eax <- (allocate P :E))
- (eax <- (allocate P :E))
- (eax <- (allocate P :E))
- (eax <- (allocate P :E)))
+((rax <- (allocate P :E))
+ (rax <- (allocate P :E))
+ (rax <- (allocate P :E))
+ (rax <- (allocate P :E)))

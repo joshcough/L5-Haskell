@@ -1,4 +1,4 @@
 ;test case 8
 ((((mem ebp -4) <- 9)
-  (eax <- (mem ebp -4))
-  (eax <- (print eax))))
+  (rax <- (mem ebp -4))
+  (rax <- (print rax))))

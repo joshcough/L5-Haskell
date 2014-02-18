@@ -1,1 +1,1 @@
-((eax <- (array-error :O m)) (eax <- (array-error :O m))) m -8 s
+((rax <- (array-error :O m)) (rax <- (array-error :O m))) m -8 s

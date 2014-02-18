@@ -1,1 +1,1 @@
-((ebx <- g = :d) (ebx <- g = :d)) g -32 s
+((rbx <- g = :d) (rbx <- g = :d)) g -32 s

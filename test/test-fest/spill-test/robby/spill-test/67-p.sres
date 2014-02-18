@@ -1,4 +1,4 @@
-(((mem ebp -28) <- esi)
- ((mem ebp -28) <- esi)
- ((mem ebp -28) <- esi)
- ((mem ebp -28) <- esi))
+(((mem ebp -28) <- rsi)
+ ((mem ebp -28) <- rsi)
+ ((mem ebp -28) <- rsi)
+ ((mem ebp -28) <- rsi))

@@ -5,33 +5,33 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $5, %edi
-	movl $15, %esi
-	movl $25, %ebx
+	movl $5, %rdi
+	movl $15, %rsi
+	movl $25, %rbx
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_helper
 L1_Generated_Label_0:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_helper:
-	pushl %edi
+	pushl %rdi
 	call print
 	addl $4, %esp
-	pushl %esi
+	pushl %rsi
 	call print
 	addl $4, %esp
-	cmpl %esi, %edi
+	cmpl %rsi, %rdi
 	jl L1_keep_going
 	jmp L1_done
 L1_keep_going:
@@ -39,7 +39,7 @@ L1_keep_going:
 	popl %ebp
 	ret
 L1_done:
-	pushl %ebx
+	pushl %rbx
 	call print
 	addl $4, %esp
 	.size	go, .-go

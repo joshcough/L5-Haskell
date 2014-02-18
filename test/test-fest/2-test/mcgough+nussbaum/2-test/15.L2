@@ -3,4 +3,4 @@
   (w *= 2)
   (z <- 1)
   (w -= z)
-  (eax <- (print w))))
+  (rax <- (print w))))

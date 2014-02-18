@@ -4,4 +4,4 @@
   (y += 2)
   :l2
   (x <- y)
-  (eax <- (print x))))
+  (rax <- (print x))))

@@ -1,1 +1,1 @@
-((cjump ecx <= :Y :y :Gv) (cjump ecx <= :Y :y :Gv) (cjump ecx <= :Y :y :Gv))
+((cjump rcx <= :Y :y :Gv) (cjump rcx <= :Y :y :Gv) (cjump rcx <= :Y :y :Gv))

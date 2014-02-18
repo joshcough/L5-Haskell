@@ -3,4 +3,4 @@
   :dontgo
   (x += 15)
   :end
-  (eax <- (print x))))
+  (rax <- (print x))))

@@ -1,1 +1,1 @@
-((G <<= eax) (G <<= eax) (G <<= eax) (G <<= eax))
+((G <<= rax) (G <<= rax) (G <<= rax) (G <<= rax))

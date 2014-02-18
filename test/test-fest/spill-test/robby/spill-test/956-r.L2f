@@ -1,1 +1,1 @@
-((esi <- edx = X) (esi <- edx = X) (esi <- edx = X) (esi <- edx = X)) r -20 s
+((rsi <- rdx = X) (rsi <- rdx = X) (rsi <- rdx = X) (rsi <- rdx = X)) r -20 s

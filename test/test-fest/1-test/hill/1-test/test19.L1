@@ -5,10 +5,10 @@
   :good2
   (cjump 15 = 15 :good3 :bad)
   :good3
-  (eax <- (print 41))
+  (rax <- (print 41))
   (goto :end)
   :bad
-  (eax <- (print 21))
+  (rax <- (print 21))
   :end))
 
 

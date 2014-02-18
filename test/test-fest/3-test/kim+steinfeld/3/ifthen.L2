@@ -10,7 +10,7 @@
   (res <- y)
   (res += z)
   (res -= 1)
-  (eax <- (print res))
+  (rax <- (print res))
   (goto :done)
   :else
   (y <- 23)
@@ -18,6 +18,6 @@
   (res <- y)
   (res -= z)
   (res += 1)
-  (eax <- (print res))
+  (rax <- (print res))
   :done
 ))

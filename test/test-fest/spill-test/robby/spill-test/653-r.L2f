@@ -1,1 +1,1 @@
-((B >>= ecx) (B >>= ecx) (B >>= ecx)) r 0 s
+((B >>= rcx) (B >>= rcx) (B >>= rcx)) r 0 s

@@ -1,1 +1,1 @@
-((eax <- (array-error :G Hzw))) r 0 s
+((rax <- (array-error :G Hzw))) r 0 s

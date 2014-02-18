@@ -1,1 +1,1 @@
-((eax <- (allocate ecx ix))) ix -20 s
+((rax <- (allocate rcx ix))) ix -20 s

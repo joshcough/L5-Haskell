@@ -1,5 +1,5 @@
-(((eax <- (allocate 5 1))
-  ((mem eax 4) <- 53)
-  ((mem eax 0) <- 1)
-  (eax <- (mem eax 0)) ;;test recovering the second position
-  (eax <- (print eax))))
+(((rax <- (allocate 5 1))
+  ((mem rax 4) <- 53)
+  ((mem rax 0) <- 1)
+  (rax <- (mem rax 0)) ;;test recovering the second position
+  (rax <- (print rax))))

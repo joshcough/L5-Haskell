@@ -5,54 +5,54 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $21, %esi
+	movl $21, %rsi
 	pushl $3
-	pushl %esi
+	pushl %rsi
 	call allocate
 	addl $8, %esp
-	movl %eax, %edi
-	movl %edi, %ebx
-	addl $12, %ebx
-	imull $2, %esi
-	addl $2, %esi
-	addl %edi, %esi
-	movl $1, %ecx
+	movl %rax, %rdi
+	movl %rdi, %rbx
+	addl $12, %rbx
+	imull $2, %rsi
+	addl $2, %rsi
+	addl %rdi, %rsi
+	movl $1, %rcx
 L1_loop:
-	cmpl %esi, %ebx
+	cmpl %rsi, %rbx
 	jl L1_keep_going
 	jmp L1_done
 L1_keep_going:
-	cmpl $1, %ecx
+	cmpl $1, %rcx
 	je L1_step_1
 	jmp L1_step_2
 L1_step_1:
-	movl 0(%ebx), %edx
-	addl $2, %edx
-	movl %edx, -4(%ebx)
-	addl $2, %edx
-	movl %edx, 0(%ebx)
-	addl $4, %ebx
-	addl $1, %ecx
+	movl 0(%rbx), %rdx
+	addl $2, %rdx
+	movl %rdx, -4(%rbx)
+	addl $2, %rdx
+	movl %rdx, 0(%rbx)
+	addl $4, %rbx
+	addl $1, %rcx
 	jmp L1_loop
 L1_step_2:
-	movl -4(%ebx), %edx
-	addl $2, %edx
-	movl %edx, 0(%ebx)
-	addl $4, %ebx
+	movl -4(%rbx), %rdx
+	addl $2, %rdx
+	movl %rdx, 0(%rbx)
+	addl $4, %rbx
 	jmp L1_loop
 L1_done:
-	pushl %edi
+	pushl %rdi
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

@@ -5,14 +5,14 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $6, %ecx
-	movl $5, %edx
-	cmpl %edx, %ecx
+	movl $6, %rcx
+	movl $5, %rdx
+	cmpl %rdx, %rcx
 	jl L1_keep_going
 	jmp L1_done
 L1_keep_going:
@@ -20,27 +20,27 @@ L1_keep_going:
 	call print
 	addl $4, %esp
 L1_done:
-	movl %ecx, %esi
-	movl %edx, %edi
-	pushl %edx
+	movl %rcx, %rsi
+	movl %rdx, %rdi
+	pushl %rdx
 	call print
 	addl $4, %esp
-	cmp %esi, %edi
+	cmp %rsi, %rdi
 	setl %bl
-	movzbl %bl, %ebx
-	pushl %ebx
+	movzbl %bl, %rbx
+	pushl %rbx
 	call print
 	addl $4, %esp
-	cmp %esi, %edi
+	cmp %rsi, %rdi
 	setle %bl
-	movzbl %bl, %ebx
-	pushl %ebx
+	movzbl %bl, %rbx
+	pushl %rbx
 	call print
 	addl $4, %esp
-	cmp %edi, %esi
+	cmp %rdi, %rsi
 	setl %bl
-	movzbl %bl, %ebx
-	cmpl $0, %ebx
+	movzbl %bl, %rbx
+	cmpl $0, %rbx
 	jle L1_terminate
 	jmp L1_aint_gonna_happen
 L1_aint_gonna_happen:
@@ -49,9 +49,9 @@ L1_terminate:
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

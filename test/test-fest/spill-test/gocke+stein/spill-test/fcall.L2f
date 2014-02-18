@@ -1,4 +1,4 @@
-((x <- eax)
+((x <- rax)
  (call x))
 x
 -4

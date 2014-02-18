@@ -1,1 +1,1 @@
-((F <- ecx < ecx) (F <- ecx < ecx)) r -20 s
+((F <- rcx < rcx) (F <- rcx < rcx)) r -20 s

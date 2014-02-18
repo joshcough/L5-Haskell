@@ -1,1 +1,1 @@
-((eax <<= ecx) (eax <<= ecx) (eax <<= ecx) (eax <<= ecx)) r 0 s
+((rax <<= rcx) (rax <<= rcx) (rax <<= rcx) (rax <<= rcx)) r 0 s

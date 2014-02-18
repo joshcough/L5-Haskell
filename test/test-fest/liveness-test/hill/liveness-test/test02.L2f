@@ -1,12 +1,12 @@
 (:somefn
- (x <- eax)
+ (x <- rax)
  (x *= x)
  (y <- x)
  (y *= 2)
- (z <- eax)
+ (z <- rax)
  (z *= 3)
- (eax <- y)
- (eax += z)
- (eax -= 16)
+ (rax <- y)
+ (rax += z)
+ (rax -= 16)
  (return))
 

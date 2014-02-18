@@ -1,15 +1,15 @@
 (((p <- 1)
-	(esi <- p)
-	(edi <- esi)
+	(rsi <- p)
+	(rdi <- rsi)
 	:start
 	(p += 2)
-	(edx <- p)
-	(eax <- (print edx))
+	(rdx <- p)
+	(rax <- (print rdx))
 	(lbl <- :end)
 	(cjump 6 < 5 :start :e)
 	:e
 	(goto :end)
-	(eax <- (print 9999))
+	(rax <- (print 9999))
 	:end
-	(eax <- (print 9))
+	(rax <- (print 9))
 	))

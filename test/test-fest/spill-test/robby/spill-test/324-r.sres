@@ -1,1 +1,1 @@
-(((mem eax 0) <- e) ((mem eax 0) <- e))
+(((mem rax 0) <- e) ((mem rax 0) <- e))

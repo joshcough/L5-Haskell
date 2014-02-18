@@ -16,7 +16,7 @@
  (x <- 5 < 4)
 
  :end
- (eax <- (print x)))
+ (rax <- (print x)))
 x
 -12
-eax_
+rax_

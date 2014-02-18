@@ -1,18 +1,18 @@
 ;; #23 recursive, non tail-call function calls, with stack
-(((eax <- 12)
+(((rax <- 12)
   (call :FN_A))
   
  (:FN_A
   (esp -= 4)
-  ((mem esp 0) <- eax)
-  (ecx <- eax)
-  (ecx <<= 1)
-  (ecx += 1)
-  (eax <- (print ecx))
-  (eax <- (mem esp 0))
-  (cjump 0 < eax :GO :QUIT)
+  ((mem esp 0) <- rax)
+  (rcx <- rax)
+  (rcx <<= 1)
+  (rcx += 1)
+  (rax <- (print rcx))
+  (rax <- (mem esp 0))
+  (cjump 0 < rax :GO :QUIT)
   :GO
-  (eax -= 1)
+  (rax -= 1)
   (call :FN_A)
   (esp += 4)
   (return)

@@ -1,1 +1,1 @@
-((U >>= edi) (U >>= edi) (U >>= edi)) U -24 s
+((U >>= rdi) (U >>= rdi) (U >>= rdi)) U -24 s

@@ -1,1 +1,1 @@
-((wXB &= eax) (wXB &= eax))
+((wXB &= rax) (wXB &= rax))

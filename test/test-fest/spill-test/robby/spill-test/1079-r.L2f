@@ -1,1 +1,1 @@
-((cjump ebx <= ebx :f :f) (cjump ebx <= ebx :f :f) (cjump ebx <= ebx :f :f) (cjump ebx <= ebx :f :f)) r -28 s
+((cjump rbx <= rbx :f :f) (cjump rbx <= rbx :f :f) (cjump rbx <= rbx :f :f) (cjump rbx <= rbx :f :f)) r -28 s

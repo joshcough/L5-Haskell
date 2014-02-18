@@ -1,17 +1,17 @@
-(((eax <- 9)
+(((rax <- 9)
   (call :fun)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:fun
- (ecx <- eax)
+ (rcx <- rax)
   :loop
-  (ebx <- 1)
-  (cjump ecx < ebx :keep_going :done)
+  (rbx <- 1)
+  (cjump rcx < rbx :keep_going :done)
   
   :keep_going
-  (ebx -= 1)
+  (rbx -= 1)
   (goto :loop)
   
   :done
-  (ecx += 4)
-  (eax <- ecx)
+  (rcx += 4)
+  (rax <- rcx)
   (return)) )

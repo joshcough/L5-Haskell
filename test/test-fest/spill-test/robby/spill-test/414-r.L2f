@@ -1,1 +1,1 @@
-((ecx -= ecx) (ecx -= ecx)) r -20 s
+((rcx -= rcx) (rcx -= rcx)) r -20 s

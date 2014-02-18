@@ -1,1 +1,1 @@
-((no-spill <- 3) (do-spill <- 5) (eax <- do_spill)) do-spill -8 pre_
+((no-spill <- 3) (do-spill <- 5) (rax <- do_spill)) do-spill -8 pre_

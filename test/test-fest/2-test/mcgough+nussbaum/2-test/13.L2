@@ -1,6 +1,6 @@
 ;;1
 (((h <- 19)
   (r <- 19)
-  (eax <- h <= r)
-  (eax += 2)
-  (eax <- (print eax))))
+  (rax <- h <= r)
+  (rax += 2)
+  (rax <- (print rax))))

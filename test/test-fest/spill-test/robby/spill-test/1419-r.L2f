@@ -1,1 +1,1 @@
-((eax <- (allocate esi :Cb)) (eax <- (allocate esi :Cb)) (eax <- (allocate esi :Cb)) (eax <- (allocate esi :Cb))) r -36 s
+((rax <- (allocate rsi :Cb)) (rax <- (allocate rsi :Cb)) (rax <- (allocate rsi :Cb)) (rax <- (allocate rsi :Cb))) r -36 s

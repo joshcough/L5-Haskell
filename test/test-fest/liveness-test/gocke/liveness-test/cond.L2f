@@ -1,7 +1,7 @@
-((eax <- 1)
- (cjump eax = 1 :t :f)
+((rax <- 1)
+ (cjump rax = 1 :t :f)
  :t
- (eax += 1)
+ (rax += 1)
  :f
- (eax += 2)
+ (rax += 2)
  (return))

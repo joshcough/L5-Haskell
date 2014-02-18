@@ -1,5 +1,5 @@
-(((eax <- 11)  ;5 + 4
-  (edx <- 9)
-  (eax += edx)
-  (eax -= 1)
-  (eax <- (print eax))))
+(((rax <- 11)  ;5 + 4
+  (rdx <- 9)
+  (rax += rdx)
+  (rax -= 1)
+  (rax <- (print rax))))

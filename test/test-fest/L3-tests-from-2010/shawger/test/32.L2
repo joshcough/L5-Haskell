@@ -2,14 +2,14 @@
 (x <- 7)
 (x += 5)
 (x -= 1)
-(ecx <- x)
+(rcx <- x)
 (call :copy)
-(eax <- eax)
+(rax <- rax)
 )
 (
 :copy
-(x <- ecx)
-(eax <- (print x))
+(x <- rcx)
+(rax <- (print x))
 (return)
 )
 )

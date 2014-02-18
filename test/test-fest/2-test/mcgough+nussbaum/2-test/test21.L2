@@ -1,7 +1,7 @@
 ((
 (y <- :foo)
 (call y)
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
 (r <- :bar)
 (call r)
@@ -17,5 +17,5 @@
 (call m)
 (return))
 (:quux
-(eax <- 11)
+(rax <- 11)
 (return)))

@@ -1,1 +1,1 @@
-((cjump edi < edi :PvA :s) (cjump edi < edi :PvA :s))
+((cjump rdi < rdi :PvA :s) (cjump rdi < rdi :PvA :s))

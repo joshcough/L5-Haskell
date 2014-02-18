@@ -1,1 +1,1 @@
-((edi <- F = :n) (edi <- F = :n) (edi <- F = :n)) F -12 s
+((rdi <- F = :n) (rdi <- F = :n) (rdi <- F = :n)) F -12 s

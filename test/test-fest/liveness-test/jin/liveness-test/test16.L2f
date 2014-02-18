@@ -1,3 +1,3 @@
-(((mem ebp 4) <- eax) 
+(((mem ebp 4) <- rax)
 (x <- 1)
-(eax -= x))
+(rax -= x))

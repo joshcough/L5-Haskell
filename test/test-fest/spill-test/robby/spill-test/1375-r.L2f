@@ -1,1 +1,1 @@
-((eax <- (print 0))) r -12 s
+((rax <- (print 0))) r -12 s

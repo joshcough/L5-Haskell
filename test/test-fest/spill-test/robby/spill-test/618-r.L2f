@@ -1,1 +1,1 @@
-((ebx <<= H) (ebx <<= H) (ebx <<= H) (ebx <<= H)) r -36 s
+((rbx <<= H) (rbx <<= H) (rbx <<= H) (rbx <<= H)) r -36 s

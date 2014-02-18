@@ -1,1 +1,1 @@
-((call edi)) r 0 s
+((call rdi)) r 0 s

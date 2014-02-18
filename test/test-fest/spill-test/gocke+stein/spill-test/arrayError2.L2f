@@ -1,6 +1,6 @@
-((x <- ebx)
+((x <- rbx)
  (y <- 8)
- (eax <- (array-error x y)))
+ (rax <- (array-error x y)))
 y
 -4
 s_

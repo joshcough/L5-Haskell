@@ -1,1 +1,1 @@
-((R -= edx) (R -= edx) (R -= edx) (R -= edx)) R -16 s
+((R -= rdx) (R -= rdx) (R -= rdx) (R -= rdx)) R -16 s

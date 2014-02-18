@@ -1,1 +1,1 @@
-((eax <- (mem h 0)) (eax <- (mem h 0)) (eax <- (mem h 0))) h 0 s
+((rax <- (mem h 0)) (rax <- (mem h 0)) (rax <- (mem h 0))) h 0 s

@@ -1,9 +1,9 @@
 ;; A for loop that exits after 5 loops
-(((eax <- 0)
+(((rax <- 0)
   :loop
-  (eax += 1)
-  (cjump eax < 5 :loop :out)
+  (rax += 1)
+  (cjump rax < 5 :loop :out)
   :out
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax))))
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax))))

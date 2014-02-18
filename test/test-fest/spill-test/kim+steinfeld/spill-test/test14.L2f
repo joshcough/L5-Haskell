@@ -10,9 +10,9 @@
  (y <- 5)
 
  :end
- (eax <- (allocate esi x))
- (edx <- (mem eax 4))
- (eax <- (print edx)))
+ (rax <- (allocate rsi x))
+ (rdx <- (mem rax 4))
+ (rax <- (print rdx)))
 x
 -12
 s_

@@ -1,1 +1,1 @@
-((S <- eax < S) (S <- eax < S)) r -32 s
+((S <- rax < S) (S <- rax < S)) r -32 s

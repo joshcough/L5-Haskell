@@ -1,1 +1,1 @@
-((eax <- :ol = eax)) r -8 s
+((rax <- :ol = rax)) r -8 s

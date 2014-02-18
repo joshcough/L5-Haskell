@@ -1,1 +1,1 @@
-((M <<= esi) (M <<= esi) (M <<= esi) (M <<= esi))
+((M <<= rsi) (M <<= rsi) (M <<= rsi) (M <<= rsi))

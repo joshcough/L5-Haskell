@@ -1,1 +1,1 @@
-((eax <- (allocate RP ebx)) (eax <- (allocate RP ebx)) (eax <- (allocate RP ebx))) r -24 s
+((rax <- (allocate RP rbx)) (rax <- (allocate RP rbx)) (rax <- (allocate RP rbx))) r -24 s

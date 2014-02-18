@@ -1,1 +1,1 @@
-((eax <- (allocate y y)) (eax <- (allocate y y))) y -20 s
+((rax <- (allocate y y)) (rax <- (allocate y y))) y -20 s

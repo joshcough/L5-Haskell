@@ -1,4 +1,4 @@
-((eax <- (array-error edx r))
- (eax <- (array-error edx r))
- (eax <- (array-error edx r))
- (eax <- (array-error edx r)))
+((rax <- (array-error rdx r))
+ (rax <- (array-error rdx r))
+ (rax <- (array-error rdx r))
+ (rax <- (array-error rdx r)))

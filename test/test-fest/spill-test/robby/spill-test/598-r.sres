@@ -1,1 +1,1 @@
-((esi >>= edi) (esi >>= edi))
+((rsi >>= rdi) (rsi >>= rdi))

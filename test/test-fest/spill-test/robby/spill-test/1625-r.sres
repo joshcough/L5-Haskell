@@ -1,1 +1,1 @@
-((eax <- (array-error G :D)) (eax <- (array-error G :D)))
+((rax <- (array-error G :D)) (rax <- (array-error G :D)))

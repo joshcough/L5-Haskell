@@ -1,17 +1,17 @@
 ;; #8 labels, goto
 ((:START
-  (eax <- 9)
-  (ecx <- 3)
+  (rax <- 9)
+  (rcx <- 3)
   (goto :PART2)
   :PART1
-  (eax *= ecx)
+  (rax *= rcx)
   (goto :END)
   :PART2
-  (eax -= ecx)
+  (rax -= rcx)
   (goto :PART1)
   :END
-  (eax <<= 1)
-  (eax += 1)
-  (eax <- (print eax))))
+  (rax <<= 1)
+  (rax += 1)
+  (rax <- (print rax))))
 
 

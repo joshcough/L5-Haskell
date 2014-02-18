@@ -1,1 +1,1 @@
-((eax >>= ecx) (eax >>= ecx) (eax >>= ecx)) r -12 s
+((rax >>= rcx) (rax >>= rcx) (rax >>= rcx)) r -12 s

@@ -1,1 +1,1 @@
-((in () (eax) (eax ecx) (eax ecx edx) (eax)) (out (eax) (eax ecx) (eax ecx edx) (eax) ()))
+((in () (rax) (rax rcx) (rax rcx rdx) (rax)) (out (rax) (rax rcx) (rax rcx rdx) (rax) ()))

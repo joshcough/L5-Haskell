@@ -1,15 +1,15 @@
 ; Test tail calls
 ((
   (call :func1)
-  (eax <- (print eax))  ; 2
+  (rax <- (print rax))  ; 2
   )
  (:func1
-   (eax <- (print 3))  ; 1
+   (rax <- (print 3))  ; 1
    (tail-call :func3))
  (:func2
-   (eax <- 5)
+   (rax <- 5)
    (return))
  (:func3
-   (eax <- (print 7))  ; 3
+   (rax <- (print 7))  ; 3
    (tail-call :func2))
 )

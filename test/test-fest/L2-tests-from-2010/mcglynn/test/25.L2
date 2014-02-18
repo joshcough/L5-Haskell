@@ -1,4 +1,4 @@
-(((call :f) (eax <- (print eax)))
+(((call :f) (rax <- (print rax)))
 
 (:f
 (a <- 1)
@@ -8,18 +8,18 @@
  (e <- 9)
  (f <- 11)
  (g <- 13)
- (eax <- (print a))
- (eax <- (print b))
- (eax <- (print c))
- (eax <- (print d))
- (eax <- (print d))
- (eax <- (print f))
- (eax <- (print g))
+ (rax <- (print a))
+ (rax <- (print b))
+ (rax <- (print c))
+ (rax <- (print d))
+ (rax <- (print d))
+ (rax <- (print f))
+ (rax <- (print g))
  
  (cjump b < a :true :false)
  :true
- (eax <- 99)
+ (rax <- 99)
  (return)
  :false
- (eax <- -99)
+ (rax <- -99)
  (return)))

@@ -2,16 +2,16 @@
 ((call :first))
 
 (:first
-(edi <- 3)
-(esi <- 51)
-(eax <- (print edi))
+(rdi <- 3)
+(rsi <- 51)
+(rax <- (print rdi))
 (call :second)
 (return))
 
 (:second
-(edi += 2)
-(eax <- (print edi))
-(cjump edi < esi :keep_going :done)
+(rdi += 2)
+(rax <- (print rdi))
+(cjump rdi < rsi :keep_going :done)
 :keep_going
 (call :second)
 :done

@@ -1,1 +1,1 @@
-((ecx >>= edx) (ecx >>= edx) (ecx >>= edx) (ecx >>= edx))
+((rcx >>= rdx) (rcx >>= rdx) (rcx >>= rdx) (rcx >>= rdx))

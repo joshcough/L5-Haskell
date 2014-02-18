@@ -5,43 +5,43 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $1
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %eax, %esi
-	movl 0(%esi), %eax
-	imull $2, %eax
-	addl $1, %eax
-	pushl %eax
+	movl %rax, %rsi
+	movl 0(%rsi), %rax
+	imull $2, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $5, 4(%esi)
-	movl $7, 8(%esi)
-	movl 4(%esi), %eax
-	pushl %eax
+	movl $5, 4(%rsi)
+	movl $7, 8(%rsi)
+	movl 4(%rsi), %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl 8(%esi), %eax
-	pushl %eax
+	movl 8(%rsi), %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	pushl %esi
+	pushl %rsi
 	call print
 	addl $4, %esp
-	movl $9, 16(%esi)
-	pushl %esi
+	movl $9, 16(%rsi)
+	pushl %rsi
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

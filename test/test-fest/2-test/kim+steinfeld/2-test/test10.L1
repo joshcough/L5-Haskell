@@ -1,23 +1,23 @@
 ((
- (ecx <- 10)
- (esi <- 3)
- (eax <- 23)
- (ebx <- 15)
- (cjump eax = ebx :first :second)
+ (rcx <- 10)
+ (rsi <- 3)
+ (rax <- 23)
+ (rbx <- 15)
+ (cjump rax = rbx :first :second)
 
  :first
- (ebx <- eax)
- (ecx <- ebx)
+ (rbx <- rax)
+ (rcx <- rbx)
  (goto :end)
 
  :second
- (ebx += ebx)
+ (rbx += rbx)
 
  :end
- (eax += ebx)
- (ecx *= eax)
- (eax <- (allocate esi eax))
- (edx <- (mem eax 4))
- (eax <- (print edx))
+ (rax += rbx)
+ (rcx *= rax)
+ (rax <- (allocate rsi rax))
+ (rdx <- (mem rax 4))
+ (rax <- (print rdx))
 ))
 

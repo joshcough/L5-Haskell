@@ -1,1 +1,1 @@
-((eax <- (allocate G edi))) G 0 s
+((rax <- (allocate G rdi))) G 0 s

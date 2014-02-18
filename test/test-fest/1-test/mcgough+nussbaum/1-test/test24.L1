@@ -1,10 +1,10 @@
 ((
-(eax <- 1)
+(rax <- 1)
 :loops
 (call :foo)
-(cjump eax < 999 :loops :done)
+(cjump rax < 999 :loops :done)
 :done
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
 (call :bar)
 (call :bar)
@@ -23,5 +23,5 @@
 (call :quux)
 (return))
 (:quux
-(eax += 8)
+(rax += 8)
 (return)))

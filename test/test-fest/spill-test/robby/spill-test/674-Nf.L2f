@@ -1,1 +1,1 @@
-((edx >>= Nf) (edx >>= Nf) (edx >>= Nf)) Nf -32 s
+((rdx >>= Nf) (rdx >>= Nf) (rdx >>= Nf)) Nf -32 s

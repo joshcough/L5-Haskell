@@ -6,4 +6,4 @@
   :end
   (a <<= 1)
   (a += 1)
-  (eax <- (print a))))
+  (rax <- (print a))))

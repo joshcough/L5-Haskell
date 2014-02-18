@@ -1,3 +1,3 @@
-((eax <- (allocate :M ecx))
- (eax <- (allocate :M ecx))
- (eax <- (allocate :M ecx)))
+((rax <- (allocate :M rcx))
+ (rax <- (allocate :M rcx))
+ (rax <- (allocate :M rcx)))

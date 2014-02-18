@@ -1,7 +1,7 @@
-(((eax <- 13)
-  (cjump eax <= 17 :go :end)
+(((rax <- 13)
+  (cjump rax <= 17 :go :end)
   :go
-  (eax += 15)
-  (eax -= 1)
+  (rax += 15)
+  (rax -= 1)
   :end
-  (eax <- (print eax))))
+  (rax <- (print rax))))

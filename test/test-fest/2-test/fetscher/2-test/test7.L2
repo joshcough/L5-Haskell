@@ -1,8 +1,8 @@
 (((a <- 10)
   (a <<= 1)
   (a += 1)
-  (eax <- (allocate a 0))
-  (a <- eax)
+  (rax <- (allocate a 0))
+  (a <- rax)
   (c <- 1)
   :loop
   (d <- c)
@@ -15,4 +15,4 @@
   (c += 1)
   (cjump c <= 10 :loop :exit)
   :exit
-  (eax <- (print a))))
+  (rax <- (print a))))

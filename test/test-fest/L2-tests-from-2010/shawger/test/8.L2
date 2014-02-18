@@ -1,4 +1,4 @@
-(((ecx <- 2)
+(((rcx <- 2)
   (x <- 5)
-  (x >>= ecx)
-  (eax <- (print x))))
+  (x >>= rcx)
+  (rax <- (print x))))

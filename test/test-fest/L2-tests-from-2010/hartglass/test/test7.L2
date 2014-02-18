@@ -1,11 +1,11 @@
 (((y <- 9)
-	(eax <- (print y))
-	(eax -= y)
+	(rax <- (print y))
+	(rax -= y)
 	(call :a)
-	(eax <- (print eax))
+	(rax <- (print rax))
 	)
  (:a
-  (cjump eax < 1 :c :d)
+  (cjump rax < 1 :c :d)
   :c
   (call :b)
   (tail-call :a)
@@ -13,7 +13,7 @@
   (return)
   )
  (:b
-  (eax <- (print 7))
+  (rax <- (print 7))
   (call :a)
   (return)
   ))

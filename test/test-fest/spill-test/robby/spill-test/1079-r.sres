@@ -1,4 +1,4 @@
-((cjump ebx <= ebx :f :f)
- (cjump ebx <= ebx :f :f)
- (cjump ebx <= ebx :f :f)
- (cjump ebx <= ebx :f :f))
+((cjump rbx <= rbx :f :f)
+ (cjump rbx <= rbx :f :f)
+ (cjump rbx <= rbx :f :f)
+ (cjump rbx <= rbx :f :f))

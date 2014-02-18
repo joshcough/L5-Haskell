@@ -1,1 +1,1 @@
-((eax <- (mem bJ 0)) (eax <- (mem bJ 0)) (eax <- (mem bJ 0)) (eax <- (mem bJ 0))) r -32 s
+((rax <- (mem bJ 0)) (rax <- (mem bJ 0)) (rax <- (mem bJ 0)) (rax <- (mem bJ 0))) r -32 s

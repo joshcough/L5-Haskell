@@ -1,11 +1,11 @@
 (
  (
   (call :give_val)
-  (eax <- (print esi))
+  (rax <- (print rsi))
  )
 
  (:give_val
-  (esi <- 61)
+  (rsi <- 61)
   (return)
  )
 )

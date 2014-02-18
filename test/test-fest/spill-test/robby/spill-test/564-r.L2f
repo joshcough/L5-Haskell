@@ -1,1 +1,1 @@
-((esi >>= esi) (esi >>= esi) (esi >>= esi) (esi >>= esi)) r -28 s
+((rsi >>= rsi) (rsi >>= rsi) (rsi >>= rsi) (rsi >>= rsi)) r -28 s

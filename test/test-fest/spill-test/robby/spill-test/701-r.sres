@@ -1,1 +1,1 @@
-((ecx >>= as) (ecx >>= as) (ecx >>= as) (ecx >>= as))
+((rcx >>= as) (rcx >>= as) (rcx >>= as) (rcx >>= as))

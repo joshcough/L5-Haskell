@@ -1,9 +1,9 @@
 (:fun
-(x <- eax)
+(x <- rax)
 (call :fun1)
-((mem ebp -4) <- eax)
-(eax += x)
+((mem ebp -4) <- rax)
+(rax += x)
 (call :fun2)
 (a <- (mem ebp -4))
-(eax += a)
+(rax += a)
 (return))

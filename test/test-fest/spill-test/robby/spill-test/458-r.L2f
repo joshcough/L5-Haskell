@@ -1,1 +1,1 @@
-((esi -= edx) (esi -= edx) (esi -= edx) (esi -= edx)) r -20 s
+((rsi -= rdx) (rsi -= rdx) (rsi -= rdx) (rsi -= rdx)) r -20 s

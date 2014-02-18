@@ -1,1 +1,1 @@
-((tail-call edx) (tail-call edx)) r -8 s
+((tail-call rdx) (tail-call rdx)) r -8 s

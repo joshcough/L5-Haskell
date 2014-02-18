@@ -1,1 +1,1 @@
-((eax <- (print G))) G -28 s
+((rax <- (print G))) G -28 s

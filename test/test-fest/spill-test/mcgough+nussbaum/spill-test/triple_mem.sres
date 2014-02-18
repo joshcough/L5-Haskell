@@ -3,4 +3,4 @@
  (pre_0 += 1)
  ((mem ebp -4) <- pre_0)
  (pre_1 <- (mem ebp -4))
- ((mem eax 4) <- pre_1))
+ ((mem rax 4) <- pre_1))

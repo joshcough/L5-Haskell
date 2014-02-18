@@ -2,8 +2,8 @@
  (y <- 4)
  (x *= x)
  (y *= y)
- (eax <- x)
- (eax += y))
+ (rax <- x)
+ (rax += y))
 x
 -4
 s_

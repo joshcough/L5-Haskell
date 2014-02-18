@@ -1,1 +1,1 @@
-((Pc <- ecx <= ecx) (Pc <- ecx <= ecx) (Pc <- ecx <= ecx)) Pc 0 s
+((Pc <- rcx <= rcx) (Pc <- rcx <= rcx) (Pc <- rcx <= rcx)) Pc 0 s

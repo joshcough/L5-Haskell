@@ -1,1 +1,1 @@
-((eax <- (allocate v Ko)))
+((rax <- (allocate v Ko)))

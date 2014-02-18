@@ -1,1 +1,1 @@
-((edi <- (mem eax 4)) (edi <- (mem eax 4))) r 0 s
+((rdi <- (mem rax 4)) (rdi <- (mem rax 4))) r 0 s

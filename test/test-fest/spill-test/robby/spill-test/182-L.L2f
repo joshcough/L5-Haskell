@@ -1,1 +1,1 @@
-((edi <- (mem L 0))) L -8 s
+((rdi <- (mem L 0))) L -8 s

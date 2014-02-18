@@ -1,1 +1,1 @@
-((eax <- (allocate m m)) (eax <- (allocate m m)) (eax <- (allocate m m)) (eax <- (allocate m m))) m -20 s
+((rax <- (allocate m m)) (rax <- (allocate m m)) (rax <- (allocate m m)) (rax <- (allocate m m))) m -20 s

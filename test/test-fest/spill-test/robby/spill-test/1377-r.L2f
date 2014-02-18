@@ -1,1 +1,1 @@
-((eax <- (print :c))) r -4 s
+((rax <- (print :c))) r -4 s

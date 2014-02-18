@@ -1,1 +1,1 @@
-((b <- b < edx) (b <- b < edx) (b <- b < edx)) b -12 s
+((b <- b < rdx) (b <- b < rdx) (b <- b < rdx)) b -12 s

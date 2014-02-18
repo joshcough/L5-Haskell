@@ -1,1 +1,1 @@
-(((mem ebx 4) <- :l)) r -16 s
+(((mem rbx 4) <- :l)) r -16 s

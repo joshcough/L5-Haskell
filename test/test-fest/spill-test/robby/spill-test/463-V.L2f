@@ -1,1 +1,1 @@
-((V *= ebx) (V *= ebx) (V *= ebx)) V -32 s
+((V *= rbx) (V *= rbx) (V *= rbx)) V -32 s

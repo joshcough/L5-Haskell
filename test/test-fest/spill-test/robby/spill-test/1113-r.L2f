@@ -1,1 +1,1 @@
-((cjump edx < :M :p :D) (cjump edx < :M :p :D)) r -20 s
+((cjump rdx < :M :p :D) (cjump rdx < :M :p :D)) r -20 s

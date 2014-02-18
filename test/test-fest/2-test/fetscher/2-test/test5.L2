@@ -3,9 +3,9 @@
   (ebp += 100)
   (esp += 200)
   :skip
-  (eax <- x)
+  (rax <- x)
   (call :printstuff))
  (:printstuff
-  (stuff <- eax)
-  (eax <- (print stuff))
+  (stuff <- rax)
+  (rax <- (print stuff))
   (return)))

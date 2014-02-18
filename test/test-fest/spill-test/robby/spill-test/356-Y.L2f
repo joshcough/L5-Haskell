@@ -1,1 +1,1 @@
-(((mem Y 0) <- ecx) ((mem Y 0) <- ecx)) Y -8 s
+(((mem Y 0) <- rcx) ((mem Y 0) <- rcx)) Y -8 s

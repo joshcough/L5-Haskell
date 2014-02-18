@@ -1,1 +1,1 @@
-((cjump E = ecx :R :w) (cjump E = ecx :R :w) (cjump E = ecx :R :w)) r -20 s
+((cjump E = rcx :R :w) (cjump E = rcx :R :w) (cjump E = rcx :R :w)) r -20 s

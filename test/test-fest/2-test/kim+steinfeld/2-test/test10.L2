@@ -1,6 +1,6 @@
 ((
  (z <- 10)
- (esi <- 3)
+ (rsi <- 3)
  (x <- 23)
  (y <- 15)
  (cjump x = y :first :second)
@@ -16,7 +16,7 @@
  :end
  (x += y)
  (z *= x)
- (eax <- (allocate esi x))
- (edx <- (mem eax 4))
- (eax <- (print edx))
+ (rax <- (allocate rsi x))
+ (rdx <- (mem rax 4))
+ (rax <- (print rdx))
  ))

@@ -1,1 +1,1 @@
-((ebx <- (mem lo 0)) (ebx <- (mem lo 0)) (ebx <- (mem lo 0)) (ebx <- (mem lo 0))) lo -28 s
+((rbx <- (mem lo 0)) (rbx <- (mem lo 0)) (rbx <- (mem lo 0)) (rbx <- (mem lo 0))) lo -28 s

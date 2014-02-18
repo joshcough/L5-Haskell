@@ -1,11 +1,11 @@
-(((eax <- 2)
-  (ebx <- 1)
-  (eax <- eax < ebx)
-  (ecx <- 0)
-  (cjump eax = ecx :then :else)
+(((rax <- 2)
+  (rbx <- 1)
+  (rax <- rax < rbx)
+  (rcx <- 0)
+  (cjump rax = rcx :then :else)
   :then
-  (eax <- (print 3))
+  (rax <- (print 3))
   (goto :done)
   :else
-  (eax <- (print 1))
+  (rax <- (print 1))
   :done))

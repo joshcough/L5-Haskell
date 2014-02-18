@@ -1,1 +1,1 @@
-((eax <- (allocate q q)) (eax <- (allocate q q))) q -16 s
+((rax <- (allocate q q)) (rax <- (allocate q q))) q -16 s

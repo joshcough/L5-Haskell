@@ -1,4 +1,4 @@
 ((s0 <- (mem ebp -16))
- ((mem s0 0) <- edi)
+ ((mem s0 0) <- rdi)
  (s1 <- (mem ebp -16))
- ((mem s1 0) <- edi))
+ ((mem s1 0) <- rdi))

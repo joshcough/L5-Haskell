@@ -1,1 +1,1 @@
-((ebx <- edi <= a) (ebx <- edi <= a)) r -28 s
+((rbx <- rdi <= a) (rbx <- rdi <= a)) r -28 s

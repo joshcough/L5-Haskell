@@ -3,10 +3,10 @@
   (x <- 3)
   (cjump x = 1 :L_3 :L_2)
   :L_3
-  (eax <- (print 5))
-  (eax <- eax)
+  (rax <- (print 5))
+  (rax <- rax)
   (return)
   :L_2
-  (eax <- (print 3))
-  (eax <- eax)
+  (rax <- (print 3))
+  (rax <- rax)
   (return)))

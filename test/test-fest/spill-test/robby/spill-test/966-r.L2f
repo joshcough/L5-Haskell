@@ -1,1 +1,1 @@
-((K <- :jv <= edi) (K <- :jv <= edi) (K <- :jv <= edi)) r -24 s
+((K <- :jv <= rdi) (K <- :jv <= rdi) (K <- :jv <= rdi)) r -24 s

@@ -1,1 +1,1 @@
-((L <- eax) (L <- eax)) r -16 s
+((L <- rax) (L <- rax)) r -16 s

@@ -4,4 +4,4 @@
   (z += 15)
   (z -= 1)
   :end
-  (eax <- (print z))))
+  (rax <- (print z))))

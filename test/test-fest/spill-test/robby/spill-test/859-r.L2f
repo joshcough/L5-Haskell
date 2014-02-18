@@ -1,1 +1,1 @@
-((eax <- :E <= J) (eax <- :E <= J) (eax <- :E <= J) (eax <- :E <= J)) r -20 s
+((rax <- :E <= J) (rax <- :E <= J) (rax <- :E <= J) (rax <- :E <= J)) r -20 s

@@ -1,11 +1,11 @@
 (:go
- (a <- eax)
- (b <- eax)
- (b += ecx)
+ (a <- rax)
+ (b <- rax)
+ (b += rcx)
  (cjump a < b :good :bad)
  :good
- (eax <- edx)
+ (rax <- rdx)
  (return)
  :bad
- (eax <- ecx)
+ (rax <- rcx)
  (return))

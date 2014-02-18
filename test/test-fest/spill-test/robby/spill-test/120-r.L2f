@@ -1,1 +1,1 @@
-((edi <- md)) r -8 s
+((rdi <- md)) r -8 s

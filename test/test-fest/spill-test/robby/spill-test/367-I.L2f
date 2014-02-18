@@ -1,1 +1,1 @@
-(((mem I 4) <- ebx) ((mem I 4) <- ebx)) I -32 s
+(((mem I 4) <- rbx) ((mem I 4) <- rbx)) I -32 s

@@ -1,6 +1,6 @@
 (((call :func)
-  (eax <- 3)
-  (eax <- (print eax)))
+  (rax <- 3)
+  (rax <- (print rax)))
  (:func
   (cjump 1 < 2 :true :false)
   :true

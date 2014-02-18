@@ -25,6 +25,6 @@
   (sum <- sum)
   (sum += seven)
   (sum -= 1)
-  (eax <- (print sum))
-  (eax <- eax)
+  (rax <- (print sum))
+  (rax <- rax)
   (return)))

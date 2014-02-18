@@ -1,12 +1,12 @@
-(((eax <- 7)
+(((rax <- 7)
   (call :f)
-  (eax <- (print eax))) 
+  (rax <- (print rax)))
  (:f
-  (ebx <- 9)
-(cjump ebx <= eax :label1 :label2)
+  (rbx <- 9)
+(cjump rbx <= rax :label1 :label2)
 :label1
-(ebx <- eax)
+(rbx <- rax)
 (return)
 :label2
-(eax <- ebx)
+(rax <- rbx)
 (return)))

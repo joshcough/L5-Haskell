@@ -1,1 +1,1 @@
-((edi <- M <= ecx) (edi <- M <= ecx) (edi <- M <= ecx) (edi <- M <= ecx)) M -32 s
+((rdi <- M <= rcx) (rdi <- M <= rcx) (rdi <- M <= rcx) (rdi <- M <= rcx)) M -32 s

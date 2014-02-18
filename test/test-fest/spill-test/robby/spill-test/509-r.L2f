@@ -1,1 +1,1 @@
-((edx *= edi) (edx *= edi) (edx *= edi)) r -12 s
+((rdx *= rdi) (rdx *= rdi) (rdx *= rdi)) r -12 s

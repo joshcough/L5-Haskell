@@ -1,1 +1,1 @@
-((goto :edi) (goto :edi) (goto :edi)) r -28 s
+((goto :rdi) (goto :rdi) (goto :rdi)) r -28 s

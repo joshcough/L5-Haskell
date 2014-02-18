@@ -1,1 +1,1 @@
-((ebx <<= ecx)) r -16 s
+((rbx <<= rcx)) r -16 s

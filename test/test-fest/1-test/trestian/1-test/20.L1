@@ -1,12 +1,12 @@
 (
 (
-(edi <- 5)
-(edx <- :func1)
-(call edx)
+(rdi <- 5)
+(rdx <- :func1)
+(call rdx)
 )
 (
 :func1
-(eax <- (print edi))
+(rax <- (print rdi))
 (return)
 )
 )

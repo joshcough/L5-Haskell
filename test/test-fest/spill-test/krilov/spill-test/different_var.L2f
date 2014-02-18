@@ -1,6 +1,6 @@
 ((x <- 1)
- (eax += y)
- (y += eax))
+ (rax += y)
+ (y += rax))
 y
 -4
 s_

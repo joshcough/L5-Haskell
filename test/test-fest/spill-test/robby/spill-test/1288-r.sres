@@ -1,1 +1,1 @@
-((tail-call ecx) (tail-call ecx) (tail-call ecx) (tail-call ecx))
+((tail-call rcx) (tail-call rcx) (tail-call rcx) (tail-call rcx))

@@ -1,25 +1,25 @@
 (
  (
-  (eax <- 3)   ;; exponent
-  (esi <- 5)   ;; base
+  (rax <- 3)   ;; exponent
+  (rsi <- 5)   ;; base
   (call :exp) 
-  (eax <- esi)
-  (eax += eax)  
-  (eax += 1)
-  (eax <- (print eax)) 
+  (rax <- rsi)
+  (rax += rax)
+  (rax += 1)
+  (rax <- (print rax))
  )
 
  (:exp
   (esp -= 4)
-  ((mem ebp -4) <- esi)
+  ((mem ebp -4) <- rsi)
 
   :loop
-  (cjump 1 < eax :keep_going :done)
+  (cjump 1 < rax :keep_going :done)
 
   :keep_going
-  (eax -= 1)
-  (ebx <- (mem ebp -4))
-  (esi *= ebx)
+  (rax -= 1)
+  (rbx <- (mem ebp -4))
+  (rsi *= rbx)
   (goto :loop)
 
   :done

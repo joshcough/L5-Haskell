@@ -1,1 +1,1 @@
-((YB <- edi) (YB <- edi) (YB <- edi)) r -20 s
+((YB <- rdi) (YB <- rdi) (YB <- rdi)) r -20 s

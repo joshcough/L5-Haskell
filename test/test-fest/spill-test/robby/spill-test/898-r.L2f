@@ -1,1 +1,1 @@
-((ecx <- edi < eax) (ecx <- edi < eax) (ecx <- edi < eax)) r -28 s
+((rcx <- rdi < rax) (rcx <- rdi < rax) (rcx <- rdi < rax)) r -28 s

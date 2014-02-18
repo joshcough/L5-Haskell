@@ -1,4 +1,4 @@
 (((x <- 5)
-  (eax <- 4)
-  (x += eax)
-  (eax <- (print x))))
+  (rax <- 4)
+  (x += rax)
+  (rax <- (print x))))

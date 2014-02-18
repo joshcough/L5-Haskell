@@ -1,12 +1,12 @@
-((eax <- x)
- (eax += x)
- (ebx <- 2)
- (x += ebx)
+((rax <- x)
+ (rax += x)
+ (rbx <- 2)
+ (x += rbx)
  (x -= 7)
- (ecx <- 3)
- (x *= ecx)
- (x -= eax)
- (eax <- (print x)))
+ (rcx <- 3)
+ (x *= rcx)
+ (x -= rax)
+ (rax <- (print x)))
 x
 -4
 s_

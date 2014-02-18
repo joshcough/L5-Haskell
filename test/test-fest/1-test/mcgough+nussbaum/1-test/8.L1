@@ -1,6 +1,6 @@
 ;;1
 (((call :function)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:function 
-  (eax <- 3)
+  (rax <- 3)
   (return)))

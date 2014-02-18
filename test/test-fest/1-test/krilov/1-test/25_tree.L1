@@ -18,134 +18,134 @@
   ; The node containing 7777 is also a sentinel - if we encounter it in the address of the parent, then we know we're 
   ; at the root node.
   
-  ; Allocate the root (containing the value 1) - esi will contain the pointer to the root of the tree
-  (eax <- (allocate 9 3))
-  (esi <- eax)
-  (edi <- eax)
+  ; Allocate the root (containing the value 1) - rsi will contain the pointer to the root of the tree
+  (rax <- (allocate 9 3))
+  (rsi <- rax)
+  (rdi <- rax)
   
   ; Allocate the 7777 sentinel and set the root's parent pointer to it.
-  (eax <- (allocate 9 7777))
-  ((mem esi 16) <- eax)
+  (rax <- (allocate 9 7777))
+  ((mem rsi 16) <- rax)
   
   ; Allocate the left subtree
   ; -------------------------
   
   ; 2
-  (eax <- (allocate 9 5))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  (edi <- eax)
+  (rax <- (allocate 9 5))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  (rdi <- rax)
   
   ; 3
-  (eax <- (allocate 9 7))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  (edi <- eax)
+  (rax <- (allocate 9 7))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  (rdi <- rax)
   
   ; 9999 sentinel
-  (eax <- (allocate 9 9999))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  ((mem edi 12) <- eax)  ; Also update parent's right child
+  (rax <- (allocate 9 9999))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  ((mem rdi 12) <- rax)  ; Also update parent's right child
   
-  ; Set edi to point to the 2 node
-  (edi <- (mem edi 16))
+  ; Set rdi to point to the 2 node
+  (rdi <- (mem rdi 16))
   
   ; 4
-  (eax <- (allocate 9 9))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 12) <- eax)   ; Update parent's right child
-  (edi <- eax)
+  (rax <- (allocate 9 9))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 12) <- rax)   ; Update parent's right child
+  (rdi <- rax)
   
   ; Allocate another 9999 sentinel
-  (eax <- (allocate 9 9999))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  ((mem edi 12) <- eax)  ; Also update parent's right child
+  (rax <- (allocate 9 9999))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  ((mem rdi 12) <- rax)  ; Also update parent's right child
   
   ; Set 4's children to the sentinel node
-  ((mem edi 8) <- eax)
-  ((mem edi 12) <- eax)
+  ((mem rdi 8) <- rax)
+  ((mem rdi 12) <- rax)
   
   ;; Allocate the right subtree
   ;; --------------------------
   
-  ; Set edi to point to the root again
-  (edi <- esi)
+  ; Set rdi to point to the root again
+  (rdi <- rsi)
   
   ; 5
-  (eax <- (allocate 9 11))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 12) <- eax)   ; Update parent's right child
-  (edi <- eax)
+  (rax <- (allocate 9 11))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 12) <- rax)   ; Update parent's right child
+  (rdi <- rax)
   
   ; 6
-  (eax <- (allocate 9 13))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  (edi <- eax)
+  (rax <- (allocate 9 13))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  (rdi <- rax)
   
   ; 9999 sentinel
-  (eax <- (allocate 9 9999))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  ((mem edi 12) <- eax)  ; Also update parent's right child
+  (rax <- (allocate 9 9999))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  ((mem rdi 12) <- rax)  ; Also update parent's right child
   
-  ; Set edi to point to the 5 node
-  (edi <- (mem edi 16))
+  ; Set rdi to point to the 5 node
+  (rdi <- (mem rdi 16))
   
   ; 7
-  (eax <- (allocate 9 15))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 12) <- eax)   ; Update parent's right child
-  (edi <- eax)
+  (rax <- (allocate 9 15))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 12) <- rax)   ; Update parent's right child
+  (rdi <- rax)
   
   ; Allocate another 9999 sentinel
-  (eax <- (allocate 9 9999))
-  ((mem eax 16) <- edi)  ; Set the parent pointer
-  ((mem edi 8) <- eax)   ; Update parent's left child
-  ((mem edi 12) <- eax)  ; Also update parent's right child
+  (rax <- (allocate 9 9999))
+  ((mem rax 16) <- rdi)  ; Set the parent pointer
+  ((mem rdi 8) <- rax)   ; Update parent's left child
+  ((mem rdi 12) <- rax)  ; Also update parent's right child
   
   ; Set 7's children to the sentinel node
-  ((mem edi 8) <- eax)
-  ((mem edi 12) <- eax)
+  ((mem rdi 8) <- rax)
+  ((mem rdi 12) <- rax)
   
-  ; Now traverse the tree structure (preorder), whose root is at esi
-  (edi <- esi)
+  ; Now traverse the tree structure (preorder), whose root is at rsi
+  (rdi <- rsi)
   (call :traverse_tree)
   )
   (:traverse_tree
-    ; edi points to the current node
+    ; rdi points to the current node
 	
 	; Get the value of the current node and print it
-	(eax <- (mem edi 4))
-	(eax <- (print eax))
+	(rax <- (mem rdi 4))
+	(rax <- (print rax))
 	
 	; Get the pointer to the left child and check its value - if it's 9999, it's the sentinel, so skip it.
-	(esi <- edi)
-	(edi <- (mem edi 8))
-	(eax <- (mem edi 4))
-	(cjump eax = 9999 :skip_left_child :visit_left_child)
+	(rsi <- rdi)
+	(rdi <- (mem rdi 8))
+	(rax <- (mem rdi 4))
+	(cjump rax = 9999 :skip_left_child :visit_left_child)
 	
 	:visit_left_child
 	(call :traverse_tree)
 	
 	:skip_left_child
-	(edi <- esi)
+	(rdi <- rsi)
 	
 	; Get the pointer to the right child and check its value - if it's 9999, it's the sentinel, so skip it.
-	(edi <- (mem edi 12))
-	(eax <- (mem edi 4))
-	(cjump eax = 9999 :skip_right_child :visit_right_child)
+	(rdi <- (mem rdi 12))
+	(rax <- (mem rdi 4))
+	(cjump rax = 9999 :skip_right_child :visit_right_child)
 	
 	:visit_right_child
 	(call :traverse_tree)
 	
 	:skip_right_child
-	(edi <- esi)
+	(rdi <- rsi)
 	
-	; Set esi to the parent
-	(esi <- (mem edi 16))
+	; Set rsi to the parent
+	(rsi <- (mem rdi 16))
 	
 	:done
 	(return)

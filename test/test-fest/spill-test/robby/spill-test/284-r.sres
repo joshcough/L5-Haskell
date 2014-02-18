@@ -1,4 +1,4 @@
-(((mem edx 0) <- edx)
- ((mem edx 0) <- edx)
- ((mem edx 0) <- edx)
- ((mem edx 0) <- edx))
+(((mem rdx 0) <- rdx)
+ ((mem rdx 0) <- rdx)
+ ((mem rdx 0) <- rdx)
+ ((mem rdx 0) <- rdx))

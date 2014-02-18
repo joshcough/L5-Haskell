@@ -1,1 +1,1 @@
-((ebx <- (mem esi 0)) (ebx <- (mem esi 0)) (ebx <- (mem esi 0)) (ebx <- (mem esi 0))) r -36 s
+((rbx <- (mem rsi 0)) (rbx <- (mem rsi 0)) (rbx <- (mem rsi 0)) (rbx <- (mem rsi 0))) r -36 s

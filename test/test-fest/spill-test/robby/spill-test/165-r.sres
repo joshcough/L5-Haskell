@@ -1,1 +1,1 @@
-((eax <- (mem eax 4)) (eax <- (mem eax 4)))
+((rax <- (mem rax 4)) (rax <- (mem rax 4)))

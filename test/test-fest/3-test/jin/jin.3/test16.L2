@@ -1,4 +1,4 @@
-(((eax <- (allocate 9 15))
-  (y <- eax)
+(((rax <- (allocate 9 15))
+  (y <- rax)
 
-  (eax <- (print 9))))
+  (rax <- (print 9))))

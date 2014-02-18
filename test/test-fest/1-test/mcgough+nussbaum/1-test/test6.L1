@@ -1,7 +1,7 @@
-(((ebx <- 5)
-(ecx <- 3)
-(edx <- ecx < ebx) ;;save comparison
-(eax <- edx)
-(eax *= 2) ;;encode value
-(eax += 1)
-(eax <- (print eax))))
+(((rbx <- 5)
+(rcx <- 3)
+(rdx <- rcx < rbx) ;;save comparison
+(rax <- rdx)
+(rax *= 2) ;;encode value
+(rax += 1)
+(rax <- (print rax))))

@@ -1,1 +1,1 @@
-((tail-call ebx) (tail-call ebx) (tail-call ebx) (tail-call ebx)) r -8 s
+((tail-call rbx) (tail-call rbx) (tail-call rbx) (tail-call rbx)) r -8 s

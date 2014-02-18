@@ -1,1 +1,1 @@
-((ecx &= esi)) r -12 s
+((rcx &= rsi)) r -12 s

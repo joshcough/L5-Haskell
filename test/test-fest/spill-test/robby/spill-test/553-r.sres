@@ -1,1 +1,1 @@
-((eax &= edx))
+((rax &= rdx))

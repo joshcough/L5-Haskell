@@ -5,120 +5,120 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $3
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %eax, %esi
-	movl %eax, %edi
+	movl %rax, %rsi
+	movl %rax, %rdi
 	pushl $7777
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %eax, 16(%esi)
+	movl %rax, 16(%rsi)
 	pushl $5
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, %rdi
 	pushl $7
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, %rdi
 	pushl $9999
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl 16(%edi), %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl 16(%rdi), %rdi
 	pushl $9
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 12(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 12(%rdi)
+	movl %rax, %rdi
 	pushl $9999
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl %esi, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl %rsi, %rdi
 	pushl $11
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 12(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 12(%rdi)
+	movl %rax, %rdi
 	pushl $13
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, %rdi
 	pushl $9999
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl 16(%edi), %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl 16(%rdi), %rdi
 	pushl $15
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 12(%edi)
-	movl %eax, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 12(%rdi)
+	movl %rax, %rdi
 	pushl $9999
 	pushl $9
 	call allocate
 	addl $8, %esp
-	movl %edi, 16(%eax)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl %eax, 8(%edi)
-	movl %eax, 12(%edi)
-	movl %esi, %edi
+	movl %rdi, 16(%rax)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl %rax, 8(%rdi)
+	movl %rax, 12(%rdi)
+	movl %rsi, %rdi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_traverse_tree
 L1_Generated_Label_0:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_traverse_tree:
-	movl 4(%edi), %eax
-	pushl %eax
+	movl 4(%rdi), %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl %edi, %esi
-	movl 8(%edi), %edi
-	movl 4(%edi), %eax
-	cmpl $9999, %eax
+	movl %rdi, %rsi
+	movl 8(%rdi), %rdi
+	movl 4(%rdi), %rax
+	cmpl $9999, %rax
 	je L1_skip_left_child
 	jmp L1_visit_left_child
 L1_visit_left_child:
@@ -128,10 +128,10 @@ L1_visit_left_child:
 	jmp L1_traverse_tree
 L1_Generated_Label_1:
 L1_skip_left_child:
-	movl %esi, %edi
-	movl 12(%edi), %edi
-	movl 4(%edi), %eax
-	cmpl $9999, %eax
+	movl %rsi, %rdi
+	movl 12(%rdi), %rdi
+	movl 4(%rdi), %rax
+	cmpl $9999, %rax
 	je L1_skip_right_child
 	jmp L1_visit_right_child
 L1_visit_right_child:
@@ -141,8 +141,8 @@ L1_visit_right_child:
 	jmp L1_traverse_tree
 L1_Generated_Label_2:
 L1_skip_right_child:
-	movl %esi, %edi
-	movl 16(%edi), %esi
+	movl %rsi, %rdi
+	movl 16(%rdi), %rsi
 L1_done:
 	movl %ebp, %esp
 	popl %ebp

@@ -1,1 +1,1 @@
-((ebx <- (mem Z 0)) (ebx <- (mem Z 0))) Z -28 s
+((rbx <- (mem Z 0)) (rbx <- (mem Z 0))) Z -28 s

@@ -1,6 +1,6 @@
 ((s0 <- (mem ebp -24))
- (s0 >>= esi)
+ (s0 >>= rsi)
  ((mem ebp -24) <- s0)
  (s1 <- (mem ebp -24))
- (s1 >>= esi)
+ (s1 >>= rsi)
  ((mem ebp -24) <- s1))

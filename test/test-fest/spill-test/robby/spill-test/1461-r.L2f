@@ -1,1 +1,1 @@
-((eax <- (allocate K ecx)) (eax <- (allocate K ecx)) (eax <- (allocate K ecx)) (eax <- (allocate K ecx))) r -12 s
+((rax <- (allocate K rcx)) (rax <- (allocate K rcx)) (rax <- (allocate K rcx)) (rax <- (allocate K rcx))) r -12 s

@@ -1,1 +1,1 @@
-((eax <- (allocate :t BX)) (eax <- (allocate :t BX)) (eax <- (allocate :t BX))) r -12 s
+((rax <- (allocate :t BX)) (rax <- (allocate :t BX)) (rax <- (allocate :t BX))) r -12 s

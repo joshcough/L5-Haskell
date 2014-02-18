@@ -1,1 +1,1 @@
-((eax <- (allocate :Ps l)) (eax <- (allocate :Ps l)) (eax <- (allocate :Ps l)))
+((rax <- (allocate :Ps l)) (rax <- (allocate :Ps l)) (rax <- (allocate :Ps l)))

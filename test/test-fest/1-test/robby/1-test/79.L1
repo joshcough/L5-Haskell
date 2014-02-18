@@ -1,1 +1,1 @@
-(((eax <- (allocate 7 1)) (eax <- (array-error eax 19)) (eax <- (print 3))))
+(((rax <- (allocate 7 1)) (rax <- (array-error rax 19)) (rax <- (print 3))))

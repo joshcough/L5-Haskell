@@ -1,1 +1,1 @@
-((ecx <<= Oi) (ecx <<= Oi) (ecx <<= Oi))
+((rcx <<= Oi) (rcx <<= Oi) (rcx <<= Oi))

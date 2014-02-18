@@ -2,4 +2,4 @@
   (sd <<= 2)
   (sd *= 2)
   (sd += 1)
-  (eax <- (print sd))))
+  (rax <- (print sd))))

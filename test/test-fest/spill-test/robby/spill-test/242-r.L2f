@@ -1,1 +1,1 @@
-((edi <- (mem esi 0)) (edi <- (mem esi 0))) r 0 s
+((rdi <- (mem rsi 0)) (rdi <- (mem rsi 0))) r 0 s

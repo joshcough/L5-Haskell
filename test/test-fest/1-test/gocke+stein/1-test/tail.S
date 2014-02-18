@@ -5,30 +5,30 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $10000, %eax
+	movl $10000, %rax
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_recur_not_recurse
 L1_Generated_Label_0:
-	imull $2, %eax
-	addl $1, %eax
-	pushl %eax
+	imull $2, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_recur_not_recurse:
-	cmpl $0, %eax
+	cmpl $0, %rax
 	je L1_ret
 	jmp L1_recur
 L1_ret:
@@ -36,7 +36,7 @@ L1_ret:
 	popl %ebp
 	ret
 L1_recur:
-	subl $1, %eax
+	subl $1, %rax
 	movl %ebp, %esp
 	jmp L1_recur_not_recurse
 	.size	go, .-go

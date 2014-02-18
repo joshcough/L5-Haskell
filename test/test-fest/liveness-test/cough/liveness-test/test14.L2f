@@ -1,1 +1,1 @@
-((eax <- x) (eax <- (print eax)))
+((rax <- x) (rax <- (print rax)))

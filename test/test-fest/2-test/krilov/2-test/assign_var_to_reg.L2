@@ -1,25 +1,25 @@
 ((
   (x1 <- 3)
-  (eax <- x1)
-  (eax <- (print eax))
+  (rax <- x1)
+  (rax <- (print rax))
   
   (x2 <- 5)
-  (ebx <- x2)
-  (eax <- (print ebx))
+  (rbx <- x2)
+  (rax <- (print rbx))
   
   (x3 <- 7)
-  (ecx <- x3)
-  (eax <- (print ecx))
+  (rcx <- x3)
+  (rax <- (print rcx))
   
   (x4 <- 9)
-  (edi <- x4)
-  (eax <- (print edi))
+  (rdi <- x4)
+  (rax <- (print rdi))
   
   (x5 <- 11)
-  (edx <- x5)
-  (eax <- (print edx))
+  (rdx <- x5)
+  (rax <- (print rdx))
   
   (x6 <- 13)
-  (esi <- x6)
-  (eax <- (print esi))
+  (rsi <- x6)
+  (rax <- (print rsi))
 ))

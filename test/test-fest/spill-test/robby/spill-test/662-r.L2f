@@ -1,1 +1,1 @@
-((edx <<= esi)) r -36 s
+((rdx <<= rsi)) r -36 s

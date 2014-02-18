@@ -1,7 +1,7 @@
 ((x <- 9)
-  (eax <- 11)
+  (rax <- 11)
   :loop
-  (cjump x < eax :keep_going :done)
+  (cjump x < rax :keep_going :done)
   
   :keep_going  
   (x += 1)

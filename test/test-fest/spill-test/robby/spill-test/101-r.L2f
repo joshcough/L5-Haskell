@@ -1,1 +1,1 @@
-((edi <- eax)) r -12 s
+((rdi <- rax)) r -12 s

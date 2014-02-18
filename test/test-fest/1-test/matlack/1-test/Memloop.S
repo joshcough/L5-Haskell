@@ -5,50 +5,50 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $21, %esi
+	movl $21, %rsi
 	pushl $5
-	pushl %esi
+	pushl %rsi
 	call allocate
 	addl $8, %esp
-	movl %eax, %edi
-	movl %edi, %ebx
-	addl $20, %ebx
-	movl $1, 4(%edi)
-	movl $3, 8(%edi)
-	movl $5, 12(%edi)
-	movl $7, 16(%edi)
-	movl $9, 20(%edi)
-	movl $11, 24(%edi)
-	movl $13, 28(%edi)
-	movl $15, 32(%edi)
-	movl $17, 36(%edi)
-	movl $19, 40(%edi)
-	movl $10, %eax
-	movl $0, %ecx
+	movl %rax, %rdi
+	movl %rdi, %rbx
+	addl $20, %rbx
+	movl $1, 4(%rdi)
+	movl $3, 8(%rdi)
+	movl $5, 12(%rdi)
+	movl $7, 16(%rdi)
+	movl $9, 20(%rdi)
+	movl $11, 24(%rdi)
+	movl $13, 28(%rdi)
+	movl $15, 32(%rdi)
+	movl $17, 36(%rdi)
+	movl $19, 40(%rdi)
+	movl $10, %rax
+	movl $0, %rcx
 L1_loop:
-	cmpl $0, %eax
+	cmpl $0, %rax
 	je L1_done
 	jmp L1_keep_going
 L1_keep_going:
-	movl 12(%edi), %edx
-	addl %edx, %ecx
-	subl $1, %eax
+	movl 12(%rdi), %rdx
+	addl %rdx, %rcx
+	subl $1, %rax
 	jmp L1_loop
 L1_done:
-	sall $1, %ecx
-	addl $1, %ecx
-	pushl %ecx
+	sall $1, %rcx
+	addl $1, %rcx
+	pushl %rcx
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

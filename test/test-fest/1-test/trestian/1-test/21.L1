@@ -1,15 +1,15 @@
 ((
-(esi <- :func1)
-(edi <- 1)
+(rsi <- :func1)
+(rdi <- 1)
 
 :loop
-(cjump edi < 5 :keep_going :done)
+(cjump rdi < 5 :keep_going :done)
 :keep_going
-(edi += 1)
-(call esi)
+(rdi += 1)
+(call rsi)
 (goto :loop)
 :done
-(eax <- (print edi))
+(rax <- (print rdi))
 )
 (
 :func1

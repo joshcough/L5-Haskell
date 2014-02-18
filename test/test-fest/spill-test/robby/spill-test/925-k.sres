@@ -1,4 +1,4 @@
 ((s0 <- (mem ebp -32))
- (ebx <- s0 = :oY)
+ (rbx <- s0 = :oY)
  (s1 <- (mem ebp -32))
- (ebx <- s1 = :oY))
+ (rbx <- s1 = :oY))

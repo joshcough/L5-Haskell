@@ -1,1 +1,1 @@
-((ebx <- edi <= :v) (ebx <- edi <= :v) (ebx <- edi <= :v) (ebx <- edi <= :v))
+((rbx <- rdi <= :v) (rbx <- rdi <= :v) (rbx <- rdi <= :v) (rbx <- rdi <= :v))

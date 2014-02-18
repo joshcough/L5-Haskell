@@ -1,1 +1,1 @@
-((ebx >>= ebx)) r -8 s
+((rbx >>= rbx)) r -8 s

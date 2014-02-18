@@ -5,54 +5,54 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $7, %ecx
+	movl $7, %rcx
 	pushl $5
-	pushl %ecx
+	pushl %rcx
 	call allocate
 	addl $8, %esp
-	movl $13, 4(%eax)
-	movl $19, 8(%eax)
-	movl $29, 12(%eax)
-	movl $7, %ecx
+	movl $13, 4(%rax)
+	movl $19, 8(%rax)
+	movl $29, 12(%rax)
+	movl $7, %rcx
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_squarearray
 L1_Generated_Label_0:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_squarearray:
-	movl $3, %esi
+	movl $3, %rsi
 L1_loop:
-	cmpl %ecx, %esi
+	cmpl %rcx, %rsi
 	jle L1_if
 	jmp L1_end
 L1_if:
-	movl %esi, %edi
-	subl $1, %edi
-	sarl $1, %edi
-	imull $4, %edi
-	addl %eax, %edi
-	movl 0(%edi), %ebx
-	subl $1, %ebx
-	sarl $1, %ebx
-	imull %ebx, %ebx
-	sall $1, %ebx
-	addl $1, %ebx
-	movl %ebx, 0(%edi)
-	addl $2, %esi
+	movl %rsi, %rdi
+	subl $1, %rdi
+	sarl $1, %rdi
+	imull $4, %rdi
+	addl %rax, %rdi
+	movl 0(%rdi), %rbx
+	subl $1, %rbx
+	sarl $1, %rbx
+	imull %rbx, %rbx
+	sall $1, %rbx
+	addl $1, %rbx
+	movl %rbx, 0(%rdi)
+	addl $2, %rsi
 	jmp L1_loop
 L1_end:
 	movl %ebp, %esp

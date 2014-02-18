@@ -3,14 +3,14 @@
  (y <- x)
  (y *= x)
  (x <- :func1)
- (eax <- y)
+ (rax <- y)
  (call x)
  )
  (:func1
- (eax += 4)
+ (rax += 4)
  (tail-call :func2)
  )
  (:func2
- (eax <- (print eax))
+ (rax <- (print rax))
  (return)
  ))

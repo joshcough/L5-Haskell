@@ -1,1 +1,1 @@
-((eax <- (allocate :S y)) (eax <- (allocate :S y)) (eax <- (allocate :S y))) y -16 s
+((rax <- (allocate :S y)) (rax <- (allocate :S y)) (rax <- (allocate :S y))) y -16 s

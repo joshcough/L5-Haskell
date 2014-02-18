@@ -1,1 +1,1 @@
-(((eax <- (print 7))))
+(((rax <- (print 7))))

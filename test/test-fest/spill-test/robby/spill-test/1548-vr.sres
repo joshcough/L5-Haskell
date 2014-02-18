@@ -1,4 +1,4 @@
 ((s0 <- (mem ebp -32))
- (eax <- (array-error s0 edi))
+ (rax <- (array-error s0 rdi))
  (s1 <- (mem ebp -32))
- (eax <- (array-error s1 edi)))
+ (rax <- (array-error s1 rdi)))

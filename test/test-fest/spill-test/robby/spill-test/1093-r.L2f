@@ -1,1 +1,1 @@
-((cjump eax = eax :y :hvym) (cjump eax = eax :y :hvym) (cjump eax = eax :y :hvym) (cjump eax = eax :y :hvym)) r -36 s
+((cjump rax = rax :y :hvym) (cjump rax = rax :y :hvym) (cjump rax = rax :y :hvym) (cjump rax = rax :y :hvym)) r -36 s

@@ -1,1 +1,1 @@
-((ecx <- n <= hQ) (ecx <- n <= hQ)) hQ 0 s
+((rcx <- n <= hQ) (rcx <- n <= hQ)) hQ 0 s

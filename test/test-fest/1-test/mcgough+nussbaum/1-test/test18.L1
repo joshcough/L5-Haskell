@@ -1,8 +1,8 @@
 ((
 (call :foo)
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
-(edx <- 9)
+(rdx <- 9)
 (cjump 5 < 3 :true :false)
 :true
 (call :bar)
@@ -12,8 +12,8 @@
 (call :bar)
 (call :bar)
 :done
-(eax <- edx)
+(rax <- rdx)
 (return))
 (:bar
-(edx += 2)
+(rdx += 2)
 (return)))

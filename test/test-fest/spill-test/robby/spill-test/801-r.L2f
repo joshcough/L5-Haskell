@@ -1,1 +1,1 @@
-((ecx <- :o <= ecx) (ecx <- :o <= ecx) (ecx <- :o <= ecx)) r -8 s
+((rcx <- :o <= rcx) (rcx <- :o <= rcx) (rcx <- :o <= rcx)) r -8 s

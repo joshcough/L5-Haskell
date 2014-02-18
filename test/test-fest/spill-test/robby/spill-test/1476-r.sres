@@ -1,1 +1,1 @@
-((eax <- (allocate 1 xU)))
+((rax <- (allocate 1 xU)))

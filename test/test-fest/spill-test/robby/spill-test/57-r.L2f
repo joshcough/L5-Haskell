@@ -1,1 +1,1 @@
-((eax <- :RM)) r 0 s
+((rax <- :RM)) r 0 s

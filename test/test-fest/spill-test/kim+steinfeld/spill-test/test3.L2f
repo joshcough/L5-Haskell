@@ -1,7 +1,7 @@
 ((z <- 10)
- (eax += z)
- (ebx <- 5)
- (ebx += z))
+ (rax += z)
+ (rbx <- 5)
+ (rbx += z))
 z
 -4
 s_

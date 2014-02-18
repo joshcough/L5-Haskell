@@ -1,19 +1,19 @@
 ; Test basic arithmetic
 ((
   ; Test addition
-  (eax <- 3)
-  (eax += 4)	; 3+4 = 7, but this is encoded, so it actually represents 3 when printed
-  (eax <- (print eax))  ; 3
+  (rax <- 3)
+  (rax += 4)	; 3+4 = 7, but this is encoded, so it actually represents 3 when printed
+  (rax <- (print rax))  ; 3
   
   ; Test subtraction
-  (eax <- 6)
-  (ebx <- 3)
-  (eax -= ebx)	; 6-3 = 3, but this is encoded, so it actually represents 1 when printed
-  (eax <- (print eax))  ; 1
+  (rax <- 6)
+  (rbx <- 3)
+  (rax -= rbx)	; 6-3 = 3, but this is encoded, so it actually represents 1 when printed
+  (rax <- (print rax))  ; 1
   
   ; Test multiplication
-  (eax <- 3)
-  (ebx <- 7)
-  (ebx *= eax)	; 3*7 = 21, but this is encoded, so it actually represents 10 when printed
-  (eax <- (print ebx))  ; 10
+  (rax <- 3)
+  (rbx <- 7)
+  (rbx *= rax)	; 3*7 = 21, but this is encoded, so it actually represents 10 when printed
+  (rax <- (print rbx))  ; 10
 ))

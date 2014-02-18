@@ -5,52 +5,52 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $11, %ecx
+	movl $11, %rcx
 	pushl $5
-	pushl %ecx
+	pushl %rcx
 	call allocate
 	addl $8, %esp
-	movl $13, 4(%eax)
-	movl $19, 8(%eax)
-	movl $29, 12(%eax)
-	movl $51, 16(%eax)
-	movl $79, 20(%eax)
-	movl $20, %ecx
+	movl $13, 4(%rax)
+	movl $19, 8(%rax)
+	movl $29, 12(%rax)
+	movl $51, 16(%rax)
+	movl $79, 20(%rax)
+	movl $20, %rcx
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_reverse
 L1_Generated_Label_0:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_reverse:
-	movl %ecx, %edx
-	movl $4, %esi
-	addl %eax, %esi
-	addl %eax, %edx
+	movl %rcx, %rdx
+	movl $4, %rsi
+	addl %rax, %rsi
+	addl %rax, %rdx
 L1_loop:
-	cmpl %edx, %esi
+	cmpl %rdx, %rsi
 	je L1_else
 	jmp L1_if
 L1_if:
-	movl 0(%esi), %edi
-	movl 0(%edx), %ebx
-	movl %ebx, 0(%esi)
-	movl %edi, 0(%edx)
-	addl $4, %esi
-	subl $4, %edx
+	movl 0(%rsi), %rdi
+	movl 0(%rdx), %rbx
+	movl %rbx, 0(%rsi)
+	movl %rdi, 0(%rdx)
+	addl $4, %rsi
+	subl $4, %rdx
 	jmp L1_loop
 L1_else:
 	movl %ebp, %esp

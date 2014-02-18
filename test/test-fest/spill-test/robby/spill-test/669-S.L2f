@@ -1,1 +1,1 @@
-((edx >>= S) (edx >>= S) (edx >>= S) (edx >>= S)) S -24 s
+((rdx >>= S) (rdx >>= S) (rdx >>= S) (rdx >>= S)) S -24 s

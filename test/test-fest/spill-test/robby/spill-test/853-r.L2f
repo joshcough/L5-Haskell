@@ -1,1 +1,1 @@
-((eax <- eax <= :o) (eax <- eax <= :o)) r -24 s
+((rax <- rax <= :o) (rax <- rax <= :o)) r -24 s

@@ -1,1 +1,1 @@
-((eax <- ebx = MF) (eax <- ebx = MF) (eax <- ebx = MF)) MF -4 s
+((rax <- rbx = MF) (rax <- rbx = MF) (rax <- rbx = MF)) MF -4 s

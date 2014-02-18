@@ -1,1 +1,1 @@
-((eax <- (allocate N MA)) (eax <- (allocate N MA)) (eax <- (allocate N MA)) (eax <- (allocate N MA))) N -8 s
+((rax <- (allocate N MA)) (rax <- (allocate N MA)) (rax <- (allocate N MA)) (rax <- (allocate N MA))) N -8 s

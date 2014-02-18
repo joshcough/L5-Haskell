@@ -1,22 +1,22 @@
-(((eax <- 1)
+(((rax <- 1)
   (call :printone))
  (:printone
-  (s <- eax)
+  (s <- rax)
   (s <<= 1)
   (s += 1)
-  (eax <- (print s))
+  (rax <- (print s))
   (a <- s)
   (a >>= 1)
   (a += 1)
-  (eax <- a)
+  (rax <- a)
   (call :skipone)
   (return))
  (:skipone
-  (a <- eax)
+  (a <- rax)
   (cjump a < 10 :go_on :quit)
   :go_on
   (a += 1)
-  (eax <- a)
+  (rax <- a)
   (call :printone)
   :quit
   (return))

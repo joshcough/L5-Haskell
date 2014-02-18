@@ -1,1 +1,1 @@
-((ecx <- ecx < ecx) (ecx <- ecx < ecx) (ecx <- ecx < ecx) (ecx <- ecx < ecx)) r -16 s
+((rcx <- rcx < rcx) (rcx <- rcx < rcx) (rcx <- rcx < rcx) (rcx <- rcx < rcx)) r -16 s

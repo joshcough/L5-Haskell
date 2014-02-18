@@ -1,1 +1,1 @@
-((eax <- (print esi)) (eax <- (print esi)) (eax <- (print esi)) (eax <- (print esi))) r 0 s
+((rax <- (print rsi)) (rax <- (print rsi)) (rax <- (print rsi)) (rax <- (print rsi))) r 0 s

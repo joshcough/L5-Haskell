@@ -1,14 +1,14 @@
-((eax <<= ecx)
- (ebx >>= ecx)
+((rax <<= rcx)
+ (rbx >>= rcx)
  
- (eax <<= x)
- (ebx <<= x)
+ (rax <<= x)
+ (rbx <<= x)
  
- (eax <<= y)
- (ebx <<= y)
+ (rax <<= y)
+ (rbx <<= y)
  
- (eax >>= x)
- (ebx >>= x)
+ (rax >>= x)
+ (rbx >>= x)
  
  (x <<= x)
  (x <<= y)

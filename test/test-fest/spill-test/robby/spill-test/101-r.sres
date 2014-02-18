@@ -1,1 +1,1 @@
-((edi <- eax))
+((rdi <- rax))

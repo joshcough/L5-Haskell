@@ -1,7 +1,7 @@
 ((
- (eax <- (allocate 21 11))
- (x <- eax)
+ (rax <- (allocate 21 11))
+ (x <- rax)
  ((mem x 12) <- 31)
  (x <- (mem x 12))
- (eax <- (print x))
+ (rax <- (print x))
 ))

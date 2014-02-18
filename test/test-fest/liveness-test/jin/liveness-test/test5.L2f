@@ -1,5 +1,5 @@
 (:fun
- (x <- eax)
+ (x <- rax)
   :loop
   (a <- 1)
   (cjump x < a :keep_going :done)

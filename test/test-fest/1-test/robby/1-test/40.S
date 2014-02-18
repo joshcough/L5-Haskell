@@ -5,18 +5,18 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $1, %eax
-	movl $2, %ebx
-	cmp %ebx, %eax
+	movl $1, %rax
+	movl $2, %rbx
+	cmp %rbx, %rax
 	setl %al
-	movzbl %al, %eax
-	movl $1, %ecx
-	cmpl %ecx, %eax
+	movzbl %al, %rax
+	movl $1, %rcx
+	cmpl %rcx, %rax
 	je L1_then
 	jmp L1_else
 L1_then:
@@ -30,9 +30,9 @@ L1_else:
 	addl $4, %esp
 L1_done:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

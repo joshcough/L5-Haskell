@@ -1,1 +1,1 @@
-((eax <- (print V)) (eax <- (print V)) (eax <- (print V)) (eax <- (print V))) r -24 s
+((rax <- (print V)) (rax <- (print V)) (rax <- (print V)) (rax <- (print V))) r -24 s

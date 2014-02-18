@@ -1,1 +1,1 @@
-(((mem edx 0) <- edi)) r -16 s
+(((mem rdx 0) <- rdi)) r -16 s

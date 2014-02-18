@@ -1,9 +1,9 @@
-((x <- ebx)
+((x <- rbx)
  (y <- x)
- (eax <- x)
- (x <- eax)
- (eax <- (print x))
- (eax <- (allocate ecx x)))
+ (rax <- x)
+ (x <- rax)
+ (rax <- (print x))
+ (rax <- (allocate rcx x)))
 x
 -16
 s_

@@ -1,1 +1,1 @@
-((cjump 2 < p :edx :u) (cjump 2 < p :edx :u) (cjump 2 < p :edx :u) (cjump 2 < p :edx :u)) p -16 s
+((cjump 2 < p :rdx :u) (cjump 2 < p :rdx :u) (cjump 2 < p :rdx :u) (cjump 2 < p :rdx :u)) p -16 s

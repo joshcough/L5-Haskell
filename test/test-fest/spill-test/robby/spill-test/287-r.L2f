@@ -1,1 +1,1 @@
-(((mem edi 0) <- edi) ((mem edi 0) <- edi) ((mem edi 0) <- edi) ((mem edi 0) <- edi)) r -8 s
+(((mem rdi 0) <- rdi) ((mem rdi 0) <- rdi) ((mem rdi 0) <- rdi) ((mem rdi 0) <- rdi)) r -8 s

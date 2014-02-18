@@ -1,10 +1,10 @@
 (:there
  :here
  :anywhere
- (eax <- s3)
- (eax <- s2)
- (eax <- s1)
- (eax <- s0)
+ (rax <- s3)
+ (rax <- s2)
+ (rax <- s1)
+ (rax <- s0)
  (cjump s0 < s1 :here :there)
  (s3 <- 0)
  (s2 <- 1)

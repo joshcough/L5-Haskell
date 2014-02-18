@@ -1,12 +1,12 @@
 ; Test assigning from one register to another
 ((
   
-  (ecx <- 11)
-  (edx <- ecx)
-  (eax <- (print edx))   ; 5
+  (rcx <- 11)
+  (rdx <- rcx)
+  (rax <- (print rdx))   ; 5
   
   ; Test assigning from the same register
-  (ecx <- 13)    ; pick a different number
-  (ecx <- ecx)   ; assign from itself - value shouldn't change
-  (eax <- (print ecx))   ; 6
+  (rcx <- 13)    ; pick a different number
+  (rcx <- rcx)   ; assign from itself - value shouldn't change
+  (rax <- (print rcx))   ; 6
 ))

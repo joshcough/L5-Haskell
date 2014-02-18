@@ -1,6 +1,6 @@
 ((
-  (eax <- 85)
-  (eax <- (print eax))
-  (ebx <- eax)
-  (eax <- (print eax))
+  (rax <- 85)
+  (rax <- (print rax))
+  (rbx <- rax)
+  (rax <- (print rax))
 ))

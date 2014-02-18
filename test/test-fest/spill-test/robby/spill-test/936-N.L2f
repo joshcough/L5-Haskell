@@ -1,1 +1,1 @@
-((N <- :Mw = edi)) N -36 s
+((N <- :Mw = rdi)) N -36 s

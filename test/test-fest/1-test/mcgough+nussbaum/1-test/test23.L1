@@ -1,9 +1,9 @@
 ((
-(eax <- 1)
+(rax <- 1)
 (call :foo)
 (call :foo)
 (call :foo)
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
 (call :bar)
 (call :bar)
@@ -22,5 +22,5 @@
 (call :quux)
 (return))
 (:quux
-(eax += 8)
+(rax += 8)
 (return)))

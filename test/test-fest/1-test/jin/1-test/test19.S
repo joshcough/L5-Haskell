@@ -5,42 +5,42 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $10, %eax
-	movl %eax, %ebx
+	movl $10, %rax
+	movl %rax, %rbx
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_fac
 L1_Generated_Label_0:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_fac:
-	cmpl $1, %ebx
+	cmpl $1, %rbx
 	je L1_base
 	jmp L1_recure
 L1_base:
-	imull $1, %eax
+	imull $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_recure:
-	movl %eax, %edx
-	subl $1, %eax
-	imull %edx, %eax
-	subl $1, %ebx
-	subl $1, %eax
+	movl %rax, %rdx
+	subl $1, %rax
+	imull %rdx, %rax
+	subl $1, %rbx
+	subl $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

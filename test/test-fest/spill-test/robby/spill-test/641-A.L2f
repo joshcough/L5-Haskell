@@ -1,1 +1,1 @@
-((ecx >>= A) (ecx >>= A)) A -16 s
+((rcx >>= A) (rcx >>= A)) A -16 s

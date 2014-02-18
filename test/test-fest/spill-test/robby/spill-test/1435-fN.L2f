@@ -1,1 +1,1 @@
-((eax <- (allocate ecx fN)) (eax <- (allocate ecx fN)) (eax <- (allocate ecx fN))) fN -32 s
+((rax <- (allocate rcx fN)) (rax <- (allocate rcx fN)) (rax <- (allocate rcx fN))) fN -32 s

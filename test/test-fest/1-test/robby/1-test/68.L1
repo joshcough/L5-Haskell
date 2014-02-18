@@ -1,1 +1,1 @@
-(((edi <- 1) (eax <- (print edi)) (eax <- (print edi))))
+(((rdi <- 1) (rax <- (print rdi)) (rax <- (print rdi))))

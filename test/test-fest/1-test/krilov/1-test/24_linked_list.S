@@ -5,28 +5,28 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $3
 	pushl $5
 	call allocate
 	addl $8, %esp
-	movl %eax, %esi
-	movl $5, %ebx
-	movl %esi, %edi
+	movl %rax, %rsi
+	movl $5, %rbx
+	movl %rsi, %rdi
 L1_allocate_next:
-	pushl %ebx
+	pushl %rbx
 	pushl $5
 	call allocate
 	addl $8, %esp
-	movl 4(%eax), %ebx
-	movl %eax, 8(%edi)
-	movl %eax, %edi
-	addl $2, %ebx
-	cmpl $11, %ebx
+	movl 4(%rax), %rbx
+	movl %rax, 8(%rdi)
+	movl %rax, %rdi
+	addl $2, %rbx
+	cmpl $11, %rbx
 	jle L1_allocate_next
 	jmp L1_done_allocating
 L1_done_allocating:
@@ -34,27 +34,27 @@ L1_done_allocating:
 	pushl $5
 	call allocate
 	addl $8, %esp
-	movl %eax, 8(%edi)
-	movl %esi, %edi
+	movl %rax, 8(%rdi)
+	movl %rsi, %rdi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_print_list
 L1_Generated_Label_0:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_print_list:
-	movl 4(%edi), %eax
-	pushl %eax
+	movl 4(%rdi), %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl 8(%edi), %edi
-	movl 4(%edi), %eax
-	cmpl $9999, %eax
+	movl 8(%rdi), %rdi
+	movl 4(%rdi), %rax
+	cmpl $9999, %rax
 	je L1_done
 	jmp L1_print_next
 L1_print_next:

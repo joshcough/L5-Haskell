@@ -1,1 +1,1 @@
-((esi >>= ecx) (esi >>= ecx) (esi >>= ecx) (esi >>= ecx))
+((rsi >>= rcx) (rsi >>= rcx) (rsi >>= rcx) (rsi >>= rcx))

@@ -9,7 +9,7 @@
 
 
 
-edx
+rdx
 <-
 1
 
@@ -21,5 +21,5 @@ edx
 
 
 )
-(eax <- (print edx))
+(rax <- (print rdx))
 ))

@@ -1,1 +1,1 @@
-((eax <- (allocate :cjump j)) (eax <- (allocate :cjump j))) r -32 s
+((rax <- (allocate :cjump j)) (rax <- (allocate :cjump j))) r -32 s

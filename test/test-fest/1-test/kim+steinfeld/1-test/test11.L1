@@ -1,15 +1,15 @@
 ((
-(edx <- 13)
-(ecx <- 5)
-(ecx *= 2)
-(ecx -= 1)
+(rdx <- 13)
+(rcx <- 5)
+(rcx *= 2)
+(rcx -= 1)
 
-(cjump  edx = ecx :if :else)
+(cjump  rdx = rcx :if :else)
 
 :if
-(ecx *= 2)
-(ecx -= 1)
+(rcx *= 2)
+(rcx -= 1)
 
 :else
-(eax <- (print ecx)) 
+(rax <- (print rcx))
 ))

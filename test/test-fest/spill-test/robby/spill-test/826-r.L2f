@@ -1,1 +1,1 @@
-((eax <- esi <= esi) (eax <- esi <= esi) (eax <- esi <= esi) (eax <- esi <= esi)) r -4 s
+((rax <- rsi <= rsi) (rax <- rsi <= rsi) (rax <- rsi <= rsi) (rax <- rsi <= rsi)) r -4 s

@@ -1,1 +1,1 @@
-(((eax <- 5) (eax &= 1) (eax *= 2) (eax += 1) (eax <- (print eax))))
+(((rax <- 5) (rax &= 1) (rax *= 2) (rax += 1) (rax <- (print rax))))

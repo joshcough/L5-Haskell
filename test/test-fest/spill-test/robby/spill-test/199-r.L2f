@@ -1,1 +1,1 @@
-((E <- (mem ebx 0))) r -8 s
+((E <- (mem rbx 0))) r -8 s

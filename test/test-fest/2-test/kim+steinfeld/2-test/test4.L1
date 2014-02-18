@@ -1,12 +1,12 @@
 ((
-(edi <- 5)
-(eax <- 20)
-(edi += eax)
+(rdi <- 5)
+(rax <- 20)
+(rdi += rax)
 (call :g)
-(eax += edi)
-(eax <- (print eax))
+(rax += rdi)
+(rax <- (print rax))
 )
 (:g
-(eax += eax)
+(rax += rax)
 (return)
 ))

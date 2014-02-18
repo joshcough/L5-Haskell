@@ -10,5 +10,5 @@
  (y <- 5)
 
  :end
- (eax <- (print y))
+ (rax <- (print y))
  ))

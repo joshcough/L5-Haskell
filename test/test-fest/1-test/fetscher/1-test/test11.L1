@@ -1,14 +1,14 @@
 (((call :numberone)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:numberone
   (call :numbertwo)
-  (eax += 1)
+  (rax += 1)
   (return))
  (:numbertwo
   (call :numberthree)
-  (eax <<= 1)
+  (rax <<= 1)
   (return))
  (:numberthree
-  (eax <- 9)
+  (rax <- 9)
   (return)))
  

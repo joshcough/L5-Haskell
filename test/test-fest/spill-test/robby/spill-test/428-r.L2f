@@ -1,1 +1,1 @@
-((ebx &= ebx) (ebx &= ebx)) r -32 s
+((rbx &= rbx) (rbx &= rbx)) r -32 s

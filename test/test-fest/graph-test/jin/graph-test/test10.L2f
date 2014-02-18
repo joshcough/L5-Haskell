@@ -1,13 +1,13 @@
 (:fac
- (x <- eax)
+ (x <- rax)
    (cjump x = 1 :base :recure)
    :base
-   (eax *= 1)
+   (rax *= 1)
    (return)
    :recure
-   (y <- eax)
-   (eax -= 1)
-   (eax *= y)
+   (y <- rax)
+   (rax -= 1)
+   (rax *= y)
    (x -= 1)
-   (eax -= 1)
+   (rax -= 1)
    (return)) 

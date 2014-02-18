@@ -1,1 +1,1 @@
-((ecx <- (mem eax 0)) (ecx <- (mem eax 0)) (ecx <- (mem eax 0))) r -8 s
+((rcx <- (mem rax 0)) (rcx <- (mem rax 0)) (rcx <- (mem rax 0))) r -8 s

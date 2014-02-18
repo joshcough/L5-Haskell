@@ -5,10 +5,10 @@
   (y += 1)
   (cjump y = 1 :L_3 :L_2)
   :L_3
-  (eax <- (print 2469))
-  (eax <- eax)
+  (rax <- (print 2469))
+  (rax <- rax)
   (return)
   :L_2
-  (eax <- (print y))
-  (eax <- eax)
+  (rax <- (print y))
+  (rax <- rax)
   (return)))

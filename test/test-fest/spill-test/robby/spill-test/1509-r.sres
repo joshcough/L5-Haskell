@@ -1,4 +1,4 @@
-((eax <- (allocate :cjump edi))
- (eax <- (allocate :cjump edi))
- (eax <- (allocate :cjump edi))
- (eax <- (allocate :cjump edi)))
+((rax <- (allocate :cjump rdi))
+ (rax <- (allocate :cjump rdi))
+ (rax <- (allocate :cjump rdi))
+ (rax <- (allocate :cjump rdi)))

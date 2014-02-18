@@ -1,1 +1,1 @@
-((eax <- (print ebx)))
+((rax <- (print rbx)))

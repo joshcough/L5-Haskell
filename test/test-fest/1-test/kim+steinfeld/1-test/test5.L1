@@ -1,6 +1,6 @@
 ((
-(edx <- 35)
-(edx <<= 1)
-(edx -= 1)
-(eax <- (print edx))
+(rdx <- 35)
+(rdx <<= 1)
+(rdx -= 1)
+(rax <- (print rdx))
 ))

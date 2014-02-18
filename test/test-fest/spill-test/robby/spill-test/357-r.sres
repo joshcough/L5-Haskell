@@ -1,1 +1,1 @@
-(((mem eax 0) <- ebx))
+(((mem rax 0) <- rbx))

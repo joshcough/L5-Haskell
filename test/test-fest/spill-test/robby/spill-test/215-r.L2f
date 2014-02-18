@@ -1,1 +1,1 @@
-((k <- (mem eax 0)) (k <- (mem eax 0))) r -20 s
+((k <- (mem rax 0)) (k <- (mem rax 0))) r -20 s

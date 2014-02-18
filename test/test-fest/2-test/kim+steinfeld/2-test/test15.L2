@@ -2,12 +2,12 @@
  (x <- 30)
  (y <- 15)
  (y += x)
- (eax <- y)
+ (rax <- y)
  (call :f1)
  )
  (:f1
- (eax *= eax)
- (eax <- (print eax))
+ (rax *= rax)
+ (rax <- (print rax))
  (return)
  ))
 

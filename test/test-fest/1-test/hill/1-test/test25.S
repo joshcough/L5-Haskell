@@ -5,70 +5,70 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $10, %eax
+	movl $10, %rax
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_0:
-	movl $7, %eax
+	movl $7, %rax
 	pushl $L1_Generated_Label_1
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_1:
-	movl $9, %eax
+	movl $9, %rax
 	pushl $L1_Generated_Label_2
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_2:
-	movl $6, %eax
+	movl $6, %rax
 	pushl $L1_Generated_Label_3
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_3:
-	movl $11, %eax
+	movl $11, %rax
 	pushl $L1_Generated_Label_4
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_4:
-	movl $8, %eax
+	movl $8, %rax
 	pushl $L1_Generated_Label_5
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_FACTORIAL
 L1_Generated_Label_5:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_FACTORIAL:
-	movl %eax, %esi
-	movl $0, %edi
-	movl $1, %eax
+	movl %rax, %rsi
+	movl $0, %rdi
+	movl $1, %rax
 L1_RERUN:
-	addl $1, %edi
-	imull %edi, %eax
-	cmpl %esi, %edi
+	addl $1, %rdi
+	imull %rdi, %rax
+	cmpl %rsi, %rdi
 	jl L1_RERUN
 	jmp L1_ANSWER
 L1_ANSWER:
-	sall $1, %eax
-	addl $1, %eax
-	pushl %eax
+	sall $1, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $0, %eax
+	movl $0, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

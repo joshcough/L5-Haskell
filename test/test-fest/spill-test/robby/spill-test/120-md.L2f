@@ -1,1 +1,1 @@
-((edi <- md) (edi <- md) (edi <- md)) md -8 s
+((rdi <- md) (rdi <- md) (rdi <- md)) md -8 s

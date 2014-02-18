@@ -1,5 +1,5 @@
 ((x <- 65)
- (eax <- (print x)))
+ (rax <- (print x)))
 x
 -8
 s_

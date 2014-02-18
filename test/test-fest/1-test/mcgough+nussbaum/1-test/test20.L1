@@ -1,17 +1,17 @@
 ((
-(edx <- 9)
+(rdx <- 9)
 (call :foo)
-(eax <- (print eax)))
+(rax <- (print rax)))
 (:foo
-(cjump 77 < edx :true :false)
+(cjump 77 < rdx :true :false)
 :true
 (goto :done)
 :false
 (call :bar)
 (call :foo)
 :done
-(eax <- edx)
+(rax <- rdx)
 (return))
 (:bar
-(edx += 2)
+(rdx += 2)
 (return)))

@@ -1,6 +1,6 @@
 ((
-(edx <- 5)
+(rdx <- 5)
 (goto :next3)
 
-:next1 :next2 :next3 :next4 :next5 (eax <- (print edx))
+:next1 :next2 :next3 :next4 :next5 (rax <- (print rdx))
 ))

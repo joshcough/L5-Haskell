@@ -1,14 +1,14 @@
-(((eax <- 10)
-  (ebx <- eax)
+(((rax <- 10)
+  (rbx <- rax)
 
   :loop
-  (eax -= 1)
-  (cjump eax = 1 :finish :contloop)
+  (rax -= 1)
+  (cjump rax = 1 :finish :contloop)
   :contloop
-  (ebx *= eax)
+  (rbx *= rax)
   (goto :loop)
 
   :finish
-  (ebx *= 2)
-  (ebx += 1)
-  (eax <- (print ebx))))
+  (rbx *= 2)
+  (rbx += 1)
+  (rax <- (print rbx))))

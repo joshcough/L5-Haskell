@@ -1,1 +1,1 @@
-((s0 <- esi < esi) ((mem ebp -4) <- s0) (s1 <- esi < esi) ((mem ebp -4) <- s1))
+((s0 <- rsi < rsi) ((mem ebp -4) <- s0) (s1 <- rsi < rsi) ((mem ebp -4) <- s1))

@@ -5,23 +5,23 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $33, %edx
+	movl $33, %rdx
 	jmp L1_jumptarget
-	imull $2, %edx
-	subl $1, %edx
+	imull $2, %rdx
+	subl $1, %rdx
 L1_jumptarget:
-	pushl %edx
+	pushl %rdx
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

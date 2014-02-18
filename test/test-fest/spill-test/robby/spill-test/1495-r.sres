@@ -1,4 +1,4 @@
-((eax <- (allocate edx Ub))
- (eax <- (allocate edx Ub))
- (eax <- (allocate edx Ub))
- (eax <- (allocate edx Ub)))
+((rax <- (allocate rdx Ub))
+ (rax <- (allocate rdx Ub))
+ (rax <- (allocate rdx Ub))
+ (rax <- (allocate rdx Ub)))

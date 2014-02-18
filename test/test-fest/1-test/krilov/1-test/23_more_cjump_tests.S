@@ -5,29 +5,29 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $3, %edi
+	movl $3, %rdi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_func1
 L1_Generated_Label_0:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_func1:
 	pushl $3
 	call print
 	addl $4, %esp
-	subl $1, %edi
-	cmpl $0, %edi
+	subl $1, %rdi
+	cmpl $0, %rdi
 	jle L1_call_func2
 	jmp L1_recur
 L1_recur:

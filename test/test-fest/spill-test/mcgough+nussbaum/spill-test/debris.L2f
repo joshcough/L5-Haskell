@@ -1,1 +1,1 @@
-((eax <- 5) (var <- 3) (var *= eax)) var -4 pre_
+((rax <- 5) (var <- 3) (var *= rax)) var -4 pre_

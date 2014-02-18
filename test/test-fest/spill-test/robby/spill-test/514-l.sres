@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -12)) (edi *= s0))
+((s0 <- (mem ebp -12)) (rdi *= s0))

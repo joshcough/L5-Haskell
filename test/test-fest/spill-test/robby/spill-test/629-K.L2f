@@ -1,1 +1,1 @@
-((edi <<= K) (edi <<= K) (edi <<= K)) K -16 s
+((rdi <<= K) (rdi <<= K) (rdi <<= K)) K -16 s

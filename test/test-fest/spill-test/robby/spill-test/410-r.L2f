@@ -1,1 +1,1 @@
-(((mem esi 4) <- :y) ((mem esi 4) <- :y) ((mem esi 4) <- :y) ((mem esi 4) <- :y)) r -36 s
+(((mem rsi 4) <- :y) ((mem rsi 4) <- :y) ((mem rsi 4) <- :y) ((mem rsi 4) <- :y)) r -36 s

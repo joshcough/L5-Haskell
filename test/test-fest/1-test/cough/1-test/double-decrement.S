@@ -5,24 +5,24 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $7, %esi
-	subl $2, %esi
-	pushl %esi
+	movl $7, %rsi
+	subl $2, %rsi
+	pushl %rsi
 	call print
 	addl $4, %esp
-	subl $2, %esi
-	pushl %esi
+	subl $2, %rsi
+	pushl %rsi
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

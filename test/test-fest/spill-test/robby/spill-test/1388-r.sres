@@ -1,1 +1,1 @@
-((eax <- (allocate o o)))
+((rax <- (allocate o o)))

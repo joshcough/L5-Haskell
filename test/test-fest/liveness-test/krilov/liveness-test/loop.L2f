@@ -1,12 +1,12 @@
-((eax <- a)
+((rax <- a)
  :loop
  (cjump x < y :label1 :label2)
- (eax <- b)
+ (rax <- b)
  :label1
- (eax <- c)
+ (rax <- c)
  (cjump x <= y :loop :done)
  :label2
- (eax <- d)
+ (rax <- d)
  :done
- (eax <- e))
+ (rax <- e))
  

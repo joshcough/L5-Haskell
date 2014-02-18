@@ -1,1 +1,1 @@
-(((mem eax 0) <- ecx) ((mem eax 0) <- ecx) ((mem eax 0) <- ecx) ((mem eax 0) <- ecx)) r -24 s
+(((mem rax 0) <- rcx) ((mem rax 0) <- rcx) ((mem rax 0) <- rcx) ((mem rax 0) <- rcx)) r -24 s

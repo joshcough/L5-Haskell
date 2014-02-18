@@ -1,1 +1,1 @@
-((s <- edi < :b) (s <- edi < :b))
+((s <- rdi < :b) (s <- rdi < :b))

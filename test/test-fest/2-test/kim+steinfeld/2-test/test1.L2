@@ -1,6 +1,6 @@
 ((
 (x <- 3)
-(eax <- 4)
-(eax += x)
-(eax <- (print eax))
+(rax <- 4)
+(rax += x)
+(rax <- (print rax))
 ))

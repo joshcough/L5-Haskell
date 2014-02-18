@@ -1,14 +1,14 @@
 (
  (
-  (eax <- 35)
+  (rax <- 35)
   (call :multby2)
-  (eax <- (print esi))
+  (rax <- (print rsi))
  )
 
  (:multby2
-  (esi <- eax)
-  (esi *= 2)
-  (esi -= 1)
+  (rsi <- rax)
+  (rsi *= 2)
+  (rsi -= 1)
   (return)
  )
 )

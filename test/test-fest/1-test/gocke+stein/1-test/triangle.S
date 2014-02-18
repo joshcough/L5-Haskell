@@ -5,26 +5,26 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $9, %edx
-	movl $5, %ebx
-	imull %edx, %edx
-	imull %ebx, %ebx
-	movl %edx, %ecx
-	addl %ebx, %ecx
-	imull $2, %ecx
-	addl $1, %ecx
-	pushl %ecx
+	movl $9, %rdx
+	movl $5, %rbx
+	imull %rdx, %rdx
+	imull %rbx, %rbx
+	movl %rdx, %rcx
+	addl %rbx, %rcx
+	imull $2, %rcx
+	addl $1, %rcx
+	pushl %rcx
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

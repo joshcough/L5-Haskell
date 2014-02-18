@@ -1,4 +1,4 @@
-(((eax <- 17)
-  (eax <<= 1)
-  (eax -= 1)
-  (eax <- (print eax))))
+(((rax <- 17)
+  (rax <<= 1)
+  (rax -= 1)
+  (rax <- (print rax))))

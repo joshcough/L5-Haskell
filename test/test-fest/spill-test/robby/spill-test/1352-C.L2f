@@ -1,1 +1,1 @@
-((eax <- (print C))) C -32 s
+((rax <- (print C))) C -32 s

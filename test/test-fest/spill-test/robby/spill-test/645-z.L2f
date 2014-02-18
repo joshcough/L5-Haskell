@@ -1,1 +1,1 @@
-((z >>= esi) (z >>= esi) (z >>= esi) (z >>= esi)) z -8 s
+((z >>= rsi) (z >>= rsi) (z >>= rsi) (z >>= rsi)) z -8 s

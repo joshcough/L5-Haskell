@@ -1,1 +1,1 @@
-(((mem l 4) <- edi)) l -8 s
+(((mem l 4) <- rdi)) l -8 s

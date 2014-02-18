@@ -1,6 +1,6 @@
 ;; Check number bounds
-(((eax <- 65535)
-  (eax &= 1073676288)
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax))))
+(((rax <- 65535)
+  (rax &= 1073676288)
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax))))

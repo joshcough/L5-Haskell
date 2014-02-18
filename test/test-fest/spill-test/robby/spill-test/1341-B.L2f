@@ -1,1 +1,1 @@
-((eax <- (print B)) (eax <- (print B)) (eax <- (print B)) (eax <- (print B))) B -16 s
+((rax <- (print B)) (rax <- (print B)) (rax <- (print B)) (rax <- (print B))) B -16 s

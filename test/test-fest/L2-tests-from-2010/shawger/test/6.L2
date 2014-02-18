@@ -2,4 +2,4 @@
   (y <- 4)
   (x *= y)
   (x += 1)
-  (eax <- (print x))))
+  (rax <- (print x))))

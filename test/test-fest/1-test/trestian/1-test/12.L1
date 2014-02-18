@@ -1,6 +1,6 @@
 (
 (
-(edi <- -3)
+(rdi <- -3)
 (call :L1)
 )
 (:L1
@@ -57,7 +57,7 @@
 
 (:L17
 ;;(call :L14)
-(eax <- (print edi))
+(rax <- (print rdi))
 (return))
 
 )

@@ -1,1 +1,1 @@
-(((mem edx 0) <- 0) ((mem edx 0) <- 0) ((mem edx 0) <- 0)) r -20 s
+(((mem rdx 0) <- 0) ((mem rdx 0) <- 0) ((mem rdx 0) <- 0)) r -20 s

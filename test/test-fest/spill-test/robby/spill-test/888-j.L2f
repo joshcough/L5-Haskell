@@ -1,1 +1,1 @@
-((edx <- j <= :G) (edx <- j <= :G) (edx <- j <= :G)) j -32 s
+((rdx <- j <= :G) (rdx <- j <= :G) (rdx <- j <= :G)) j -32 s

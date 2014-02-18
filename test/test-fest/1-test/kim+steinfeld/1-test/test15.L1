@@ -1,6 +1,6 @@
 ((
-(esi <- 13)
-(eax <- (allocate esi 5))
-(edx <- (mem eax 4))
-(eax <- (print edx))
+(rsi <- 13)
+(rax <- (allocate rsi 5))
+(rdx <- (mem rax 4))
+(rax <- (print rdx))
 ))

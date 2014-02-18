@@ -5,7 +5,7 @@
   :next
   (goto :loop)
   :out
-  (eax <- (print x)))
+  (rax <- (print x)))
 x
 -4
 s_

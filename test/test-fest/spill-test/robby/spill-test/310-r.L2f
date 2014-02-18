@@ -1,1 +1,1 @@
-(((mem e 0) <- ecx) ((mem e 0) <- ecx)) r -32 s
+(((mem e 0) <- rcx) ((mem e 0) <- rcx)) r -32 s

@@ -1,1 +1,1 @@
-((i <- edi) (i <- edi)) r -24 s
+((i <- rdi) (i <- rdi)) r -24 s

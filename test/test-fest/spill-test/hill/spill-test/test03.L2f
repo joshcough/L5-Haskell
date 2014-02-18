@@ -1,9 +1,9 @@
-((v <- eax)
+((v <- rax)
  (u <- 8)
  (v += v)
  (z <- 9)
  (z += v)
- (eax <- z)
+ (rax <- z)
  (return))
 v
 -4

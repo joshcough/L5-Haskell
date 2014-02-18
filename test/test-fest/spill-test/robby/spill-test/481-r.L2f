@@ -1,1 +1,1 @@
-((ebx *= :J) (ebx *= :J)) r -4 s
+((rbx *= :J) (rbx *= :J)) r -4 s

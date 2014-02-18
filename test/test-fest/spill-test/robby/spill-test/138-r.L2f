@@ -1,1 +1,1 @@
-((ebx <- 9) (ebx <- 9) (ebx <- 9) (ebx <- 9)) r 0 s
+((rbx <- 9) (rbx <- 9) (rbx <- 9) (rbx <- 9)) r 0 s

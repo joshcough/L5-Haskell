@@ -1,2 +1,2 @@
-(((eax <- 7)
-(eax <- (print eax))))
+(((rax <- 7)
+(rax <- (print rax))))

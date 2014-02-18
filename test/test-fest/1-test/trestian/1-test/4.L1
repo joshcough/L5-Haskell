@@ -1,13 +1,13 @@
-(( (esi <- 25) (ebx <- 3)
+(( (rsi <- 25) (rbx <- 3)
 :loop
-(cjump ebx < esi :keep_going :done)
+(cjump rbx < rsi :keep_going :done)
 :keep_going
-(edi <- ebx)
-(eax <- (print edi))
-(ebx <- edi)
-(ebx += 2)
+(rdi <- rbx)
+(rax <- (print rdi))
+(rbx <- rdi)
+(rbx += 2)
 (goto :loop)
 :done
-(eax <- (print ebx))
+(rax <- (print rbx))
 ))
 

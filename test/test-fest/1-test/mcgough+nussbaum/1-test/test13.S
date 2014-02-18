@@ -5,9 +5,9 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $L1_Generated_Label_0
@@ -15,14 +15,14 @@ go:
 	movl %esp, %ebp
 	jmp L1_foo
 L1_Generated_Label_0:
-	addl $8, %eax
-	pushl %eax
+	addl $8, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_foo:
@@ -30,9 +30,9 @@ L1_foo:
 	pushl $5
 	call allocate
 	addl $8, %esp
-	movl $53, 4(%eax)
-	movl $1, 0(%eax)
-	movl 0(%eax), %eax
+	movl $53, 4(%rax)
+	movl $1, 0(%rax)
+	movl 0(%rax), %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

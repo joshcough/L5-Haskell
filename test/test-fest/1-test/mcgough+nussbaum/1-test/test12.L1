@@ -1,6 +1,6 @@
 (((call :foo)
-(eax += 4)
-(eax <- (print eax)))
+(rax += 4)
+(rax <- (print rax)))
 (:foo
-(eax <- 7)
+(rax <- 7)
 (return)))

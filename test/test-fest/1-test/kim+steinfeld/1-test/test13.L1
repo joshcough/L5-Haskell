@@ -1,7 +1,7 @@
 ((
-(ebx <- 3 <= 11)
-(ebx *= 2)
-(ebx += 1)
+(rbx <- 3 <= 11)
+(rbx *= 2)
+(rbx += 1)
 
-(eax <- (print ebx))
+(rax <- (print rbx))
 ))

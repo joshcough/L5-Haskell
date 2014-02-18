@@ -1,1 +1,1 @@
-((ecx <- (mem gv 0)) (ecx <- (mem gv 0)) (ecx <- (mem gv 0))) r -24 s
+((rcx <- (mem gv 0)) (rcx <- (mem gv 0)) (rcx <- (mem gv 0))) r -24 s

@@ -1,1 +1,1 @@
-((eax <- D) (eax <- D) (eax <- D) (eax <- D)) D -28 s
+((rax <- D) (rax <- D) (rax <- D) (rax <- D)) D -28 s

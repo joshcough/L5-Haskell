@@ -7,6 +7,6 @@
   (x *= x_2)
   (x += x)
   (x += 1)
-  (eax <- (print x))
-  (eax <- eax)
+  (rax <- (print x))
+  (rax <- rax)
   (return)))

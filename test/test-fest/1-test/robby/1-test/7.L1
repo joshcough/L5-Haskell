@@ -1,1 +1,1 @@
-(((eax <- 1000) (eax -= 999) (eax <- (print eax))))
+(((rax <- 1000) (rax -= 999) (rax <- (print rax))))

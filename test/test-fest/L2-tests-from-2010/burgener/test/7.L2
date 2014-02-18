@@ -3,4 +3,4 @@
   (b += 1)
   (cjump b <= 10 :loop :end)
   :end
-  (eax <- (print b))))
+  (rax <- (print b))))

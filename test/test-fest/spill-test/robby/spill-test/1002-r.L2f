@@ -1,1 +1,1 @@
-((ecx <- esi = :C) (ecx <- esi = :C) (ecx <- esi = :C)) r -8 s
+((rcx <- rsi = :C) (rcx <- rsi = :C) (rcx <- rsi = :C)) r -8 s

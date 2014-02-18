@@ -5,34 +5,34 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $5, %eax
-	movl $5, %ebx
-	cmpl %ebx, %eax
+	movl $5, %rax
+	movl $5, %rbx
+	cmpl %rbx, %rax
 	je L1_GOOD_PLACE
 	jmp L1_good_place
 L1_good_place:
-	movl $7, %eax
-	sall $1, %eax
-	addl $1, %eax
-	pushl %eax
+	movl $7, %rax
+	sall $1, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 L1_GOOD_PLACE:
-	movl $13, %eax
-	sall $1, %eax
-	addl $1, %eax
-	pushl %eax
+	movl $13, %rax
+	sall $1, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

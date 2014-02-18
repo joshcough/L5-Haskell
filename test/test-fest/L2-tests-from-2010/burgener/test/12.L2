@@ -1,4 +1,4 @@
 (((size <- 9)
-  (eax <- (allocate size 3))
-  (val <- (mem eax 4))
-  (eax <- (print val))))
+  (rax <- (allocate size 3))
+  (val <- (mem rax 4))
+  (rax <- (print val))))

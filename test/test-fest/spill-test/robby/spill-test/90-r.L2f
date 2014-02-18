@@ -1,1 +1,1 @@
-((u <- ecx) (u <- ecx) (u <- ecx) (u <- ecx)) r 0 s
+((u <- rcx) (u <- rcx) (u <- rcx) (u <- rcx)) r 0 s

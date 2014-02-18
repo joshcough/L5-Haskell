@@ -1,12 +1,12 @@
 (
   (
-    (edi <- :x)
-    (eax <- (print 3))
-    (call edi)
+    (rdi <- :x)
+    (rax <- (print 3))
+    (call rdi)
   )
 
   (:x
-    (eax <- (print 3))
+    (rax <- (print 3))
     (return)
   )
 )

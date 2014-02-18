@@ -1,1 +1,1 @@
-((esi >>= H) (esi >>= H) (esi >>= H))
+((rsi >>= H) (rsi >>= H) (rsi >>= H))

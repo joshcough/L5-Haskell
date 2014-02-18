@@ -5,14 +5,14 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $1001, %esi
-	movl $999, %edi
-	cmpl %edi, %esi
+	movl $1001, %rsi
+	movl $999, %rdi
+	cmpl %rdi, %rsi
 	jl L1_true
 	jmp L1_false
 L1_true:
@@ -26,9 +26,9 @@ L1_false:
 	addl $4, %esp
 L1_done:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

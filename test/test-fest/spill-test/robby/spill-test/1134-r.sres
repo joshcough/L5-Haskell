@@ -1,4 +1,4 @@
-((cjump ecx <= ecx :W :N)
- (cjump ecx <= ecx :W :N)
- (cjump ecx <= ecx :W :N)
- (cjump ecx <= ecx :W :N))
+((cjump rcx <= rcx :W :N)
+ (cjump rcx <= rcx :W :N)
+ (cjump rcx <= rcx :W :N)
+ (cjump rcx <= rcx :W :N))

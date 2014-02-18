@@ -1,1 +1,1 @@
-((ecx <- esi) (ecx <- esi) (ecx <- esi) (ecx <- esi)) r -24 s
+((rcx <- rsi) (rcx <- rsi) (rcx <- rsi) (rcx <- rsi)) r -24 s

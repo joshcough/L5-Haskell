@@ -1,1 +1,1 @@
-((M <<= esi) (M <<= esi) (M <<= esi) (M <<= esi)) r -16 s
+((M <<= rsi) (M <<= rsi) (M <<= rsi) (M <<= rsi)) r -16 s

@@ -1,1 +1,1 @@
-((eax <- (allocate :NNp 2)) (eax <- (allocate :NNp 2))) r -20 s
+((rax <- (allocate :NNp 2)) (rax <- (allocate :NNp 2))) r -20 s

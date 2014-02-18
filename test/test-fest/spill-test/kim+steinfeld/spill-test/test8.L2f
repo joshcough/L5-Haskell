@@ -1,5 +1,5 @@
-((ebx <- :middle)
- (x <- ebx)
+((rbx <- :middle)
+ (x <- rbx)
  (call x))
 x
 -4

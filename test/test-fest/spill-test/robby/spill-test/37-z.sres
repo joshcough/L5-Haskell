@@ -1,4 +1,4 @@
-((ebx <- (mem ebp -4))
- (ebx <- (mem ebp -4))
- (ebx <- (mem ebp -4))
- (ebx <- (mem ebp -4)))
+((rbx <- (mem ebp -4))
+ (rbx <- (mem ebp -4))
+ (rbx <- (mem ebp -4))
+ (rbx <- (mem ebp -4)))

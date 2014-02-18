@@ -4,9 +4,9 @@
  (x <- 10)
  (y <- 11)
  (z <- 12)
- (eax <- u)
- (ecx <- x)
- (edx <- z)
+ (rax <- u)
+ (rcx <- x)
+ (rdx <- z)
  (return))
 z
 -8

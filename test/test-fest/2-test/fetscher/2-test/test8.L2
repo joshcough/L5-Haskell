@@ -4,8 +4,8 @@
   (a &= c)
   (cjump a < 0 :yes :no)
   :yes
-  (eax <- (print a))
+  (rax <- (print a))
   (goto :end)
   :no
-  (eax <- (print c))
+  (rax <- (print c))
   :end))

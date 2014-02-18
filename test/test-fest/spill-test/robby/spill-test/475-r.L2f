@@ -1,1 +1,1 @@
-((edi *= eax) (edi *= eax) (edi *= eax)) r -24 s
+((rdi *= rax) (rdi *= rax) (rdi *= rax)) r -24 s

@@ -1,4 +1,4 @@
-((eax <- (allocate ecx ix))
- (eax <- (allocate ecx ix))
- (eax <- (allocate ecx ix))
- (eax <- (allocate ecx ix)))
+((rax <- (allocate rcx ix))
+ (rax <- (allocate rcx ix))
+ (rax <- (allocate rcx ix))
+ (rax <- (allocate rcx ix)))

@@ -1,4 +1,4 @@
-((eax <- (print :m))
- (eax <- (print :m))
- (eax <- (print :m))
- (eax <- (print :m)))
+((rax <- (print :m))
+ (rax <- (print :m))
+ (rax <- (print :m))
+ (rax <- (print :m)))

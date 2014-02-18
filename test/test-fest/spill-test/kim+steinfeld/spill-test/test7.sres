@@ -1,4 +1,4 @@
-(((mem ebp -8) <- ebx)
+(((mem ebp -8) <- rbx)
  (s_0 <- (mem ebp -8))
  (x += s_0)
  (x *= x)

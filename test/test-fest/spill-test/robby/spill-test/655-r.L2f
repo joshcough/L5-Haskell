@@ -1,1 +1,1 @@
-((edi >>= eax)) r -20 s
+((rdi >>= rax)) r -20 s

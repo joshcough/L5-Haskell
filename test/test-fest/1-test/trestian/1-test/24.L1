@@ -1,8 +1,8 @@
 ((
-(esi <- 1)
-(edi <- 3)
+(rsi <- 1)
+(rdi <- 3)
 
-(eax <- esi < edi)
+(rax <- rsi < rdi)
 
-(eax <- (print eax))
+(rax <- (print rax))
 ))

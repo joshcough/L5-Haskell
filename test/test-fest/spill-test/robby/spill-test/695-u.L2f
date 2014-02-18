@@ -1,1 +1,1 @@
-((u >>= edi) (u >>= edi) (u >>= edi) (u >>= edi)) u -8 s
+((u >>= rdi) (u >>= rdi) (u >>= rdi) (u >>= rdi)) u -8 s

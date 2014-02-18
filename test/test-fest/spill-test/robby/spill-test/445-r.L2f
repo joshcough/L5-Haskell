@@ -1,1 +1,1 @@
-((eax &= :W) (eax &= :W)) r -24 s
+((rax &= :W) (rax &= :W)) r -24 s

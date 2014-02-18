@@ -5,14 +5,14 @@
   )
  (:func1
    (x <- 3)
-   (eax <- (print x))
+   (rax <- (print x))
    (return))
  (:func2
    (x <- 5)
-   (eax <- (print x))
+   (rax <- (print x))
    (return))
  (:func3
    (x <- 7)
-   (eax <- (print x))
+   (rax <- (print x))
    (return))
 )

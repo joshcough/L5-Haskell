@@ -1,1 +1,1 @@
-((eax >>= esi) (eax >>= esi)) r -12 s
+((rax >>= rsi) (rax >>= rsi)) r -12 s

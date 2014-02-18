@@ -1,9 +1,9 @@
-(((eax <- 0)
-  (ebx <- 2097152)
+(((rax <- 0)
+  (rbx <- 2097152)
   :loop
-  (eax += ebx)
-  (cjump eax < 2145386495 :loop :finish)
+  (rax += rbx)
+  (cjump rax < 2145386495 :loop :finish)
   :finish
-  (ecx <- eax)
-  (ecx += 1)
-  (eax <- (print ecx))))
+  (rcx <- rax)
+  (rcx += 1)
+  (rax <- (print rcx))))

@@ -1,1 +1,1 @@
-((esi <- (mem xb 0)) (esi <- (mem xb 0))) r -24 s
+((rsi <- (mem xb 0)) (rsi <- (mem xb 0))) r -24 s

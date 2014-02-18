@@ -1,10 +1,10 @@
 (:call_or_tcall
- (cjump eax < 0 :c :tc)
+ (cjump rax < 0 :c :tc)
  :c
- (eax <- 12)
+ (rax <- 12)
  (call :fn)
  (return)
  :tc
- (eax <- 12)
+ (rax <- 12)
  (tail-call :fn))
 

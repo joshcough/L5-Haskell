@@ -1,4 +1,4 @@
-((s0 <- edi < ecx)
+((s0 <- rdi < rcx)
  ((mem ebp -24) <- s0)
- (s1 <- edi < ecx)
+ (s1 <- rdi < rcx)
  ((mem ebp -24) <- s1))

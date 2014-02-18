@@ -5,72 +5,72 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $72, %eax
-	movl %eax, %ebx
-	movl %eax, %ecx
-	movl %eax, %edx
-	movl %eax, %esi
-	movl %eax, %edi
-	addl $1, %ebx
-	movl %ebx, %eax
-	movl %ebx, %ecx
-	movl %ebx, %edx
-	movl %ebx, %esi
-	movl %ebx, %edi
-	addl $1, %ecx
-	movl %ecx, %eax
-	movl %ecx, %ebx
-	movl %ecx, %edx
-	movl %ecx, %esi
-	movl %ecx, %edi
-	addl $1, %edx
-	movl %edx, %eax
-	movl %edx, %ebx
-	movl %edx, %ecx
-	movl %edx, %esi
-	movl %edx, %edi
-	addl $1, %esi
-	movl %esi, %eax
-	movl %esi, %ebx
-	movl %esi, %ecx
-	movl %esi, %edx
-	movl %esi, %edi
-	addl $1, %edi
-	movl %edi, %eax
-	movl %edi, %ebx
-	movl %edi, %ecx
-	movl %edi, %edx
-	movl %edi, %esi
-	imull $2, %eax
-	addl $1, %eax
-	imull $2, %ebx
-	addl $1, %ebx
-	imull $2, %ecx
-	addl $1, %ecx
-	imull $2, %edx
-	addl $1, %edx
-	imull $2, %esi
-	addl $1, %esi
-	imull $2, %edi
-	addl $1, %edi
-	pushl %eax
+	movl $72, %rax
+	movl %rax, %rbx
+	movl %rax, %rcx
+	movl %rax, %rdx
+	movl %rax, %rsi
+	movl %rax, %rdi
+	addl $1, %rbx
+	movl %rbx, %rax
+	movl %rbx, %rcx
+	movl %rbx, %rdx
+	movl %rbx, %rsi
+	movl %rbx, %rdi
+	addl $1, %rcx
+	movl %rcx, %rax
+	movl %rcx, %rbx
+	movl %rcx, %rdx
+	movl %rcx, %rsi
+	movl %rcx, %rdi
+	addl $1, %rdx
+	movl %rdx, %rax
+	movl %rdx, %rbx
+	movl %rdx, %rcx
+	movl %rdx, %rsi
+	movl %rdx, %rdi
+	addl $1, %rsi
+	movl %rsi, %rax
+	movl %rsi, %rbx
+	movl %rsi, %rcx
+	movl %rsi, %rdx
+	movl %rsi, %rdi
+	addl $1, %rdi
+	movl %rdi, %rax
+	movl %rdi, %rbx
+	movl %rdi, %rcx
+	movl %rdi, %rdx
+	movl %rdi, %rsi
+	imull $2, %rax
+	addl $1, %rax
+	imull $2, %rbx
+	addl $1, %rbx
+	imull $2, %rcx
+	addl $1, %rcx
+	imull $2, %rdx
+	addl $1, %rdx
+	imull $2, %rsi
+	addl $1, %rsi
+	imull $2, %rdi
+	addl $1, %rdi
+	pushl %rax
 	call print
 	addl $4, %esp
-	pushl %esi
+	pushl %rsi
 	call print
 	addl $4, %esp
-	pushl %edi
+	pushl %rdi
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

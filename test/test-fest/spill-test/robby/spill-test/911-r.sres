@@ -1,1 +1,1 @@
-((edi <- Bg < :T) (edi <- Bg < :T))
+((rdi <- Bg < :T) (rdi <- Bg < :T))

@@ -5,39 +5,39 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $93, %eax
+	movl $93, %rax
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_fun1
 L1_Generated_Label_0:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_fun1:
-	movl $35, %ebx
-	addl $23, %eax
-	subl $1, %eax
+	movl $35, %rbx
+	addl $23, %rax
+	subl $1, %rax
 	movl %ebp, %esp
 	jmp L1_fun2
-	addl $97, %eax
+	addl $97, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_fun2:
-	subl $57, %eax
-	addl $1, %eax
+	subl $57, %rax
+	addl $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

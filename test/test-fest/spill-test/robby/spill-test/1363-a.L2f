@@ -1,1 +1,1 @@
-((eax <- (print a)) (eax <- (print a)) (eax <- (print a)) (eax <- (print a))) a -16 s
+((rax <- (print a)) (rax <- (print a)) (rax <- (print a)) (rax <- (print a))) a -16 s

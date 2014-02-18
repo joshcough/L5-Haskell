@@ -2,7 +2,7 @@
  (y <- x)
  (z <- y)
  (z += y)
- (eax <- (print y)))
+ (rax <- (print y)))
  y
  -8
  yy_

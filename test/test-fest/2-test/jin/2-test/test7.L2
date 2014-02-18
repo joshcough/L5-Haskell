@@ -1,16 +1,16 @@
-(((eax <- 5)
+(((rax <- 5)
   (call :go)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:go
- (x <- eax)
+ (x <- rax)
  (x += x)
- (y <- eax)
+ (y <- rax)
  (y += 2)
  (cjump x < y :true :false)
  :true
- (eax <- 15)
+ (rax <- 15)
  (return)
  :false
- (eax <- y)
- (eax *= y)
+ (rax <- y)
+ (rax *= y)
  (return)))

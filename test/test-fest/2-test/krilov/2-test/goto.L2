@@ -6,23 +6,23 @@
   (five <- 11)
 
   :print1
-  (eax <- (print one))
+  (rax <- (print one))
   (goto :print3)
   
   :print2
-  (eax <- (print two))
+  (rax <- (print two))
   (goto :print5)
   
   :print3
-  (eax <- (print three))
+  (rax <- (print three))
   (goto :print2)
   
   :print4
-  (eax <- (print four))
+  (rax <- (print four))
   (goto :done)
   
   :print5
-  (eax <- (print five))
+  (rax <- (print five))
   (goto :print4)
   
   :done

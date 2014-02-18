@@ -1,1 +1,1 @@
-((Bj <- (mem edx 0)) (Bj <- (mem edx 0))) r -32 s
+((Bj <- (mem rdx 0)) (Bj <- (mem rdx 0))) r -32 s

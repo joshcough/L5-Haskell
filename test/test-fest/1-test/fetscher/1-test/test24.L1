@@ -2,8 +2,8 @@
   (call :two)
   (call :three))
  (:one
-  (eax <- 1)
-  (eax <- (print eax))
+  (rax <- 1)
+  (rax <- (print rax))
   (return))
  (:two
   (call :one)

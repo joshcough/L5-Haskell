@@ -5,53 +5,53 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $7, %eax
-	sarl $1, %eax
-	pushl %eax
+	movl $7, %rax
+	sarl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $15, %eax
-	sarl $2, %eax
-	pushl %eax
+	movl $15, %rax
+	sarl $2, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	sall $1, %eax
-	addl $1, %eax
-	pushl %eax
+	movl $3, %rax
+	sall $1, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	sall $2, %eax
-	addl $3, %eax
-	pushl %eax
+	movl $3, %rax
+	sall $2, %rax
+	addl $3, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	andl $1, %eax
-	pushl %eax
+	movl $3, %rax
+	andl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $27, %eax
-	andl $13, %eax
-	pushl %eax
+	movl $27, %rax
+	andl $13, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $27, %eax
-	movl $13, %ebx
-	andl %ebx, %eax
-	pushl %eax
+	movl $27, %rax
+	movl $13, %rbx
+	andl %rbx, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

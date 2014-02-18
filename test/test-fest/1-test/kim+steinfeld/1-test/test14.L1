@@ -1,10 +1,10 @@
 ((
-(ecx <- 21)
-(edx <- 25)
+(rcx <- 21)
+(rdx <- 25)
 
-(ebx <- edx <= ecx)
-(ebx *= 2)
-(ebx += 1)
+(rbx <- rdx <= rcx)
+(rbx *= 2)
+(rbx += 1)
 
-(eax <- (print ebx))
+(rax <- (print rbx))
 ))

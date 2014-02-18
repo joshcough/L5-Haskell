@@ -1,17 +1,17 @@
 ;; #22 recursive, tail-call function calls
-(((eax <- 15)
+(((rax <- 15)
   (call :FN_A))
   
  (:FN_A
-  (esi <- eax)
-  (ecx <- eax)
-  (ecx <<= 1)
-  (ecx += 1)
-  (eax <- (print ecx))
-  (eax <- esi)
-  (cjump 0 < eax :GO :QUIT)
+  (rsi <- rax)
+  (rcx <- rax)
+  (rcx <<= 1)
+  (rcx += 1)
+  (rax <- (print rcx))
+  (rax <- rsi)
+  (cjump 0 < rax :GO :QUIT)
   :GO
-  (eax -= 1)
+  (rax -= 1)
   (tail-call :FN_A)
   :QUIT
   (return)))

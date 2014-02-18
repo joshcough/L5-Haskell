@@ -9,6 +9,6 @@
  (cjump counter <= 0 :retry :done)
  :done
  (yyy_1 <- (mem ebp -12))
- (eax <- (print yyy_1))
- (eax <- 0)
+ (rax <- (print yyy_1))
+ (rax <- 0)
  (return))

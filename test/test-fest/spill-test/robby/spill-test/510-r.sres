@@ -1,1 +1,1 @@
-((esi -= ebx) (esi -= ebx) (esi -= ebx))
+((rsi -= rbx) (rsi -= rbx) (rsi -= rbx))

@@ -1,1 +1,1 @@
-((cjump eax <= eax :t :Q))
+((cjump rax <= rax :t :Q))

@@ -1,1 +1,1 @@
-((eax <- 1) (eax <- 1) (eax <- 1) (eax <- 1)) r -36 s
+((rax <- 1) (rax <- 1) (rax <- 1) (rax <- 1)) r -36 s

@@ -1,1 +1,1 @@
-((eax <- esi = KT) (eax <- esi = KT))
+((rax <- rsi = KT) (rax <- rsi = KT))

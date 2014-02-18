@@ -1,2 +1,2 @@
 (((a <- 7)
-(eax <- (print a))))
+(rax <- (print a))))

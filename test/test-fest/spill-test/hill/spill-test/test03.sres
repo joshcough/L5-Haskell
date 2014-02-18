@@ -1,4 +1,4 @@
-(((mem ebp -4) <- eax)
+(((mem ebp -4) <- rax)
  (u <- 8)
  (spilled_0 <- (mem ebp -4))
  (spilled_0 += spilled_0)
@@ -6,5 +6,5 @@
  (z <- 9)
  (spilled_1 <- (mem ebp -4))
  (z += spilled_1)
- (eax <- z)
+ (rax <- z)
  (return))

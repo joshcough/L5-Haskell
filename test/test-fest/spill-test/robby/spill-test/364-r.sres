@@ -1,1 +1,1 @@
-(((mem Y 0) <- esi) ((mem Y 0) <- esi) ((mem Y 0) <- esi) ((mem Y 0) <- esi))
+(((mem Y 0) <- rsi) ((mem Y 0) <- rsi) ((mem Y 0) <- rsi) ((mem Y 0) <- rsi))

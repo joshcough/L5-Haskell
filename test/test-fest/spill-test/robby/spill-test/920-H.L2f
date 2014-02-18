@@ -1,1 +1,1 @@
-((ecx <- H < :c) (ecx <- H < :c)) H -20 s
+((rcx <- H < :c) (rcx <- H < :c)) H -20 s

@@ -1,4 +1,4 @@
-(((mem edi 0) <- :u)
- ((mem edi 0) <- :u)
- ((mem edi 0) <- :u)
- ((mem edi 0) <- :u))
+(((mem rdi 0) <- :u)
+ ((mem rdi 0) <- :u)
+ ((mem rdi 0) <- :u)
+ ((mem rdi 0) <- :u))

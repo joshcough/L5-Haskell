@@ -2,7 +2,7 @@
 (((w <- 3)
  (imavar <- 4)
  (cjump 3 < 1 :good :bad)
- (eax += 2)
+ (rax += 2)
  :good
  (w += imavar)
  (goto :result)
@@ -12,4 +12,4 @@
  (goto :result)
  :result
  (u <- w)
- (eax <- (print u))))
+ (rax <- (print u))))

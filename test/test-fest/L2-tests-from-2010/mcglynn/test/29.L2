@@ -1,7 +1,7 @@
-(((eax <- (allocate 21 21))
-  (address <- eax)
+(((rax <- (allocate 21 21))
+  (address <- rax)
   (address += 4)
-  (end <- eax)
+  (end <- rax)
   (end += 40)
   (data <- 99)
   :loop
@@ -10,4 +10,4 @@
   (address += 4)
   (cjump address <= end :loop :end)
   :end
-  (eax <- (print eax))))
+  (rax <- (print rax))))

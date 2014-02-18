@@ -2,4 +2,4 @@
  (y <- x <= 5)
  (y <<= 1)
  (y += 1)
- (eax <- (print y))))
+ (rax <- (print y))))

@@ -1,2 +1,2 @@
-((eax <- (array-error ebx ecx))
-(eax -= eax))
+((rax <- (array-error rbx rcx))
+(rax -= rax))

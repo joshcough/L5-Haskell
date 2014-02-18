@@ -1,1 +1,1 @@
-((d &= ecx) (d &= ecx) (d &= ecx) (d &= ecx)) d -16 s
+((d &= rcx) (d &= rcx) (d &= rcx) (d &= rcx)) d -16 s

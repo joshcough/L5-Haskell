@@ -1,1 +1,1 @@
-((eax <- (allocate eax ye)) (eax <- (allocate eax ye)) (eax <- (allocate eax ye))) r -28 s
+((rax <- (allocate rax ye)) (rax <- (allocate rax ye)) (rax <- (allocate rax ye))) r -28 s

@@ -1,11 +1,11 @@
 ((
  (v <- -5)
- (ebx <- 20)
- (v += ebx)
+ (rbx <- 20)
+ (v += rbx)
  (v &= 8)
  (q <- 2)
  (v <<= q)
  (v -= 1)
- (eax <- (print v))
+ (rax <- (print v))
  ))
 

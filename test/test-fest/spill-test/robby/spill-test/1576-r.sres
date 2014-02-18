@@ -1,4 +1,4 @@
-((eax <- (array-error edi esi))
- (eax <- (array-error edi esi))
- (eax <- (array-error edi esi))
- (eax <- (array-error edi esi)))
+((rax <- (array-error rdi rsi))
+ (rax <- (array-error rdi rsi))
+ (rax <- (array-error rdi rsi))
+ (rax <- (array-error rdi rsi)))

@@ -1,4 +1,4 @@
-((cjump ebx <= 2 :n :Zcj)
- (cjump ebx <= 2 :n :Zcj)
- (cjump ebx <= 2 :n :Zcj)
- (cjump ebx <= 2 :n :Zcj))
+((cjump rbx <= 2 :n :Zcj)
+ (cjump rbx <= 2 :n :Zcj)
+ (cjump rbx <= 2 :n :Zcj)
+ (cjump rbx <= 2 :n :Zcj))

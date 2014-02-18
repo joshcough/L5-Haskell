@@ -1,1 +1,1 @@
-((eax <- (allocate a D)) (eax <- (allocate a D)))
+((rax <- (allocate a D)) (rax <- (allocate a D)))

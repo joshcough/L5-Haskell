@@ -1,4 +1,4 @@
-((ecx <- 1)
+((rcx <- 1)
  (x <- 2)
- (eax <<= x)
- (ecx += ecx))
+ (rax <<= x)
+ (rcx += rcx))

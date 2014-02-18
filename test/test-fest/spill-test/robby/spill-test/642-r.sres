@@ -1,1 +1,1 @@
-((h <<= ecx) (h <<= ecx) (h <<= ecx) (h <<= ecx))
+((h <<= rcx) (h <<= rcx) (h <<= rcx) (h <<= rcx))

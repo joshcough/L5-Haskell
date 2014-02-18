@@ -1,1 +1,1 @@
-((esi += edi) (esi += edi) (esi += edi) (esi += edi)) r -12 s
+((rsi += rdi) (rsi += rdi) (rsi += rdi) (rsi += rdi)) r -12 s

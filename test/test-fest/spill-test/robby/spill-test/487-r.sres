@@ -1,1 +1,1 @@
-((C *= ecx) (C *= ecx) (C *= ecx))
+((C *= rcx) (C *= rcx) (C *= rcx))

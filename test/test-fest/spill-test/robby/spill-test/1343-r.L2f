@@ -1,1 +1,1 @@
-((eax <- (print z)) (eax <- (print z)) (eax <- (print z))) r -4 s
+((rax <- (print z)) (rax <- (print z)) (rax <- (print z))) r -4 s

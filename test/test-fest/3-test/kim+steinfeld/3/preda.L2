@@ -1,9 +1,9 @@
 ((
-  (eax <- (allocate 11 7))
-  (x <- eax)
+  (rax <- (allocate 11 7))
+  (x <- rax)
   (y <- x)
   (y &= 1)
   (y *= -2)
   (y += 3)
-  (eax <- (print y))
+  (rax <- (print y))
 ))

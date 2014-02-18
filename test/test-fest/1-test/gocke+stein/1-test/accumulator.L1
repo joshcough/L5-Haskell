@@ -1,10 +1,10 @@
-(((eax <- 0)
+(((rax <- 0)
   :loop
-  (eax += 1)
-  (cjump eax < 100000 :loop :finish)
+  (rax += 1)
+  (cjump rax < 100000 :loop :finish)
   :finish
 
-  (ebx <- eax)
-  (ebx *= 2)
-  (ebx += 1)
-  (eax <- (print ebx))))
+  (rbx <- rax)
+  (rbx *= 2)
+  (rbx += 1)
+  (rax <- (print rbx))))

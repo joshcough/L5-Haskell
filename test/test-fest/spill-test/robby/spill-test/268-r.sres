@@ -1,4 +1,4 @@
-((ecx <- (mem edx 0))
- (ecx <- (mem edx 0))
- (ecx <- (mem edx 0))
- (ecx <- (mem edx 0)))
+((rcx <- (mem rdx 0))
+ (rcx <- (mem rdx 0))
+ (rcx <- (mem rdx 0))
+ (rcx <- (mem rdx 0)))

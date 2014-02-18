@@ -1,12 +1,12 @@
-(((esi <- 4)
-  (edi <- 0)
-  (ebx <- 1)
+(((rsi <- 4)
+  (rdi <- 0)
+  (rbx <- 1)
   :top
-  (cjump esi = edi :done :cont)
+  (cjump rsi = rdi :done :cont)
   :cont
-  (eax <- (allocate 3 ebx))
-  (ebx <- eax)
-  (esi -= 1)
+  (rax <- (allocate 3 rbx))
+  (rbx <- rax)
+  (rsi -= 1)
   (goto :top)
   :done
-  (eax <- (print ebx))))
+  (rax <- (print rbx))))

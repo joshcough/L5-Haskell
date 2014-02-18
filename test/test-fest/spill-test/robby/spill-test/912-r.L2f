@@ -1,1 +1,1 @@
-((esi <- q <= :LX) (esi <- q <= :LX)) r -24 s
+((rsi <- q <= :LX) (rsi <- q <= :LX)) r -24 s

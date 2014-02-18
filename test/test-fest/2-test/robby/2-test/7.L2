@@ -5,6 +5,6 @@
   (y &= 1)
   (y *= -2)
   (y += 3)
-  (eax <- (print y))
-  (eax <- eax)
+  (rax <- (print y))
+  (rax <- rax)
   (return)))

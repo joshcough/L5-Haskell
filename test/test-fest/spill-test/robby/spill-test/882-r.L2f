@@ -1,1 +1,1 @@
-((edi <- esi = ecx) (edi <- esi = ecx) (edi <- esi = ecx) (edi <- esi = ecx)) r -12 s
+((rdi <- rsi = rcx) (rdi <- rsi = rcx) (rdi <- rsi = rcx) (rdi <- rsi = rcx)) r -12 s

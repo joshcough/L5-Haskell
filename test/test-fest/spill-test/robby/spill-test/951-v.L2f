@@ -1,1 +1,1 @@
-((v <- :p <= ebx) (v <- :p <= ebx)) v -32 s
+((v <- :p <= rbx) (v <- :p <= rbx)) v -32 s

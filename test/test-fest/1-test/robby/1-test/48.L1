@@ -1,1 +1,1 @@
-(((eax <- 3) (eax *= 0) (eax += eax) (eax += 1) (eax <- (print eax))))
+(((rax <- 3) (rax *= 0) (rax += rax) (rax += 1) (rax <- (print rax))))

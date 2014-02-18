@@ -1,1 +1,1 @@
-(((mem edx 4) <- edx)) r -4 s
+(((mem rdx 4) <- rdx)) r -4 s

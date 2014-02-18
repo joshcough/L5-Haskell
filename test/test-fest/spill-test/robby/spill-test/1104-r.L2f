@@ -1,1 +1,1 @@
-((cjump edx = edx :F :k) (cjump edx = edx :F :k)) r -20 s
+((cjump rdx = rdx :F :k) (cjump rdx = rdx :F :k)) r -20 s

@@ -1,1 +1,1 @@
-((esi <- eax = esi) (esi <- eax = esi)) r -4 s
+((rsi <- rax = rsi) (rsi <- rax = rsi)) r -4 s

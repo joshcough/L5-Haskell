@@ -1,5 +1,5 @@
-((eax <- 20)
- (x += eax)
+((rax <- 20)
+ (x += rax)
  (call :g)
- (y <- eax)
+ (y <- rax)
  (y += x))

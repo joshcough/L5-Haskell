@@ -1,1 +1,1 @@
-((edi <- Bg < :T) (edi <- Bg < :T)) r -4 s
+((rdi <- Bg < :T) (rdi <- Bg < :T)) r -4 s

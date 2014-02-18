@@ -9,4 +9,4 @@
  (goto :loop)
  :out
  (s_2 <- (mem ebp -4))
- (eax <- (print s_2)))
+ (rax <- (print s_2)))

@@ -5,16 +5,16 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $11
 	pushl $7
 	call allocate
 	addl $8, %esp
-	movl %eax, %edi
+	movl %rax, %rdi
 	pushl $13
 	pushl $11
 	call allocate
@@ -24,21 +24,21 @@ go:
 	movl %esp, %ebp
 	jmp L1_sum
 L1_Generated_Label_0:
-	imull $2, %eax
-	addl $1, %eax
-	pushl %eax
+	imull $2, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_sum:
-	movl 0(%eax), %eax
-	movl 0(%edi), %esi
-	addl %esi, %eax
+	movl 0(%rax), %rax
+	movl 0(%rdi), %rsi
+	addl %rsi, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

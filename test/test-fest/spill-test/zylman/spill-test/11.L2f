@@ -1,1 +1,1 @@
-((eax <- (allocate s s))) x -4 s_
+((rax <- (allocate s s))) x -4 s_

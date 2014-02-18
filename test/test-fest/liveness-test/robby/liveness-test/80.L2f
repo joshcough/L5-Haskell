@@ -1,1 +1,1 @@
-((abc <- 11) (abc <- 11) (abc <- 11) (abc <- 11) (eax <- (allocate s0 s1)))
+((abc <- 11) (abc <- 11) (abc <- 11) (abc <- 11) (rax <- (allocate s0 s1)))

@@ -1,1 +1,1 @@
-((cjump E <= edi :R :j) (cjump E <= edi :R :j) (cjump E <= edi :R :j)) E 0 s
+((cjump E <= rdi :R :j) (cjump E <= rdi :R :j) (cjump E <= rdi :R :j)) E 0 s

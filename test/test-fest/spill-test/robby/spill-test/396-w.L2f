@@ -1,1 +1,1 @@
-(((mem eax 0) <- w) ((mem eax 0) <- w)) w -24 s
+(((mem rax 0) <- w) ((mem rax 0) <- w)) w -24 s

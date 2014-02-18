@@ -1,5 +1,5 @@
-((x <- eax)
- (eax += x))
+((x <- rax)
+ (rax += x))
 x
 -4
 s_

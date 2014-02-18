@@ -1,1 +1,1 @@
-((tail-call esi) (tail-call esi) (tail-call esi)) r -8 s
+((tail-call rsi) (tail-call rsi) (tail-call rsi)) r -8 s

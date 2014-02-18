@@ -1,13 +1,13 @@
-((temp <- eax)
+((temp <- rax)
  (var1 <- temp)
  (var2 <- temp)
- (var3 <- ecx)
- (var4 <- edx)
+ (var3 <- rcx)
+ (var4 <- rdx)
  (var1 += var1)
  (var1 *= var1)
  (var1 -= var2)
  (var1 &= var3)
- (eax <- var1)
+ (rax <- var1)
  (return))
 temp
 -4

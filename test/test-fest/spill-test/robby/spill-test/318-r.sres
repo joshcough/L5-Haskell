@@ -1,1 +1,1 @@
-(((mem edi 0) <- eax) ((mem edi 0) <- eax))
+(((mem rdi 0) <- rax) ((mem rdi 0) <- rax))

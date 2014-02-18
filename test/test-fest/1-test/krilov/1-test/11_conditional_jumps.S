@@ -5,9 +5,9 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 L1_print1:
@@ -19,9 +19,9 @@ L1_print2:
 	pushl $5
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	movl $5, %ebx
-	cmpl %ebx, %eax
+	movl $3, %rax
+	movl $5, %rbx
+	cmpl %rbx, %rax
 	jl L1_print4
 	jmp L1_bad
 L1_print3:
@@ -33,9 +33,9 @@ L1_print4:
 	pushl $9
 	call print
 	addl $4, %esp
-	movl $5, %eax
-	movl $3, %ebx
-	cmpl %ebx, %eax
+	movl $5, %rax
+	movl $3, %rbx
+	cmpl %rbx, %rax
 	jl L1_bad
 	jmp L1_print5
 L1_print5:
@@ -49,9 +49,9 @@ L1_bad:
 	addl $4, %esp
 L1_done:
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

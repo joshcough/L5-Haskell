@@ -1,1 +1,1 @@
-((cjump ecx = edi :mB :X) (cjump ecx = edi :mB :X) (cjump ecx = edi :mB :X))
+((cjump rcx = rdi :mB :X) (cjump rcx = rdi :mB :X) (cjump rcx = rdi :mB :X))

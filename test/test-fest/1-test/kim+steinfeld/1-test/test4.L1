@@ -1,9 +1,9 @@
 ((
-(edx <- 5)
-(ecx <- 7)
+(rdx <- 5)
+(rcx <- 7)
 
-(ecx &= edx)
+(rcx &= rdx)
 
-(eax <- (print ecx))
+(rax <- (print rcx))
 ))
 

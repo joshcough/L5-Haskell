@@ -1,1 +1,1 @@
-((eax <- (allocate wi 0)) (eax <- (allocate wi 0))) r 0 s
+((rax <- (allocate wi 0)) (rax <- (allocate wi 0))) r 0 s

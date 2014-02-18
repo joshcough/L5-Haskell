@@ -5,24 +5,24 @@
 ;; it computes the answer as a regular L1 number and
 ;; then encodes the number just before calling print
 
-(((eax <- 10)   ;; initial argument to fib.
+(((rax <- 10)   ;; initial argument to fib.
   (call :fib)   ;; the call
-  (eax += eax)  ;; encode & print
-  (eax += 1)
-  (eax <- (print eax)))
+  (rax += rax)  ;; encode & print
+  (rax += 1)
+  (rax <- (print rax)))
  (:fib
-  (cjump eax < 2 :base :recur)
+  (cjump rax < 2 :base :recur)
   :base            ;; non-recursive case
-  (eax <- 1)       ;; store result
+  (rax <- 1)       ;; store result
   (return)         ;; return
   :recur           ;; recursive case
-  (arg <- eax)     ;; save the argument
+  (arg <- rax)     ;; save the argument
   (arg -= 1)       ;; decrement the argument
-  (eax <- arg)     ;; prepare the argument
+  (rax <- arg)     ;; prepare the argument
   (call :fib)      ;; make first recursive call
-  (result <- eax)  ;; save the result of first call
+  (result <- rax)  ;; save the result of first call
   (arg -= 1)       ;; decrement the arg again
-  (eax <- arg)     ;; prepare the argument
+  (rax <- arg)     ;; prepare the argument
   (call :fib)      ;; call
-  (eax += result)  ;; sum the two results
+  (rax += result)  ;; sum the two results
   (return)))       ;; and we're done.

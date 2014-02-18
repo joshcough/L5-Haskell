@@ -1,1 +1,1 @@
-((eax <- (print w))) w -28 s
+((rax <- (print w))) w -28 s

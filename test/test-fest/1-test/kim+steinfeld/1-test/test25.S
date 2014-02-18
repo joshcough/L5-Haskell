@@ -5,41 +5,41 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $3, %eax
-	movl $5, %esi
+	movl $3, %rax
+	movl $5, %rsi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_exp
 L1_Generated_Label_0:
-	movl %esi, %eax
-	addl %eax, %eax
-	addl $1, %eax
-	pushl %eax
+	movl %rsi, %rax
+	addl %rax, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_exp:
 	subl $4, %esp
-	movl %esi, -4(%ebp)
+	movl %rsi, -4(%ebp)
 L1_loop:
-	cmpl $1, %eax
+	cmpl $1, %rax
 	jg L1_keep_going
 	jmp L1_done
 L1_keep_going:
-	subl $1, %eax
-	movl -4(%ebp), %ebx
-	imull %ebx, %esi
+	subl $1, %rax
+	movl -4(%ebp), %rbx
+	imull %rbx, %rsi
 	jmp L1_loop
 L1_done:
 	addl $4, %esp

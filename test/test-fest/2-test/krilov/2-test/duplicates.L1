@@ -1,3 +1,3 @@
 ((
-  (eax <- (print 5))
+  (rax <- (print 5))
 ))

@@ -1,1 +1,1 @@
-((J <- eax = J) (J <- eax = J) (J <- eax = J) (J <- eax = J)) r -16 s
+((J <- rax = J) (J <- rax = J) (J <- rax = J) (J <- rax = J)) r -16 s

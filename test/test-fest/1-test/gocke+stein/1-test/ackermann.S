@@ -5,13 +5,13 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $0, %eax
-	movl $0, %edi
+	movl $0, %rax
+	movl $0, %rdi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
@@ -22,11 +22,11 @@ L1_Generated_Label_0:
 	movl %esp, %ebp
 	jmp L1_decode
 L1_Generated_Label_1:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	movl $0, %edi
+	movl $3, %rax
+	movl $0, %rdi
 	pushl $L1_Generated_Label_2
 	pushl %ebp
 	movl %esp, %ebp
@@ -37,11 +37,11 @@ L1_Generated_Label_2:
 	movl %esp, %ebp
 	jmp L1_decode
 L1_Generated_Label_3:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $1, %eax
-	movl $3, %edi
+	movl $1, %rax
+	movl $3, %rdi
 	pushl $L1_Generated_Label_4
 	pushl %ebp
 	movl %esp, %ebp
@@ -52,11 +52,11 @@ L1_Generated_Label_4:
 	movl %esp, %ebp
 	jmp L1_decode
 L1_Generated_Label_5:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $3, %eax
-	movl $3, %edi
+	movl $3, %rax
+	movl $3, %rdi
 	pushl $L1_Generated_Label_6
 	pushl %ebp
 	movl %esp, %ebp
@@ -67,50 +67,50 @@ L1_Generated_Label_6:
 	movl %esp, %ebp
 	jmp L1_decode
 L1_Generated_Label_7:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_ack:
-	cmpl $0, %eax
+	cmpl $0, %rax
 	je L1_ret
 	jmp L1_cont
 L1_ret:
-	movl %edi, %eax
-	addl $1, %eax
+	movl %rdi, %rax
+	addl $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_cont:
-	cmpl $0, %edi
+	cmpl $0, %rdi
 	je L1_ack1
 	jmp L1_ackfull
 L1_ack1:
-	subl $1, %eax
-	movl $1, %edi
+	subl $1, %rax
+	movl $1, %rdi
 	movl %ebp, %esp
 	jmp L1_ack
 L1_ackfull:
-	movl %eax, %esi
-	subl $1, %edi
+	movl %rax, %rsi
+	subl $1, %rdi
 	pushl $L1_Generated_Label_8
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_ack
 L1_Generated_Label_8:
-	movl %eax, %edi
-	movl %esi, %eax
-	subl $1, %eax
+	movl %rax, %rdi
+	movl %rsi, %rax
+	subl $1, %rax
 	movl %ebp, %esp
 	jmp L1_ack
 L1_decode:
-	imull $2, %eax
-	addl $1, %eax
+	imull $2, %rax
+	addl $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

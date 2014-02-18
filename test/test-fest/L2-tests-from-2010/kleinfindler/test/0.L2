@@ -1,2 +1,2 @@
 (((call :L_1))
- (:L_1 (x <- 7) (x += 4) (eax <- (print x)) (eax <- eax) (return)))
+ (:L_1 (x <- 7) (x += 4) (rax <- (print x)) (rax <- rax) (return)))

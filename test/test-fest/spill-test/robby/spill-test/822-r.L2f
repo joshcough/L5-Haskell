@@ -1,1 +1,1 @@
-((eax <- C < C) (eax <- C < C)) r -24 s
+((rax <- C < C) (rax <- C < C)) r -24 s

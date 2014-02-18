@@ -1,1 +1,1 @@
-((in () () (ebx) (ebx) (ebx) (ebx edi) (ebx edi esi) (ebx edi esi) (edi esi) (esi)) (out () (ebx) (ebx) (ebx) (ebx edi) (ebx edi esi) (ebx edi esi) (edi esi) (esi) ()))
+((in () () (rbx) (rbx) (rbx) (rbx rdi) (rbx rdi rsi) (rbx rdi rsi) (rdi rsi) (rsi)) (out () (rbx) (rbx) (rbx) (rbx rdi) (rbx rdi rsi) (rbx rdi rsi) (rdi rsi) (rsi) ()))

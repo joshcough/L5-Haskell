@@ -5,25 +5,25 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $67, %edx
-	sarl $1, %edx
-	imull $2, %edx
-	imull $2, %edx
-	addl $1, %edx
+	movl $67, %rdx
+	sarl $1, %rdx
+	imull $2, %rdx
+	imull $2, %rdx
+	addl $1, %rdx
 L1_unusedlabel:
-	movl %edx, %eax
-	pushl %eax
+	movl %rdx, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

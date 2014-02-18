@@ -1,1 +1,1 @@
-((eax <- (mem jfz 0)) (eax <- (mem jfz 0))) jfz -16 s
+((rax <- (mem jfz 0)) (rax <- (mem jfz 0))) jfz -16 s

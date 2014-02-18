@@ -1,5 +1,5 @@
-(((ecx <- 2)
+(((rcx <- 2)
   (x <- 1)
-  (x <<= ecx)
+  (x <<= rcx)
   (x += 1)
-  (eax <- (print x))))
+  (rax <- (print x))))

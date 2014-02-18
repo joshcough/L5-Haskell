@@ -1,1 +1,1 @@
-((eax <- (allocate :Ps l))) l -20 s
+((rax <- (allocate :Ps l))) l -20 s

@@ -1,1 +1,1 @@
-(((mem p 0) <- edx)) p -36 s
+(((mem p 0) <- rdx)) p -36 s

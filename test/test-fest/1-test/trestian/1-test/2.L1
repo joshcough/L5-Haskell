@@ -1,8 +1,8 @@
 ((
-(esi <- 5)
-(edi <- 0)
-(eax <- (allocate esi 3))
+(rsi <- 5)
+(rdi <- 0)
+(rax <- (allocate rsi 3))
 
-(edi <- (mem eax 8))
-(eax <- (print edi))
+(rdi <- (mem rax 8))
+(rax <- (print rdi))
 ))

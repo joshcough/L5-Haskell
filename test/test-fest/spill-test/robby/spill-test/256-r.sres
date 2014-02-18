@@ -1,4 +1,4 @@
-((vjf <- (mem ebx 0))
- (vjf <- (mem ebx 0))
- (vjf <- (mem ebx 0))
- (vjf <- (mem ebx 0)))
+((vjf <- (mem rbx 0))
+ (vjf <- (mem rbx 0))
+ (vjf <- (mem rbx 0))
+ (vjf <- (mem rbx 0)))

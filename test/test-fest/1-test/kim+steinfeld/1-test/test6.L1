@@ -1,15 +1,15 @@
 ((
-(edx <- 11)
-(ecx <- 21)
+(rdx <- 11)
+(rcx <- 21)
 
-(cjump edx < ecx :if :else)
+(cjump rdx < rcx :if :else)
 
 :if
-(eax <- (print edx))
+(rax <- (print rdx))
 (goto :done)
 
 :else
-(eax <- (print ecx))
+(rax <- (print rcx))
 
 :done
 ))

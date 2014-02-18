@@ -1,1 +1,1 @@
-((edi *= eax) (edi *= eax) (edi *= eax))
+((rdi *= rax) (rdi *= rax) (rdi *= rax))

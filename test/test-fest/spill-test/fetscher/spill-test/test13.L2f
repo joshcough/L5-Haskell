@@ -1,6 +1,6 @@
-((eax <- 1)
- (var <- eax)
- (eax <- var))
+((rax <- 1)
+ (var <- rax)
+ (rax <- var))
  var
  -4
  v

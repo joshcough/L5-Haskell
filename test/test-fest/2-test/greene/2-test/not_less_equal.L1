@@ -1,6 +1,6 @@
-(((eax <- 65)  ;32 <= 0
-  (ebx <- 0)
-  (eax <- eax <= ebx)
-  (eax *= 2)
-  (eax += 1)
-  (eax <- (print eax))))
+(((rax <- 65)  ;32 <= 0
+  (rbx <- 0)
+  (rax <- rax <= rbx)
+  (rax *= 2)
+  (rax += 1)
+  (rax <- (print rax))))

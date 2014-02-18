@@ -1,16 +1,16 @@
 ;test case 21
-(((eax <- 18)
+(((rax <- 18)
   (call :add)
-  (eax -= 2)
-  (eax <- (print eax)))
+  (rax -= 2)
+  (rax <- (print rax)))
  (:add
-  (cjump eax < 20 :add1 :add2)
+  (cjump rax < 20 :add1 :add2)
   :add1
-  (eax += 1)
+  (rax += 1)
   (return)
   :add2
   (call :sub)
-  (eax += 2)
+  (rax += 2)
   (return))
  (:sub
-  (eax -= 10)))
+  (rax -= 10)))

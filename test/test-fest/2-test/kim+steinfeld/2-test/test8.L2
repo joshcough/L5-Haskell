@@ -1,10 +1,10 @@
 ((
- (ebx <- :middle)
- (x <- ebx)
+ (rbx <- :middle)
+ (x <- rbx)
  (call x)
- (eax <- (print eax))
+ (rax <- (print rax))
 )
  (:middle
- (eax <- 37)
+ (rax <- 37)
  (return)
 ))

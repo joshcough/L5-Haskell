@@ -1,1 +1,1 @@
-((l <<= ebx) (l <<= ebx) (l <<= ebx)) r -36 s
+((l <<= rbx) (l <<= rbx) (l <<= rbx)) r -36 s

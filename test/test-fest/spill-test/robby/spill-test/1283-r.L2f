@@ -1,1 +1,1 @@
-((tail-call edi)) r -28 s
+((tail-call rdi)) r -28 s

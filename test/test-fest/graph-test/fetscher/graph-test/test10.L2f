@@ -4,5 +4,5 @@
     (cjump a < 10 :loop :exit)
     (b <- 1)
     :exit
-    (eax <- (print a))
-    (eax <- (print b))))
+    (rax <- (print a))
+    (rax <- (print b))))

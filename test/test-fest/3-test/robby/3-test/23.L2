@@ -4,20 +4,20 @@
   :L_3
   (cjump 1 = 1 :L_5 :L_4)
   :L_5
-  (eax <- (print 9))
-  (eax <- eax)
+  (rax <- (print 9))
+  (rax <- rax)
   (return)
   :L_4
-  (eax <- (print 7))
-  (eax <- eax)
+  (rax <- (print 7))
+  (rax <- rax)
   (return)
   :L_2
   (cjump 1 = 1 :L_7 :L_6)
   :L_7
-  (eax <- (print 5))
-  (eax <- eax)
+  (rax <- (print 5))
+  (rax <- rax)
   (return)
   :L_6
-  (eax <- (print 3))
-  (eax <- eax)
+  (rax <- (print 3))
+  (rax <- rax)
   (return)))

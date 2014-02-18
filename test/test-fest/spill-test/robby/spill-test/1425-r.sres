@@ -1,1 +1,1 @@
-((eax <- (allocate eax :e)) (eax <- (allocate eax :e)))
+((rax <- (allocate rax :e)) (rax <- (allocate rax :e)))

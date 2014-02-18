@@ -1,1 +1,1 @@
-((c <- edi < ecx) (c <- edi < ecx)) c -24 s
+((c <- rdi < rcx) (c <- rdi < rcx)) c -24 s

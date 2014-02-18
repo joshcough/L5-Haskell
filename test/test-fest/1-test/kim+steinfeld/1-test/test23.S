@@ -5,31 +5,31 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $11, %eax
-	movl $1, %esi
+	movl $11, %rax
+	movl $1, %rsi
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_factorial
 L1_Generated_Label_0:
-	imull $2, %esi
-	addl $1, %esi
-	pushl %esi
+	imull $2, %rsi
+	addl $1, %rsi
+	pushl %rsi
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_factorial:
-	cmpl $2, %eax
+	cmpl $2, %rax
 	jl L1_base
 	jmp L1_recur
 L1_base:
@@ -37,8 +37,8 @@ L1_base:
 	popl %ebp
 	ret
 L1_recur:
-	imull %eax, %esi
-	subl $1, %eax
+	imull %rax, %rsi
+	subl $1, %rax
 	movl %ebp, %esp
 	jmp L1_factorial
 	.size	go, .-go

@@ -1,1 +1,1 @@
-((in (a eax edi esi x y) (a edi esi) (a edi esi) (eax edi esi) (eax edi esi)) (out (a eax edi esi) (a edi esi) (eax edi esi) (eax edi esi) ()))
+((in (a rax rdi rsi x y) (a rdi rsi) (a rdi rsi) (rax rdi rsi) (rax rdi rsi)) (out (a rax rdi rsi) (a rdi rsi) (rax rdi rsi) (rax rdi rsi) ()))

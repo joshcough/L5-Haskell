@@ -1,1 +1,1 @@
-((C *= ecx) (C *= ecx)) C -24 s
+((C *= rcx) (C *= rcx)) C -24 s

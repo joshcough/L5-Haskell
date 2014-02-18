@@ -5,57 +5,57 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $8, %eax
+	movl $8, %rax
 	pushl $L1_Generated_Label_0
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_fib
 L1_Generated_Label_0:
-	addl %eax, %eax
-	addl $1, %eax
-	pushl %eax
+	addl %rax, %rax
+	addl $1, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_fib:
 	subl $8, %esp
-	cmpl $2, %eax
+	cmpl $2, %rax
 	jl L1_base
 	jmp L1_recur
 L1_base:
-	movl $1, %eax
+	movl $1, %rax
 	addl $8, %esp
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_recur:
-	movl %eax, -4(%ebp)
-	subl $1, %eax
+	movl %rax, -4(%ebp)
+	subl $1, %rax
 	pushl $L1_Generated_Label_1
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_fib
 L1_Generated_Label_1:
-	movl %eax, -8(%ebp)
-	movl -4(%ebp), %eax
-	subl $2, %eax
+	movl %rax, -8(%ebp)
+	movl -4(%ebp), %rax
+	subl $2, %rax
 	pushl $L1_Generated_Label_2
 	pushl %ebp
 	movl %esp, %ebp
 	jmp L1_fib
 L1_Generated_Label_2:
-	movl -8(%ebp), %esi
-	addl %esi, %eax
+	movl -8(%ebp), %rsi
+	addl %rsi, %rax
 	addl $8, %esp
 	movl %ebp, %esp
 	popl %ebp

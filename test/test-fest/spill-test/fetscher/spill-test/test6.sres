@@ -1,9 +1,9 @@
 (((mem ebp -4) <- 1)
  (y <- 2)
- (eax0 <- (mem ebp -4))
- (cjump eax0 < y :yes :no)
+ (rax0 <- (mem ebp -4))
+ (cjump rax0 < y :yes :no)
  :yes
- (eax1 <- (mem ebp -4))
- (eax <- (print eax1))
+ (rax1 <- (mem ebp -4))
+ (rax <- (print rax1))
  :no
- (eax <- (print y)))
+ (rax <- (print y)))

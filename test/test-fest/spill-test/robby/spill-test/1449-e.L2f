@@ -1,1 +1,1 @@
-((eax <- (allocate e eax))) e -4 s
+((rax <- (allocate e rax))) e -4 s

@@ -1,1 +1,1 @@
-((qM &= eax) (qM &= eax) (qM &= eax)) r 0 s
+((qM &= rax) (qM &= rax) (qM &= rax)) r 0 s

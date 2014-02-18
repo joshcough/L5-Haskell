@@ -1,1 +1,1 @@
-((edi <- 0 = ebx)) r -20 s
+((rdi <- 0 = rbx)) r -20 s

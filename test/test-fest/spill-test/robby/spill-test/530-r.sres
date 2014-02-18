@@ -1,1 +1,1 @@
-((b *= eax) (b *= eax) (b *= eax))
+((b *= rax) (b *= rax) (b *= rax))

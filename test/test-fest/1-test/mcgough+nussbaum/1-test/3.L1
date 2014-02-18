@@ -1,5 +1,5 @@
 ;10
-(((eax <- (allocate 3 1))
-  ((mem eax 0) <- 21)
-  (eax <- (mem eax 0))
-  (eax <- (print eax))))
+(((rax <- (allocate 3 1))
+  ((mem rax 0) <- 21)
+  (rax <- (mem rax 0))
+  (rax <- (print rax))))

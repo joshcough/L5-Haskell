@@ -1,1 +1,1 @@
-((u -= edi) (u -= edi) (u -= edi) (u -= edi)) r -28 s
+((u -= rdi) (u -= rdi) (u -= rdi) (u -= rdi)) r -28 s

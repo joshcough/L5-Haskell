@@ -8,6 +8,6 @@
 (z <- x)
 (z += y)
 (z -= 1)
-(eax <- (print z))
+(rax <- (print z))
 )
 )

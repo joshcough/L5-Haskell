@@ -1,1 +1,1 @@
-((ebx <- edi) (ebx <- edi) (ebx <- edi)) r -12 s
+((rbx <- rdi) (rbx <- rdi) (rbx <- rdi)) r -12 s

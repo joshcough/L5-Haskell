@@ -3,4 +3,4 @@
   (a <<= b)
   (a >>= a)
   (a += 1)
-  (eax <- (print a))))
+  (rax <- (print a))))

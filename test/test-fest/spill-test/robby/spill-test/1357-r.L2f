@@ -1,1 +1,1 @@
-((eax <- (print :TIO)) (eax <- (print :TIO))) r -28 s
+((rax <- (print :TIO)) (rax <- (print :TIO))) r -28 s

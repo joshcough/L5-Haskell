@@ -1,1 +1,1 @@
-((edi <- (mem edx 0)) (edi <- (mem edx 0))) r -24 s
+((rdi <- (mem rdx 0)) (rdi <- (mem rdx 0))) r -24 s

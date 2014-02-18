@@ -5,12 +5,12 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $2, %esi
+	movl $2, %rsi
 L1_w:
 	jmp L1_wefowifwef_wefowfoiwejf_AOIOAOIDJOAI_93493sdfij23nfsdUH
 L1_wefowifwef_wefowfoiwejf_AOIOAOIDJOAI_93493sdfij23nfsdUH:
@@ -28,19 +28,19 @@ L1________________999:
 L1________________aaa:
 	jmp L1________________AAA
 L1________________AAA:
-	subl $1, %esi
-	cmpl $0, %esi
+	subl $1, %rsi
+	cmpl $0, %rsi
 	je L1__A_A_A_A_A_A_A_A_
 	jmp L1_w
 L1__A_A_A_A_A_A_A_A_:
-	movl $3, %eax
-	pushl %eax
+	movl $3, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

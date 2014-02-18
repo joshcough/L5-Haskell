@@ -1,2 +1,2 @@
 ((x <- 4)
- (eax <- (allocate x x)))
+ (rax <- (allocate x x)))

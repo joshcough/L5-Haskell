@@ -1,1 +1,1 @@
-((call ecx) (call ecx)) r 0 s
+((call rcx) (call rcx)) r 0 s

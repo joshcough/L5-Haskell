@@ -1,4 +1,4 @@
-((s0 <- ebx <= edx)
+((s0 <- rbx <= rdx)
  ((mem ebp -8) <- s0)
- (s1 <- ebx <= edx)
+ (s1 <- rbx <= rdx)
  ((mem ebp -8) <- s1))

@@ -1,4 +1,4 @@
-((eax <- (print esi))
- (eax <- (print esi))
- (eax <- (print esi))
- (eax <- (print esi)))
+((rax <- (print rsi))
+ (rax <- (print rsi))
+ (rax <- (print rsi))
+ (rax <- (print rsi)))

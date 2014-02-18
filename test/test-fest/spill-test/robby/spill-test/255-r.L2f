@@ -1,1 +1,1 @@
-((eax <- (mem edx 8)) (eax <- (mem edx 8)) (eax <- (mem edx 8)) (eax <- (mem edx 8))) r -20 s
+((rax <- (mem rdx 8)) (rax <- (mem rdx 8)) (rax <- (mem rdx 8)) (rax <- (mem rdx 8))) r -20 s

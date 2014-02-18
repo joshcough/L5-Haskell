@@ -1,4 +1,4 @@
-(((mem eax 12) <- :y)
- ((mem eax 12) <- :y)
- ((mem eax 12) <- :y)
- ((mem eax 12) <- :y))
+(((mem rax 12) <- :y)
+ ((mem rax 12) <- :y)
+ ((mem rax 12) <- :y)
+ ((mem rax 12) <- :y))

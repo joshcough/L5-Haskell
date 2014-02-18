@@ -1,5 +1,5 @@
 ((
   (x <- 17)
   (y <- x)
-  (eax <- (print y))
+  (rax <- (print y))
 ))

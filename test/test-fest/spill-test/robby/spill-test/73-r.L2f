@@ -1,1 +1,1 @@
-((esi <- ebx)) r -36 s
+((rsi <- rbx)) r -36 s

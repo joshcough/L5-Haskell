@@ -1,1 +1,1 @@
-((eax <- (print Yr)) (eax <- (print Yr)) (eax <- (print Yr)) (eax <- (print Yr))) r -28 s
+((rax <- (print Yr)) (rax <- (print Yr)) (rax <- (print Yr)) (rax <- (print Yr))) r -28 s

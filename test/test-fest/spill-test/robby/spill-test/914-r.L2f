@@ -1,1 +1,1 @@
-((ebx <- eax <= e) (ebx <- eax <= e) (ebx <- eax <= e)) r -8 s
+((rbx <- rax <= e) (rbx <- rax <= e) (rbx <- rax <= e)) r -8 s

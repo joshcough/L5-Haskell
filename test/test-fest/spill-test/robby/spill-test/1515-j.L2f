@@ -1,1 +1,1 @@
-((eax <- (allocate :V j)) (eax <- (allocate :V j)) (eax <- (allocate :V j)) (eax <- (allocate :V j))) j -36 s
+((rax <- (allocate :V j)) (rax <- (allocate :V j)) (rax <- (allocate :V j)) (rax <- (allocate :V j))) j -36 s

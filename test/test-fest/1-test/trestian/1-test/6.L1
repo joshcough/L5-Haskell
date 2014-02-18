@@ -7,8 +7,8 @@
 )
 (
 :this2
-(edx <- -1)
-(eax <- (print edx))
+(rdx <- -1)
+(rax <- (print rdx))
 (return)
 )
 )

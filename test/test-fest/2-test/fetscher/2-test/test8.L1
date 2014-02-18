@@ -1,11 +1,11 @@
-(((eax <- -1)
-  (ecx <- eax)
-  (ecx >>= 1)
-  (eax &= ecx)
-  (cjump eax < 0 :yes :no)
+(((rax <- -1)
+  (rcx <- rax)
+  (rcx >>= 1)
+  (rax &= rcx)
+  (cjump rax < 0 :yes :no)
   :yes
-  (eax <- (print eax))
+  (rax <- (print rax))
   (goto :end)
   :no
-  (eax <- (print ecx))
+  (rax <- (print rcx))
   :end))

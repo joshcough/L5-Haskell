@@ -1,1 +1,1 @@
-((eax -= ecx))
+((rax -= rcx))

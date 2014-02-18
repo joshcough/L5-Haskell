@@ -1,1 +1,1 @@
-((eax <- (allocate G v)) (eax <- (allocate G v)) (eax <- (allocate G v))) v -24 s
+((rax <- (allocate G v)) (rax <- (allocate G v)) (rax <- (allocate G v))) v -24 s

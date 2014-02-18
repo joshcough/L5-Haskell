@@ -1,1 +1,1 @@
-((C <- ebx = edx)) C 0 s
+((C <- rbx = rdx)) C 0 s

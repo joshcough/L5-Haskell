@@ -1,1 +1,1 @@
-((f <- (mem ebx 0)) (f <- (mem ebx 0)) (f <- (mem ebx 0)))
+((f <- (mem rbx 0)) (f <- (mem rbx 0)) (f <- (mem rbx 0)))

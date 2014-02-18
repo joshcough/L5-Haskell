@@ -1,1 +1,1 @@
-(((mem ebx 0) <- :E)) r -24 s
+(((mem rbx 0) <- :E)) r -24 s

@@ -1,7 +1,7 @@
 (
 (
-(esi <- 3)
-(eax <- (allocate esi 3))
-(eax <- (array-error eax 3))
+(rsi <- 3)
+(rax <- (allocate rsi 3))
+(rax <- (array-error rax 3))
 )
 )

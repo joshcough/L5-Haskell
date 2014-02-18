@@ -1,1 +1,1 @@
-((esi <<= l) (esi <<= l) (esi <<= l))
+((rsi <<= l) (rsi <<= l) (rsi <<= l))

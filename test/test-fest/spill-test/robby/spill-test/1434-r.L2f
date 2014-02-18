@@ -1,1 +1,1 @@
-((eax <- (allocate A :xw))) r -24 s
+((rax <- (allocate A :xw))) r -24 s

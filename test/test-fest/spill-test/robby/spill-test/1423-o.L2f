@@ -1,1 +1,1 @@
-((eax <- (allocate o i)) (eax <- (allocate o i)) (eax <- (allocate o i)) (eax <- (allocate o i))) o -32 s
+((rax <- (allocate o i)) (rax <- (allocate o i)) (rax <- (allocate o i)) (rax <- (allocate o i))) o -32 s

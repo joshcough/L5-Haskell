@@ -1,1 +1,1 @@
-((eax <- (allocate K ecx))) K -12 s
+((rax <- (allocate K rcx))) K -12 s

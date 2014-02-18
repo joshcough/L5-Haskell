@@ -1,1 +1,1 @@
-((ebx <<= K) (ebx <<= K) (ebx <<= K) (ebx <<= K))
+((rbx <<= K) (rbx <<= K) (rbx <<= K) (rbx <<= K))

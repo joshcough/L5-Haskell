@@ -1,1 +1,1 @@
-((ecx <- edx) (ecx <- edx) (ecx <- edx) (ecx <- edx)) r -20 s
+((rcx <- rdx) (rcx <- rdx) (rcx <- rdx) (rcx <- rdx)) r -20 s

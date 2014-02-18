@@ -1,6 +1,6 @@
 ((x <- 1)
- (eax += x)
- (x += eax))
+ (rax += x)
+ (x += rax))
 x
 44
 s_

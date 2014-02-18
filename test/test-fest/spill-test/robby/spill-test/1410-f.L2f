@@ -1,1 +1,1 @@
-((eax <- (allocate f esi))) f -4 s
+((rax <- (allocate f rsi))) f -4 s

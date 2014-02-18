@@ -1,4 +1,4 @@
-((cjump E <= edi :R :j)
- (cjump E <= edi :R :j)
- (cjump E <= edi :R :j)
- (cjump E <= edi :R :j))
+((cjump E <= rdi :R :j)
+ (cjump E <= rdi :R :j)
+ (cjump E <= rdi :R :j)
+ (cjump E <= rdi :R :j))

@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -8)) (ebx <- s0 = ebx))
+((s0 <- (mem ebp -8)) (rbx <- s0 = rbx))

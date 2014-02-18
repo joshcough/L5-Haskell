@@ -1,1 +1,1 @@
-((s <- (mem esi 0)) (s <- (mem esi 0)) (s <- (mem esi 0))) r -8 s1
+((s <- (mem rsi 0)) (s <- (mem rsi 0)) (s <- (mem rsi 0))) r -8 s1

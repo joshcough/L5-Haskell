@@ -1,1 +1,1 @@
-((u <- (mem eax 0)) (u <- (mem eax 0)) (u <- (mem eax 0)) (u <- (mem eax 0))) u 0 s
+((u <- (mem rax 0)) (u <- (mem rax 0)) (u <- (mem rax 0)) (u <- (mem rax 0))) u 0 s

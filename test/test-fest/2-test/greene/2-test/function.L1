@@ -1,8 +1,8 @@
-(((eax <- 9)
+(((rax <- 9)
   (call :function)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  (:function
-  (eax <- 5)
-  (eax += 5)
-  (eax -= 1)
+  (rax <- 5)
+  (rax += 5)
+  (rax -= 1)
   (return)))

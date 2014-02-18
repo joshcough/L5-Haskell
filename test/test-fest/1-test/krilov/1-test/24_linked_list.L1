@@ -5,48 +5,48 @@
   ; (The cell containing 9999 is a "sentinel" cell which marks the end of the linked list.
   ; Looks like implementing this without a sentinel is impossible.)
   
-  ; Allocate the head (containing the value 1) - esi will contain the pointer to the head of the list
-  (eax <- (allocate 5 3))
-  (esi <- eax)
+  ; Allocate the head (containing the value 1) - rsi will contain the pointer to the head of the list
+  (rax <- (allocate 5 3))
+  (rsi <- rax)
   
   ; Allocate the rest of the linked list (2 through 5) in a loop
   
-  (ebx <- 5)    ; Loop index
-  (edi <- esi)  ; edi stores the address of the previous cell
+  (rbx <- 5)    ; Loop index
+  (rdi <- rsi)  ; rdi stores the address of the previous cell
   
   :allocate_next
   
   ; Allocate a new cell
-  (eax <- (allocate 5 ebx))
-  (ebx <- (mem eax 4))
+  (rax <- (allocate 5 rbx))
+  (rbx <- (mem rax 4))
   
   ; Link the previous cell to this one
-  ((mem edi 8) <- eax)
-  (edi <- eax)
-  (ebx += 2)
-  (cjump ebx <= 11 :allocate_next :done_allocating)
+  ((mem rdi 8) <- rax)
+  (rdi <- rax)
+  (rbx += 2)
+  (cjump rbx <= 11 :allocate_next :done_allocating)
   
   :done_allocating
   
   ; Allocate the sentinel cell and set the tail's pointer to it.
-  (eax <- (allocate 5 9999))
-  ((mem edi 8) <- eax)
+  (rax <- (allocate 5 9999))
+  ((mem rdi 8) <- rax)
   
-  ; Now print the linked list structure, whose head is at esi
-  (edi <- esi)
+  ; Now print the linked list structure, whose head is at rsi
+  (rdi <- rsi)
   (call :print_list)
   )
   (:print_list
-    ; edi points to the current cell
+    ; rdi points to the current cell
 	
 	; Get the value of the current cell and print it
-	(eax <- (mem edi 4))
-	(eax <- (print eax))
+	(rax <- (mem rdi 4))
+	(rax <- (print rax))
 	
 	; Get the pointer to the next cell and check its value - if it's 9999, it's the sentinel, so stop printing the list.
-	(edi <- (mem edi 8))
-	(eax <- (mem edi 4))
-	(cjump eax = 9999 :done :print_next)
+	(rdi <- (mem rdi 8))
+	(rax <- (mem rdi 4))
+	(cjump rax = 9999 :done :print_next)
 	
 	:print_next
 	(tail-call :print_list)

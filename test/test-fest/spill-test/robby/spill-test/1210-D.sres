@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -24)) (cjump s0 = :l :edi :r))
+((s0 <- (mem ebp -24)) (cjump s0 = :l :rdi :r))

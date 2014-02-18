@@ -1,1 +1,1 @@
-((edi >>= edi) (edi >>= edi)) r -16 s
+((rdi >>= rdi) (rdi >>= rdi)) r -16 s

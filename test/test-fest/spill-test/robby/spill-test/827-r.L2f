@@ -1,1 +1,1 @@
-((w <- edx < edx) (w <- edx < edx) (w <- edx < edx) (w <- edx < edx)) r -24 s
+((w <- rdx < rdx) (w <- rdx < rdx) (w <- rdx < rdx) (w <- rdx < rdx)) r -24 s

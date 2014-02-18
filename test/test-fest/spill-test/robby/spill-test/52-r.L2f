@@ -1,1 +1,1 @@
-((edx <- :i) (edx <- :i) (edx <- :i)) r -28 s
+((rdx <- :i) (rdx <- :i) (rdx <- :i)) r -28 s

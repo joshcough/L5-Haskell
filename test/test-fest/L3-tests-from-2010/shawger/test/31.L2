@@ -1,11 +1,11 @@
 ((
 (call :func)
-(ans <- eax)
-(eax <- (print ans))
+(ans <- rax)
+(rax <- (print ans))
 )
 (
 :func
-(eax <- 3)
+(rax <- 3)
 (return)
 )
 )

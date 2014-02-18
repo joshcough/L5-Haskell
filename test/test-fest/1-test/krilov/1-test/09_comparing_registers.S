@@ -5,68 +5,68 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $3, %eax
-	cmp $3, %eax
+	movl $3, %rax
+	cmp $3, %rax
 	sete %al
-	movzbl %al, %eax
-	pushl %eax
+	movzbl %al, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $4, %ebx
-	cmp $3, %ebx
+	movl $4, %rbx
+	cmp $3, %rbx
 	sete %al
-	movzbl %al, %eax
-	addl $11, %eax
-	pushl %eax
+	movzbl %al, %rax
+	addl $11, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $5, %eax
-	movl $7, %ebx
-	cmp %ebx, %eax
+	movl $5, %rax
+	movl $7, %rbx
+	cmp %rbx, %rax
 	setl %al
-	movzbl %al, %eax
-	pushl %eax
+	movzbl %al, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $5, %eax
-	cmp $6, %eax
+	movl $5, %rax
+	cmp $6, %rax
 	setle %al
-	movzbl %al, %eax
-	pushl %eax
+	movzbl %al, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $5, %ebx
-	cmp $7, %ebx
+	movl $5, %rbx
+	cmp $7, %rbx
 	setg %al
-	movzbl %al, %eax
-	addl $11, %eax
-	pushl %eax
+	movzbl %al, %rax
+	addl $11, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $6, %ebx
-	cmp %ebx, %ebx
+	movl $6, %rbx
+	cmp %rbx, %rbx
 	setl %al
-	movzbl %al, %eax
-	addl $11, %eax
-	pushl %eax
+	movzbl %al, %rax
+	addl $11, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
-	movl $6, %eax
-	cmp $6, %eax
+	movl $6, %rax
+	cmp $6, %rax
 	setle %al
-	movzbl %al, %eax
-	pushl %eax
+	movzbl %al, %rax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

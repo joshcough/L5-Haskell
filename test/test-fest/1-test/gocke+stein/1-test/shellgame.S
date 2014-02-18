@@ -5,34 +5,34 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
-	movl $1000, %eax
-	movl $0, %ebx
-	movl $1, %ecx
-	movl $2, %edx
+	movl $1000, %rax
+	movl $0, %rbx
+	movl $1, %rcx
+	movl $2, %rdx
 L1_loop:
-	movl %ebx, %edi
-	movl %ecx, %ebx
-	movl %edx, %ecx
-	movl %edi, %edx
-	subl $1, %eax
-	cmpl $0, %eax
+	movl %rbx, %rdi
+	movl %rcx, %rbx
+	movl %rdx, %rcx
+	movl %rdi, %rdx
+	subl $1, %rax
+	cmpl $0, %rax
 	je L1_finish
 	jmp L1_loop
 L1_finish:
-	imull $2, %ebx
-	addl $1, %ebx
-	pushl %ebx
+	imull $2, %rbx
+	addl $1, %rbx
+	pushl %rbx
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 	.size	go, .-go

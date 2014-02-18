@@ -1,17 +1,17 @@
 ;test case 14
-(((ebx <- 1)
-  (eax <- 3)
+(((rbx <- 1)
+  (rax <- 3)
   :loop
-  (cjump ebx < 5 :keep_going :done)
+  (cjump rbx < 5 :keep_going :done)
   :keep_going
-  (cjump eax = 1 :step_1 :step_2)
+  (cjump rax = 1 :step_1 :step_2)
   :step_1 
-  (eax += 10)
-  (ebx += 1)
+  (rax += 10)
+  (rbx += 1)
   (goto :loop)
   :step_2
-  (eax += 4)
-  (ebx += 1)
+  (rax += 4)
+  (rbx += 1)
   (goto :loop)
   :done
-  (eax <- (print eax))))
+  (rax <- (print rax))))

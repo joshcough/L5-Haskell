@@ -2,20 +2,20 @@
 ((call :first))
 
 (:first
-(edi <- 3)
-(eax <- (print edi))
+(rdi <- 3)
+(rax <- (print rdi))
 (call :second)
 (return))
 
 (:second
-(edi += 2)
-(eax <- (print edi))
+(rdi += 2)
+(rax <- (print rdi))
 (call :third)
 (return))
 
 (:third
-(edi += 4)
-(eax <- (print edi))
+(rdi += 4)
+(rax <- (print rdi))
 (return))
 
 

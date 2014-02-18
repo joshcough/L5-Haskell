@@ -1,9 +1,9 @@
 ((
- (eax <- 5)
+ (rax <- 5)
  (z <- 10)
- (eax += z)
- (ebx <- 5)
- (ebx += z)
- (eax <- (print ebx))
+ (rax += z)
+ (rbx <- 5)
+ (rbx += z)
+ (rax <- (print rbx))
  ))
 

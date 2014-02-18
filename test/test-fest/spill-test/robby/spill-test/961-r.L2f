@@ -1,1 +1,1 @@
-((N <- edi <= edi) (N <- edi <= edi) (N <- edi <= edi) (N <- edi <= edi)) r -20 s
+((N <- rdi <= rdi) (N <- rdi <= rdi) (N <- rdi <= rdi) (N <- rdi <= rdi)) r -20 s

@@ -1,1 +1,1 @@
-((edi <- edx < edi)) r -4 s
+((rdi <- rdx < rdi)) r -4 s

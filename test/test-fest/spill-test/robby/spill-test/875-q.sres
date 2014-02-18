@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -28)) (ecx <- :GE <= s0))
+((s0 <- (mem ebp -28)) (rcx <- :GE <= s0))

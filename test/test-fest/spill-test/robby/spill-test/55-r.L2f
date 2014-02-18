@@ -1,1 +1,1 @@
-((ebx <- k) (ebx <- k) (ebx <- k)) r -24 s
+((rbx <- k) (rbx <- k) (rbx <- k)) r -24 s

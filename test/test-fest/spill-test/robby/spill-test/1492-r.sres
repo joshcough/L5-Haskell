@@ -1,1 +1,1 @@
-((eax <- (allocate ebx H)) (eax <- (allocate ebx H)) (eax <- (allocate ebx H)))
+((rax <- (allocate rbx H)) (rax <- (allocate rbx H)) (rax <- (allocate rbx H)))

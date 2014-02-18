@@ -1,1 +1,1 @@
-((edx *= eax) (edx *= eax) (edx *= eax) (edx *= eax)) r -16 s
+((rdx *= rax) (rdx *= rax) (rdx *= rax) (rdx *= rax)) r -16 s

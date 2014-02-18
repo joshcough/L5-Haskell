@@ -1,1 +1,1 @@
-((cjump esi = T :d :Q) (cjump esi = T :d :Q) (cjump esi = T :d :Q) (cjump esi = T :d :Q)) T -28 s
+((cjump rsi = T :d :Q) (cjump rsi = T :d :Q) (cjump rsi = T :d :Q) (cjump rsi = T :d :Q)) T -28 s

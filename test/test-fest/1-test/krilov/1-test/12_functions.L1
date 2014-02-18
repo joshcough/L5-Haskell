@@ -5,15 +5,15 @@
   (call :func1)
   )
  (:func1
-   (eax <- 3)
-   (eax <- (print eax))
+   (rax <- 3)
+   (rax <- (print rax))
    (return))
  (:func2
-   (eax <- 5)
-   (eax <- (print eax))
+   (rax <- 5)
+   (rax <- (print rax))
    (return))
  (:func3
-   (eax <- 7)
-   (eax <- (print eax))
+   (rax <- 7)
+   (rax <- (print rax))
    (return))
 )

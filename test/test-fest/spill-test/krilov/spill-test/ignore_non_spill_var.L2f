@@ -9,11 +9,11 @@
   (goto :x)
   
   ; Different variable, should be ignored.
-  (esi <- y)
+  (rsi <- y)
   
   ; Only spill this one
-  (eax <- x)
-  (edi += eax)
+  (rax <- x)
+  (rdi += rax)
 )
 x
 -16

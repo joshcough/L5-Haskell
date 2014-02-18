@@ -1,1 +1,1 @@
-((cjump edx < :rO :W :U)) r -28 s
+((cjump rdx < :rO :W :U)) r -28 s

@@ -1,12 +1,12 @@
 ((
  (x <- 3)
- (ebx <- 5)
- (ra <- ebx)
+ (rbx <- 5)
+ (ra <- rbx)
  (x += ra)
  (x *= x)
  (ra <- x)
  (y <- ra)
  (y += 1)
- (eax <- (print y))
+ (rax <- (print y))
  ))
 

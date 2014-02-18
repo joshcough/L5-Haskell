@@ -1,8 +1,8 @@
 ((;; 5 * 5 = 25
-  (ebx <- 5)
-  (ebx *= ebx)
+  (rbx <- 5)
+  (rbx *= rbx)
   ;; encode for printing
-  (ebx *= 2)
-  (ebx += 1)
+  (rbx *= 2)
+  (rbx += 1)
   
-  (eax <- (print ebx))))
+  (rax <- (print rbx))))

@@ -1,5 +1,5 @@
 (((goto :l2)
   :l1
-  (eax <- (print 5))
+  (rax <- (print 5))
   :l2
-  (eax <- (print 7))))
+  (rax <- (print 7))))

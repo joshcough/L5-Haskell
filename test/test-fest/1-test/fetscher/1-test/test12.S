@@ -5,9 +5,9 @@
 go:
 	pushl %ebp
 	movl %esp, %ebp
-	pushl %ebx
-	pushl %esi
-	pushl %edi
+	pushl %rbx
+	pushl %rsi
+	pushl %rdi
 	pushl %ebp
 	movl	%esp, %ebp
 	pushl $L1_Generated_Label_0
@@ -15,13 +15,13 @@ go:
 	movl %esp, %ebp
 	jmp L1_numberone
 L1_Generated_Label_0:
-	pushl %eax
+	pushl %rax
 	call print
 	addl $4, %esp
 	popl %ebp
-	popl %edi
-	popl %esi
-	popl %ebx
+	popl %rdi
+	popl %rsi
+	popl %rbx
 	leave
 	ret
 L1_numberone:
@@ -35,7 +35,7 @@ L1_Generated_Label_1:
 	movl %esp, %ebp
 	jmp L1_numbertwo
 L1_Generated_Label_2:
-	addl $1, %eax
+	addl $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret
@@ -45,12 +45,12 @@ L1_numbertwo:
 	movl %esp, %ebp
 	jmp L1_numberthree
 L1_Generated_Label_3:
-	sall $1, %eax
+	sall $1, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret
 L1_numberthree:
-	movl $9, %eax
+	movl $9, %rax
 	movl %ebp, %esp
 	popl %ebp
 	ret

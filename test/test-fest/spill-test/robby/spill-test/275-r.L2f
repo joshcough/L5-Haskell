@@ -1,1 +1,1 @@
-((p <- (mem edi 0)) (p <- (mem edi 0)) (p <- (mem edi 0))) r -16 s
+((p <- (mem rdi 0)) (p <- (mem rdi 0)) (p <- (mem rdi 0))) r -16 s

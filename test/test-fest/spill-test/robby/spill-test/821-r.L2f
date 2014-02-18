@@ -1,1 +1,1 @@
-((ebx <- R < R) (ebx <- R < R) (ebx <- R < R)) R -28 s
+((rbx <- R < R) (rbx <- R < R) (rbx <- R < R)) R -28 s

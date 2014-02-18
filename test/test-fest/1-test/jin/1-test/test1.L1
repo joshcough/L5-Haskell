@@ -1,13 +1,13 @@
 
 ;;test case 1
-(((eax <- 3)
-  (eax <- (print eax))
-  (ecx <- 5)
-  (eax <- (print ecx))
-  (edx <- 7)
-  (eax <- (print edx))
-  (ebx <- 9)
-  (eax <- (print ebx))))
+(((rax <- 3)
+  (rax <- (print rax))
+  (rcx <- 5)
+  (rax <- (print rcx))
+  (rdx <- 7)
+  (rax <- (print rdx))
+  (rbx <- 9)
+  (rax <- (print rbx))))
 
 
 

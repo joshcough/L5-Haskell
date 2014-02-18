@@ -1,1 +1,1 @@
-((eax += :edx) (eax += :edx))
+((rax += :rdx) (rax += :rdx))

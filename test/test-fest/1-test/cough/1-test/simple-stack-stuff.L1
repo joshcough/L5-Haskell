@@ -7,12 +7,12 @@
   ((mem ebp -12) <- 109)
 
   ; set up the stack pointer to get something off the stack, i think...
-  (edx <- (mem ebp -4))
-  (eax <- (print edx))
-  (edx <- (mem ebp -8))
-  (eax <- (print edx))
-  (edx <- (mem ebp -12))
-  (eax <- (print edx))
+  (rdx <- (mem ebp -4))
+  (rax <- (print rdx))
+  (rdx <- (mem ebp -8))
+  (rax <- (print rdx))
+  (rdx <- (mem ebp -12))
+  (rax <- (print rdx))
 
   (esp += 12)
 ))

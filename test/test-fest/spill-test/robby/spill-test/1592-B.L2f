@@ -1,1 +1,1 @@
-((eax <- (array-error :oJ B)) (eax <- (array-error :oJ B)) (eax <- (array-error :oJ B)) (eax <- (array-error :oJ B))) B -16 s
+((rax <- (array-error :oJ B)) (rax <- (array-error :oJ B)) (rax <- (array-error :oJ B)) (rax <- (array-error :oJ B))) B -16 s

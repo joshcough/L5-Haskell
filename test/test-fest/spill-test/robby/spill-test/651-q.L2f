@@ -1,1 +1,1 @@
-((ebx <<= q) (ebx <<= q) (ebx <<= q)) q -16 s
+((rbx <<= q) (rbx <<= q) (rbx <<= q)) q -16 s

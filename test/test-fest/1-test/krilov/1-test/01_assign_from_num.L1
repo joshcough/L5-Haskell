@@ -1,28 +1,28 @@
 ; Test assigning literals to registers
 ((
-  (eax <- 15)
-  (eax <- (print eax))   ; 7
+  (rax <- 15)
+  (rax <- (print rax))   ; 7
   
-  (ecx <- 9)
-  (eax <- (print ecx))   ; 4
+  (rcx <- 9)
+  (rax <- (print rcx))   ; 4
     
   ; 0
-  (esi <- 0)
-  (eax <- (print eax))   ; 0
+  (rsi <- 0)
+  (rax <- (print rax))   ; 0
   
   ; maximum encoded number: 2^31-1
-  (edi <- 2147483647)
-  (eax <- (print edi))   ; 1073741823
+  (rdi <- 2147483647)
+  (rax <- (print rdi))   ; 1073741823
   
   ; -1
-  (eax <- -1)
-  (eax <- (print eax))   ; -1
+  (rax <- -1)
+  (rax <- (print rax))   ; -1
   
   ; -2
-  (eax <- -3)
-  (eax <- (print eax))   ; -2
+  (rax <- -3)
+  (rax <- (print rax))   ; -2
   
   ; minimum encoded number: -2^31+1 (assuming since -2^32 is even, it means it would be interpreted as an array)
-  (eax <- -2147483647)
-  (eax <- (print eax))   ; -1073741824
+  (rax <- -2147483647)
+  (rax <- (print rax))   ; -1073741824
 ))

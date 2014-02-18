@@ -1,4 +1,4 @@
-((ra <- ebx)
+((ra <- rbx)
  (x += ra)
  (x *= x)
  (ra <- x)

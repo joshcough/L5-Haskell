@@ -1,1 +1,1 @@
-((eax <- 1) (ebx <- 2) (r_0 <- eax < ebx) ((mem ebp -16) <- r_0))
+((rax <- 1) (rbx <- 2) (r_0 <- rax < rbx) ((mem ebp -16) <- r_0))

@@ -1,1 +1,1 @@
-((edi >>= edx)) r -8 s
+((rdi >>= rdx)) r -8 s

@@ -1,7 +1,7 @@
 ((a <- 1)
- (eax <- 0)
+ (rax <- 0)
  (a += a)
  (b <- 2)
- (eax += eax)
+ (rax += rax)
  (b += b))
  

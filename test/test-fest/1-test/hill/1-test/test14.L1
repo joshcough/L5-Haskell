@@ -1,16 +1,16 @@
 ;; #14 functions
-(((ecx <- 21)
+(((rcx <- 21)
   (call :some_fn)
-  (eax <- (print eax))
+  (rax <- (print rax))
   (call :another_fn)
-  (eax <- (print eax)))
+  (rax <- (print rax)))
  
  (:some_fn
-  (eax <- 19)
+  (rax <- 19)
   (return))
  
  (:another_fn
-  (eax <- 45)
+  (rax <- 45)
   (return)))
 
 

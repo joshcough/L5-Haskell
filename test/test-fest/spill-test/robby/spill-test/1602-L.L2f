@@ -1,1 +1,1 @@
-((eax <- (array-error :Dj L)) (eax <- (array-error :Dj L)) (eax <- (array-error :Dj L)) (eax <- (array-error :Dj L))) L -12 s
+((rax <- (array-error :Dj L)) (rax <- (array-error :Dj L)) (rax <- (array-error :Dj L)) (rax <- (array-error :Dj L))) L -12 s

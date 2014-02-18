@@ -2,9 +2,9 @@
  (y <- 2)
  (cjump x < y :yes :no)
  :yes
- (eax <- (print x))
+ (rax <- (print x))
  :no
- (eax <- (print y)))
+ (rax <- (print y)))
  x
  -4
- eax
+ rax

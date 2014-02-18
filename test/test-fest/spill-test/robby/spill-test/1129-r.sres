@@ -1,1 +1,1 @@
-((cjump tPM < edx :O :m) (cjump tPM < edx :O :m))
+((cjump tPM < rdx :O :m) (cjump tPM < rdx :O :m))

@@ -1,1 +1,1 @@
-((eax <- :p = eax) (eax <- :p = eax) (eax <- :p = eax) (eax <- :p = eax)) r -24 s
+((rax <- :p = rax) (rax <- :p = rax) (rax <- :p = rax) (rax <- :p = rax)) r -24 s

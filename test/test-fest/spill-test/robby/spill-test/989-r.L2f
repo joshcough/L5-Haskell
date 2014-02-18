@@ -1,1 +1,1 @@
-((o <- esi = :z) (o <- esi = :z)) r -12 s
+((o <- rsi = :z) (o <- rsi = :z)) r -12 s

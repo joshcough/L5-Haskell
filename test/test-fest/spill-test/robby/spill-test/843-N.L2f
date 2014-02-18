@@ -1,1 +1,1 @@
-((N <- ebx = ebx)) N 0 s
+((N <- rbx = rbx)) N 0 s

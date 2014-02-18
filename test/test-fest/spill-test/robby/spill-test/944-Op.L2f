@@ -1,1 +1,1 @@
-((edi <- Op <= Y)) Op 0 s
+((rdi <- Op <= Y)) Op 0 s

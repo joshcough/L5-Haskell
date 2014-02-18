@@ -1,1 +1,1 @@
-((MlZ *= ecx) (MlZ *= ecx) (MlZ *= ecx) (MlZ *= ecx)) MlZ -8 s
+((MlZ *= rcx) (MlZ *= rcx) (MlZ *= rcx) (MlZ *= rcx)) MlZ -8 s

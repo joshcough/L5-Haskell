@@ -1,1 +1,1 @@
-((L <- ecx) (L <- ecx) (L <- ecx) (L <- ecx)) L -4 s
+((L <- rcx) (L <- rcx) (L <- rcx) (L <- rcx)) L -4 s

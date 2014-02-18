@@ -1,1 +1,1 @@
-((c <- eax) (c <- eax) (c <- eax) (c <- eax))
+((c <- rax) (c <- rax) (c <- rax) (c <- rax))

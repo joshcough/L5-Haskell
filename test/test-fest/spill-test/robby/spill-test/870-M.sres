@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -16)) (TU <- edi = s0) (s1 <- (mem ebp -16)) (TU <- edi = s1))
+((s0 <- (mem ebp -16)) (TU <- rdi = s0) (s1 <- (mem ebp -16)) (TU <- rdi = s1))

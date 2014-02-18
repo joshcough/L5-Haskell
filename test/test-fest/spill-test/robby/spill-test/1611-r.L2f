@@ -1,1 +1,1 @@
-((eax <- (array-error :n edi)) (eax <- (array-error :n edi)) (eax <- (array-error :n edi))) r -20 s
+((rax <- (array-error :n rdi)) (rax <- (array-error :n rdi)) (rax <- (array-error :n rdi))) r -20 s

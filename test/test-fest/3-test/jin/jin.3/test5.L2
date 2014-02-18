@@ -8,4 +8,4 @@
   (z *= tmp)
   (z *= 2)
   (z += 1)
-  (eax <- (print z))))
+  (rax <- (print z))))

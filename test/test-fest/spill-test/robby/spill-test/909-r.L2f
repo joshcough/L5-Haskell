@@ -1,1 +1,1 @@
-((eax <- esi = KT) (eax <- esi = KT)) r -8 s
+((rax <- rsi = KT) (rax <- rsi = KT)) r -8 s

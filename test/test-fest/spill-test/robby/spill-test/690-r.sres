@@ -1,1 +1,1 @@
-((l <<= ebx) (l <<= ebx) (l <<= ebx))
+((l <<= rbx) (l <<= rbx) (l <<= rbx))

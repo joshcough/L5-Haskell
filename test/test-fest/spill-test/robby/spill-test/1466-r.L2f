@@ -1,1 +1,1 @@
-((eax <- (allocate 3 eax)) (eax <- (allocate 3 eax))) r -8 s
+((rax <- (allocate 3 rax)) (rax <- (allocate 3 rax))) r -8 s

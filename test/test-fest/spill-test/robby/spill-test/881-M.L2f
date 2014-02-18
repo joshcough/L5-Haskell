@@ -1,1 +1,1 @@
-((M <- :l <= ebx) (M <- :l <= ebx)) M -32 s
+((M <- :l <= rbx) (M <- :l <= rbx)) M -32 s

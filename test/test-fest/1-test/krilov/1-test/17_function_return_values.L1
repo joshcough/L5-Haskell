@@ -1,21 +1,21 @@
 ; Test functions
 ((
   (call :func2)  
-  (eax <- (print eax))
+  (rax <- (print rax))
   
   (call :func3)
-  (eax <- (print eax))
+  (rax <- (print rax))
   
   (call :func1)
-  (eax <- (print eax))
+  (rax <- (print rax))
   )
  (:func1
-   (eax <- 3)
+   (rax <- 3)
    (return))
  (:func2
-   (eax <- 5)
+   (rax <- 5)
    (return))
  (:func3
-   (eax <- 7)
+   (rax <- 7)
    (return))
 )

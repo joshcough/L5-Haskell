@@ -1,1 +1,1 @@
-(((mem esi 0) <- :Ox) ((mem esi 0) <- :Ox) ((mem esi 0) <- :Ox))
+(((mem rsi 0) <- :Ox) ((mem rsi 0) <- :Ox) ((mem rsi 0) <- :Ox))

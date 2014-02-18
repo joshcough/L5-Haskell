@@ -1,11 +1,11 @@
-(((ebx <- 9)
-  (eax <- 11)
+(((rbx <- 9)
+  (rax <- 11)
   :loop
-  (cjump ebx < eax :keep_going :done)
+  (cjump rbx < rax :keep_going :done)
   
   :keep_going  
-  (ebx += 1)
+  (rbx += 1)
   (goto :loop)
   
   :done
-  (eax <- (print ebx))) )
+  (rax <- (print rbx))) )

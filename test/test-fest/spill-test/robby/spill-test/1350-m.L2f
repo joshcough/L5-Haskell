@@ -1,1 +1,1 @@
-((eax <- (print m)) (eax <- (print m))) m 0 s
+((rax <- (print m)) (rax <- (print m))) m 0 s
