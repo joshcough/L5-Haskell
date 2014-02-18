@@ -6,14 +6,14 @@ void print_content(void** in, int depth) {
     printf("...");
     return;
   }
-  int x = (long) in;
+  long x = (long) in;
   if (x&1) {
-    printf("%i",x>>1);
+    printf("%ld",x>>1);
   } else {
-    int size= *((int*)in);
+    long size= *((long*)in);
     void** data = in+1;
-    int i;
-    printf("{s:%i", size);
+    long i;
+    printf("{s:%ld", size);
     for (i=0;i<size;i++) {
       printf(", ");
       print_content(*data,depth+1);
