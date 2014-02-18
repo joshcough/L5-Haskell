@@ -1,18 +1,18 @@
 ((
-  (esp -= 32)    ;; save space on the stack for 3 temporaries
+  (rsp -= 32)    ;; save space on the stack for 3 temporaries
 
   ; put something on the stack
-  ((mem esp 0) <- 3)
-  ((mem esp 8) <- 85)
-  ((mem esp 16) <- 109)
+  ((mem rsp 0) <- 3)
+  ((mem rsp 8) <- 85)
+  ((mem rsp 16) <- 109)
 
   ; set up the stack pointer to get something off the stack, i think...
-  (edx <- (mem esp 0))
-  (eax <- (print edx))
-  (edx <- (mem esp 8))
-  (eax <- (print edx))
-  (edx <- (mem esp 16))
-  (eax <- (print edx))
+  (rdx <- (mem rsp 0))
+  (rax <- (print rdx))
+  (rdx <- (mem rsp 8))
+  (rax <- (print rdx))
+  (rdx <- (mem rsp 16))
+  (rax <- (print rdx))
 
-  (esp += 32)
+  (rsp += 32)
 ))

@@ -1,5 +1,5 @@
 ((
-  (esi <- 2)
+  (rsi <- 2)
   :w
 
   (goto :wefowifwef_wefowfoiwejf_AOIOAOIDJOAI_93493sdfij23nfsdUH)
@@ -19,10 +19,10 @@
   (goto :_______________AAA)
   :_______________AAA
   
-  (esi -= 1)
-  (cjump esi = 0 :_A_A_A_A_A_A_A_A_ :w)
+  (rsi -= 1)
+  (cjump rsi = 0 :_A_A_A_A_A_A_A_A_ :w)
   
   :_A_A_A_A_A_A_A_A_
-  (eax <- 3)
-  (eax <- (print eax))
+  (rax <- 3)
+  (rax <- (print rax))
   ))

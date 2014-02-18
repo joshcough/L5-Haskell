@@ -1,17 +1,17 @@
 ((
-  (esi <- -1)
-  (eax <- (print esi))
+  (rsi <- -1)
+  (rax <- (print rsi))
 
-  (edi <- -3)
-  (eax <- (print edi))
+  (rdi <- -3)
+  (rax <- (print rdi))
 
-  (cjump edi < esi :end :bad)
+  (cjump rdi < rsi :end :bad)
 
   :bad
-  (esi <- -1)
-  (eax <- (print esi)) ; shouldnt happen
+  (rsi <- -1)
+  (rax <- (print rsi)) ; shouldnt happen
   
   :end
-  (edi <- -3)
-  (eax <- (print edi)) ; should print -2 (since -3 is -2 encoded)
+  (rdi <- -3)
+  (rax <- (print rdi)) ; should print -2 (since -3 is -2 encoded)
 ))
