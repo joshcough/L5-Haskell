@@ -18,10 +18,10 @@ isVariable _ = False
 class HasVars a where
   vars :: a -> S.Set Variable
 
-instance HasVars (L2Instruction a) where
+instance HasVars L2Instruction where
   vars = varsInst
 
-varsInst :: L2Instruction a -> S.Set Variable
+varsInst :: L2Instruction -> S.Set Variable
 varsInst = varsI where
   varsI (Assign x rhs)             = S.unions [varsX x,  varsRHS rhs]
   varsI (MathInst x _ s)           = S.unions [varsX x,  varsS s]
@@ -48,9 +48,9 @@ varsInst = varsI where
   varsRHS (SRHS s)                 = varsS s
 
 -- replaces variables with registers in an L2 function.
-replaceVarsWithRegisters :: M.Map Variable Register -> L2Func intsize -> L1Func intsize
+replaceVarsWithRegisters :: M.Map Variable Register -> L2Func -> L1Func
 replaceVarsWithRegisters replacements func = Func $ fmap replaceInInst (body func) where
-  replaceInInst :: L2Instruction intsize -> L1Instruction intsize
+  replaceInInst :: L2Instruction -> L1Instruction
   replaceInInst (Assign x rhs)        = Assign (getRegister x) (replaceInRHS rhs)
   replaceInInst (MathInst x op s)     = MathInst (getRegister x) op (replaceInS s)
   replaceInInst (MemWrite   loc s)    = MemWrite (replaceInMemLoc loc) (replaceInS s)
@@ -61,13 +61,13 @@ replaceVarsWithRegisters replacements func = Func $ fmap replaceInInst (body fun
   replaceInInst (LabelDeclaration ld) = LabelDeclaration ld
   replaceInInst Return                = Return
 
-  replaceInS :: L2S intsize -> L1S intsize
+  replaceInS :: L2S -> L1S
   replaceInS (XL2S (VarL2X v)) = maybe (error "bad register") RegL1S $ M.lookup v replacements
   replaceInS (XL2S (RegL2X r)) = RegL1S r
   replaceInS (NumberL2S n)     = NumberL1S n
   replaceInS (LabelL2S n)      = LabelL1S n
 
-  replaceInRHS :: AssignRHS L2X (L2S intsize) -> AssignRHS L1X (L1S intsize)
+  replaceInRHS :: AssignRHS L2X L2S -> AssignRHS L1X L1S
   replaceInRHS (Allocate s1 s2)       = Allocate (replaceInS s1) (replaceInS s2)
   replaceInRHS (Print s)              = Print (replaceInS s)
   replaceInRHS (ArrayError s1 s2)     = ArrayError (replaceInS s1) (replaceInS s2)

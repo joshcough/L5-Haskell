@@ -64,10 +64,10 @@ addEdges edges g = foldl (flip addEdge) g edges where
   addEdge :: (L2X, L2X) -> InterferenceGraph -> InterferenceGraph
   addEdge (x1, x2) g
     -- dont bother adding ebp or esp
-    | x1 == ebp = g
-    | x1 == esp = g
-    | x2 == ebp = g
-    | x2 == esp = g
+    | x1 == rbp = g
+    | x1 == rsp = g
+    | x2 == rbp = g
+    | x2 == rsp = g
     | x1 == x2  = g -- dont add edge between a variable or register and itself...duh
     | otherwise = unions [g, singletonEdge x1 x2] where
     singletonEdge :: L2X -> L2X -> InterferenceGraph
@@ -85,12 +85,7 @@ variables :: InterferenceGraph -> S.Set L2X
 variables = S.filter isVariable . graphMembers
 
 registerInterference :: InterferenceGraph
-registerInterference = mkGraph [
-  (eax, ebx), (eax, ecx), (eax, edi), (eax, edx), (eax, esi),
-  (ebx, ecx), (ebx, edi), (ebx, edx), (ebx, esi),
-  (ecx, edi), (ecx, edx), (ecx, esi),
-  (edi, edx), (edi, esi),
-  (edx, esi) ]
+registerInterference = mkGraph $ do [(x,y) | x <- allocatableRegisters, y <- allocatableRegisters]
 
 {-
   Build interference graph from the liveness information
@@ -100,7 +95,7 @@ registerInterference = mkGraph [
     Except that the variables x and y do not interfere if the instruction was (x <- y)
     All real registers interfere with each other
 -}
-buildInterferenceGraph :: [IIOS a] -> Interference
+buildInterferenceGraph :: [IIOS] -> Interference
 buildInterferenceGraph iioss = 
   let 
     -- start with a graph containing all of the variables and registers
@@ -126,7 +121,7 @@ buildInterferenceGraph iioss =
     outAndSpecialInterference
   ]
 
-interference1 :: IIOS a -> InterferenceGraph
+interference1 :: IIOS -> InterferenceGraph
 interference1 iios =
   let outInterference :: InterferenceGraph
       outInterference = 
@@ -146,7 +141,7 @@ interference1 iios =
             -- x gets killed here, but doesn't interfere with y
             -- (unless x gets used again later, but then x and y will
             --  interfere because of different rules)
-            assignmentRemovals :: L2Instruction a -> Maybe (L2X, L2X)
+            assignmentRemovals :: L2Instruction -> Maybe (L2X, L2X)
             assignmentRemovals (Assign v@(VarL2X _) (SRHS (XL2S x)))            = jop v x
             assignmentRemovals (Assign r@(RegL2X _) (SRHS (XL2S v@(VarL2X _)))) = jop r v
             assignmentRemovals _ = Nothing
@@ -155,18 +150,13 @@ interference1 iios =
              (S.difference initial . S.singleton) 
              (assignmentRemovals $ inst iios)
 
-      -- Constrained arithmetic operators
-      -- Add interference edges to disallow the illegal registers
-      -- then building the interference graph, before starting the coloring.
       specialInterference :: InterferenceGraph
       specialInterference = mkGraph $ f (inst iios) where
-        -- if you have this instruction (a <- y < x) then
-        -- add edges between a and the registers edi and esi,
-        -- ensuring a ends up in eax, ecx, edx, ebx, or spilled
-        -- The (cx <- s cmp s) instruction in L1 is limited to only 4 possible destinations.
-        f (Assign v@(VarL2X _) (CompRHS _)) = [(v, edi), (v, esi)]
-        f (MathInst _ LeftShift  (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
-        f (MathInst _ RightShift (XL2S x))  = [(x, eax), (x, ebx), (x, edi), (x, edx), (x, esi)]
+        -- if you have this instruction (a <- b cmp c) then
+        -- add edges between a and the registers rdi, rsi, rbp
+        -- ensuring a ends up in another register, or spilled
+        -- rdi, rsi and rbp aren't legal for comparison operations.
+        f (Assign v@(VarL2X _) (CompRHS _)) = [(v, rdi), (v, rsi), (v, rbp)]
         f _ = []
   in union outInterference specialInterference
 

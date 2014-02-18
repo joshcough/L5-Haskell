@@ -1,15 +1,10 @@
 module L.L1L2Parser 
   (
-     l1Parser32
-    ,l2Parser32
-    ,l1Parser64
-    ,l2Parser64
-    ,parseL132
-    ,parseL232
-    ,parseL164
-    ,parseL264
-    ,parseL232InstList
-    ,parseL264InstList
+     l1Parser
+    ,l2Parser
+    ,parseL1
+    ,parseL2
+    ,parseL2InstList
   ) where
 
 import Control.Monad
@@ -21,9 +16,7 @@ import L.Utils
 
 type ParseResult p = Either String p
 
-data Mode = X32 | X64
 data Parser x s = Parser {
-  mode   :: Mode,
   parseX :: String -> ParseResult x,
   parseS :: String -> ParseResult s
 }
@@ -52,7 +45,6 @@ parseI p a@(AtomSym s) = maybe
   (Left $ "not an instruction " ++ show a)
   id
   (parseLabelOrRegister
-    (mode p)
     (Right . LabelDeclaration)
     (const $ Left $ "expected a label " ++ show a)
     s
@@ -134,51 +126,37 @@ parseX86Operator _     = Left "bad operator"
 parseLabel :: String -> Label
 parseLabel s = drop 1 s
 
-parseLabelOrRegister :: Mode -> (Label -> a) -> (Register -> a) -> String -> Maybe a
-parseLabelOrRegister _ f _ l@(':' : _) = Just $ f $ parseLabel l
-parseLabelOrRegister m _ f r           = fmap f $ parseRegister m r
+parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> Maybe a
+parseLabelOrRegister f _ l@(':' : _) = Just $ f $ parseLabel l
+parseLabelOrRegister _ f r           = fmap f $ parseRegister r
 
-parseRegister :: Mode -> String -> Maybe Register
-parseRegister X32 r = do
-  reg <- registerFromName r
-  if is32Bit reg then Just reg else Nothing
-parseRegister X64 r = registerFromName r
+parseRegister :: String -> Maybe Register
+parseRegister = registerFromName
 
 -- todo add check for divisible by 4
 parseN4 n = case (sread n) of
   AtomNum n -> Right n
   AtomSym s -> Left $ "not a number" ++ n
-parseCXRegister cx = fmap CXR (cxRegisterFromName cx)
 
 -- L1 Parser (uses shared L1/L2 Parser)
-l1Parser32 :: Parser L1X L132S
-l1Parser32 = l1Parser X32
-l1Parser64 :: Parser L1X L164S
-l1Parser64 = l1Parser X64
-l1Parser mode = Parser mode parseL1Reg parseL1S where
-  parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister mode s)
+l1Parser :: Parser L1X L1S
+l1Parser = Parser parseL1Reg parseL1S where
+  parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister s)
   parseL1S s = case (sread s) of
     AtomNum n -> Right $ NumberL1S (fromIntegral n)
-    AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister mode LabelL1S RegL1S s
+    AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister LabelL1S RegL1S s
 
-parseL132 = parseProgram l1Parser32
-parseL132InstList = parseInstructionList l1Parser32
-parseL164 = parseProgram l1Parser64
-parseL164InstList = parseInstructionList l1Parser64
+parseL1 = parseProgram l1Parser
+parseL1InstList = parseInstructionList l1Parser
 
 -- L2 Parser (uses shared L1/L2 Parser)
-l2Parser32 :: Parser L2X L232S
-l2Parser32 = l2Parser X32
-l2Parser64 :: Parser L2X L264S
-l2Parser64 = l2Parser X64
-l2Parser mode = Parser mode (parseX VarL2X RegL2X) parseL2S where
-  parseX v r  s = Right $ maybe (v s) r (parseRegister mode s)
+l2Parser :: Parser L2X L2S
+l2Parser = Parser (parseX VarL2X RegL2X) parseL2S where
+  parseX v r  s = Right $ maybe (v s) r (parseRegister s)
   parseL2S    s = case (sread s) of
     AtomNum n -> Right $ NumberL2S (fromIntegral n)
     AtomSym s -> maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
-                   parseLabelOrRegister mode LabelL2S (XL2S . RegL2X) s
+                   parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
 
-parseL232 = parseProgram l2Parser32
-parseL232InstList = parseInstructionList l2Parser32
-parseL264 = parseProgram l2Parser64
-parseL264InstList = parseInstructionList l2Parser64
+parseL2 = parseProgram l2Parser
+parseL2InstList = parseInstructionList l2Parser

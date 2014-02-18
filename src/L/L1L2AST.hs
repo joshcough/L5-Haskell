@@ -5,67 +5,41 @@ module L.L1L2AST where
 import Control.Lens
 import Data.Bits
 import Data.Int
+import Data.Map (Map)
+import Data.Map as M
 import L.Read (showAsList)
 import Prelude hiding (LT, EQ)
 
+type Label    = String
 
-type Label      = String
+data Register =
+ Rax | Rbx | Rcx | Rdx |
+ Rsi | Rdi | Rbp | Rsp |
+ R8  | R9  | R10 | R11 |
+ R12 | R13 | R14 | R15 deriving (Eq,Ord,Enum,Bounded)
 
-data XRegister  = Esi | Rsi | Edi | Rdi | Ebp | Rbp | Esp | Rsp deriving (Eq,Ord,Enum,Bounded)
-
-class AsXRegister t where
-  _XR :: Prism' t XRegister
-  default _XR :: AsRegister t => Prism' t XRegister
-  _XR = _Register._XR
-
-instance AsXRegister XRegister where
-  _XR = id
-
-
-data CXRegister = Eax | Rax | Ebx | Rbx | Ecx | Rcx | Edx | Rdx deriving (Eq,Ord,Enum,Bounded)
-
-class AsCXRegister t where
-  _CXR :: Prism' t CXRegister
-  default _CXR :: AsRegister t => Prism' t CXRegister
-  _CXR = _Register._CXR
- 
-instance AsCXRegister CXRegister where
-  _CXR = id
-
-data Register   = CXR CXRegister | XR XRegister  deriving (Eq,Ord)
-
-class (AsXRegister t, AsCXRegister t) => AsRegister t where
+class AsRegister t where
   _Register :: Prism' t Register
 
 instance AsRegister Register where
   _Register = id
 
-instance AsXRegister Register where
-  _XR = prism XR $ \r -> case r of
-    XR x -> Right x
-    _ -> Left r
-
-instance AsCXRegister Register where
-  _CXR = prism CXR $ \r -> case r of
-    CXR x -> Right x
-    _ -> Left r
-
-esi = _XR  # Esi
-edi = _XR  # Edi
-ebp = _XR  # Ebp
-esp = _XR  # Esp
-rsi = _XR  # Rsi
-rdi = _XR  # Rdi
-rbp = _XR  # Rbp
-rsp = _XR  # Rsp
-eax = _CXR # Eax
-ebx = _CXR # Ebx
-ecx = _CXR # Ecx
-edx = _CXR # Edx
-rax = _CXR # Rax
-rbx = _CXR # Rbx
-rcx = _CXR # Rcx
-rdx = _CXR # Rdx
+rsi = _Register # Rsi
+rdi = _Register # Rdi
+rbp = _Register # Rbp
+rsp = _Register # Rsp
+r8  = _Register # R8
+r9  = _Register # R9
+r10 = _Register # R10
+r11 = _Register # R11
+r12 = _Register # R12
+r13 = _Register # R13
+r14 = _Register # R14
+r15 = _Register # R15
+rax = _Register # Rax
+rbx = _Register # Rbx
+rcx = _Register # Rcx
+rdx = _Register # Rdx
 
 data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
@@ -105,19 +79,12 @@ x86OpSymbol LeftShift  = "<<="
 x86OpSymbol RightShift = ">>="
 x86OpSymbol BitwiseAnd = "&="
 
-x86OpName Increment  = "addl"
-x86OpName Decrement  = "subl"
-x86OpName Multiply   = "imull"
-x86OpName LeftShift  = "sall"
-x86OpName RightShift = "sarl"
-x86OpName BitwiseAnd = "andl"
-
-x8664OpName Increment  = "addq"
-x8664OpName Decrement  = "subq"
-x8664OpName Multiply   = "imulq"
-x8664OpName LeftShift  = "salq"
-x8664OpName RightShift = "sarq"
-x8664OpName BitwiseAnd = "andq"
+x86OpName Increment  = "addq"
+x86OpName Decrement  = "subq"
+x86OpName Multiply   = "imulq"
+x86OpName LeftShift  = "salq"
+x86OpName RightShift = "sarq"
+x86OpName BitwiseAnd = "andq"
 
 runOp :: (Num a, Bits a, Integral a) => X86Op -> a -> a -> a
 runOp Increment  l r = l + r
@@ -144,38 +111,23 @@ instance (Show x, Show s) => Show (Instruction x s) where
   show (TailCall s)         = showAsList ["tail-call", show s]
   show Return               = "(return)"
 
-instance Show XRegister where
-  show Esi = "esi"
-  show Edi = "edi"
-  show Ebp = "ebp"
-  show Esp = "esp"
-  show Rsi = "rsi"
-  show Rdi = "rdi"
-  show Rbp = "rbp"
-  show Rsp = "rsp"
-instance Show CXRegister where
-  show Eax = "eax"
-  show Ebx = "ebx"
-  show Ecx = "ecx"
-  show Edx = "edx"
+instance Show Register where
   show Rax = "rax"
   show Rbx = "rbx"
   show Rcx = "rcx"
   show Rdx = "rdx"
-
-get64BitReg :: Register -> Register
-get64BitReg (XR Esi)  = XR  Rsi
-get64BitReg (XR Edi)  = XR  Rdi
-get64BitReg (XR Ebp)  = XR  Rbp
-get64BitReg (XR Esp)  = XR  Rsp
-get64BitReg (CXR Eax) = CXR Rax
-get64BitReg (CXR Ebx) = CXR Rbx
-get64BitReg (CXR Ecx) = CXR Rcx
-get64BitReg (CXR Edx) = CXR Rdx
-
-instance Show Register where
-  show (CXR cxr) = show cxr
-  show (XR xr)   = show xr
+  show Rsi = "rsi"
+  show Rdi = "rdi"
+  show Rbp = "rbp"
+  show Rsp = "rsp"
+  show R8  = "r8"
+  show R9  = "r9"
+  show R10 = "r10"
+  show R11 = "r11"
+  show R12 = "r12"
+  show R13 = "r13"
+  show R14 = "r14"
+  show R15 = "r15"
 
 instance (Show x, Show s) => Show (AssignRHS x s) where
   show (CompRHS c)        = show c
@@ -191,49 +143,16 @@ instance (Show x) => Show (MemLoc x) where
 instance (Show s) => Show (Comp s) where
   show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]
 
-xRegisters      = [Esi, Edi, Ebp, Esp]
-cxRegisters     = [Eax, Ebx, Ecx, Edx]
-xRegisterNames  = map show xRegisters
-cxRegisterNames = map show cxRegisters
-
-xRegisterFromName :: String -> Maybe XRegister
-xRegisterFromName "esi" = Just Esi
-xRegisterFromName "edi" = Just Edi
-xRegisterFromName "ebp" = Just Ebp
-xRegisterFromName "esp" = Just Esp
-xRegisterFromName "rsi" = Just Rsi
-xRegisterFromName "rdi" = Just Rdi
-xRegisterFromName "rbp" = Just Rbp
-xRegisterFromName "rsp" = Just Rsp
-xRegisterFromName _     = Nothing
-
-cxRegisterFromName :: String -> Maybe CXRegister
-cxRegisterFromName "eax" = Just Eax
-cxRegisterFromName "ebx" = Just Ebx
-cxRegisterFromName "ecx" = Just Ecx
-cxRegisterFromName "edx" = Just Edx
-cxRegisterFromName "rax" = Just Rax
-cxRegisterFromName "rbx" = Just Rbx
-cxRegisterFromName "rcx" = Just Rcx
-cxRegisterFromName "rdx" = Just Rdx
-cxRegisterFromName _     = Nothing
+registers :: [Register]
+registers      = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
+allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14, r15]
+registerNames :: [String]
+registerNames  = fmap show registers
+registerNamesMap :: Map String Register
+registerNamesMap = M.fromList (zip registerNames registers)
 
 registerFromName :: String -> Maybe Register
-registerFromName s = maybe (fmap CXR (cxRegisterFromName s)) (Just . XR) (xRegisterFromName s)
-
-is32Bit :: Register -> Bool
-is32Bit (XR Esi)  = True
-is32Bit (XR Edi)  = True
-is32Bit (XR Ebp)  = True
-is32Bit (XR Esp)  = True
-is32Bit (CXR Eax) = True
-is32Bit (CXR Ebx) = True
-is32Bit (CXR Ecx) = True
-is32Bit (CXR Edx) = True
-is32Bit _ = False
-
-is64Bit :: Register -> Bool
-is64Bit = not . is32Bit
+registerFromName s = M.lookup s registerNamesMap
 
 instance Show CompOp where
   show LT   = "<"
@@ -258,22 +177,12 @@ foldOp _ _ a EQ   = a
 
 -- L1 AST (uses shared L1/L2 AST)
 type L1X = Register
-data L1S intsize = NumberL1S intsize | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
-type L1Instruction intsize = Instruction L1X (L1S intsize)
-type L1Func intsize = Func L1X (L1S intsize)
-type L1 intsize = Program L1X (L1S intsize)
+data L1S = NumberL1S Int64 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
+type L1Instruction = Instruction L1X L1S
+type L1Func = Func L1X L1S
+type L1 = Program L1X L1S
 
-type L132S = L1S Int32
-type L132Instruction = L1Instruction Int32
-type L132Func = L1Func Int32
-type L132 = L1 Int32
-
-type L164S = L1S Int64
-type L164Instruction = L1Instruction Int64
-type L164Func = L1Func Int64
-type L164 = L1 Int64
-
-instance Show intsize => Show (L1S intsize) where
+instance Show L1S where
   show (NumberL1S n) = show n
   show (LabelL1S l)  = ":" ++ l
   show (RegL1S r)    = show r
@@ -300,32 +209,17 @@ instance AsVariable L2X where
     VarL2X x -> Right x
     _        -> Left r
 
-instance AsXRegister L2X
-instance AsCXRegister L2X
-
-data L2S intsize = XL2S L2X | NumberL2S intsize | LabelL2S Label deriving (Eq, Ord)
+data L2S = XL2S L2X | NumberL2S Int64 | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X
-type L2Instruction intsize = Instruction L2X (L2S intsize)
-type L2Func intsize = Func L2X (L2S intsize)
-type L2 intsize = Program L2X (L2S intsize)
-
-type L232S = L2S Int32
-type L232Instruction = L2Instruction Int32
-type L232Func = L2Func Int32
-type L232 = L2 Int32
-
-type L264S = L2S Int64
-type L264Instruction = L2Instruction Int64
-type L264Func = L2Func Int64
-type L264 = L2 Int64
-
-
+type L2Instruction = Instruction L2X L2S
+type L2Func = Func L2X L2S
+type L2 = Program L2X L2S
 
 instance Show L2X where
   show (RegL2X r) = show r
   show (VarL2X v) = v
 
-instance Show intsize => Show (L2S intsize) where
+instance Show L2S where
   show (NumberL2S n)   = show n
   show (LabelL2S l)    = ":" ++ l
   show (XL2S x)        = show x

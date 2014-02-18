@@ -30,10 +30,9 @@ tests = do
 tests2_ = [l2Tests]
 
 tests_ = [
-  l1Tests
- ,livenessTests
- ,interferenceTests
- ,spillTests 
+--  livenessTests
+-- ,interferenceTests
+  spillTests
  ,l1InterpreterTests
  ,l164Tests ]
 
@@ -47,16 +46,9 @@ data TestDef = TestDef
   , compute :: FilePath -> String -> String -> Assertion
   }
 
-l1Tests = TestDef { 
-  name = "L1" 
- ,dir  = testDir
- ,inputFileExt = "L1"
- ,outputFileExt = "S"
- ,compute = \_ r e -> strip (compileL132OrDie r) @?= (strip e)
-}
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
- ,dir = testDir ++ "1-test"
+ ,dir = "test/x86-64-tests"
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
  ,compute = \_ r e -> strip (interpL1OrDie r) @?= strip e

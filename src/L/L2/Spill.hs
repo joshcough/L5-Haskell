@@ -31,7 +31,7 @@ spillTest input = case (sreadWithRest input) of
         var = w !! 0
         off = read $ w !! 1
         pre = w !! 2
-        ins = extract $ parseL264InstList program
+        ins = extract $ parseL2InstList program
     in showAsList $ fmap show $ fst $ runState (spill pre (var, off) ins) 0
 
 runSpillMain_ :: FilePath -> IO String
@@ -39,17 +39,17 @@ runSpillMain_ = compile1 spillTest
 
 spillDef (v,i) = spill defaultSpillPrefix (v, i)
 
-spill :: (Eq a, Show a) => String -> (Variable, Int) -> [L2Instruction a] -> State Int [L2Instruction a]
+spill :: String -> (Variable, Int) -> [L2Instruction] -> State Int [L2Instruction]
 spill spillPrefix (spillVar, stackOffset) ins = 
   join <$> traverse (spillInst spillPrefix (spillVar, stackOffset)) ins
 
 -- Spill a variable
 --   spillVar is obviously the variable to spill
 --   stackOffset is the location in memory to spill the variable
-spillInst :: (Eq a, Show a) => String -> (Variable, Int) -> L2Instruction a -> State Int [L2Instruction a]
+spillInst :: String -> (Variable, Int) -> L2Instruction -> State Int [L2Instruction]
 spillInst spillPrefix (spillVar, stackOffset) = spillI where
 
-  memLoc = MemLoc ebp stackOffset
+  memLoc = MemLoc rsp stackOffset
   spillVarX = VarL2X spillVar
   spillVarS = XL2S spillVarX
   readSpillVarInto x = Assign x (MemRead memLoc)
@@ -63,9 +63,9 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
 
   withNewVar   :: (L2X -> a) -> State Int a
   withNewVar   f = fmap f newVar
-  withNewVarR  :: (L2X -> [L2Instruction a]) -> State Int [L2Instruction a]
+  withNewVarR  :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
   withNewVarR  f = fmap (\v -> readSpillVarInto v : f v) newVar
-  withNewVarRW :: (L2X -> [L2Instruction a]) -> State Int [L2Instruction a]
+  withNewVarRW :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
   withNewVarRW f = fmap (\v -> readSpillVarInto v : (f v ++ [writeSpillVar v])) newVar
 
   spillI (Assign x rhs)                 = spillAssignment x rhs
@@ -82,7 +82,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
   spillI l@(LabelDeclaration _)     = return [l]
   spillI r@Return                   = return [r]
   
-  spillAssignment :: (Eq a, Show a) => L2X -> AssignRHS L2X (L2S a) -> State Int [L2Instruction a]
+  spillAssignment :: L2X -> AssignRHS L2X L2S -> State Int [L2Instruction]
   -- assignments to variable from variable
   spillAssignment v1@(VarL2X _) rhs@(SRHS (XL2S v2@(VarL2X _)))
     -- if we have x <- x, just remove it.
@@ -167,33 +167,33 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
     | s2 == spillVarS = withNewVarR $ \v ->
       [Assign v1 (CompRHS $ Comp s1 op (XL2S v))]
     | otherwise = return [Assign v1 c]
-  -- (eax <- (print s))
+  -- (rax <- (print s))
   spillAssignment r p@(Print s)
-    | r == eax && s == spillVarS = 
-       withNewVarR $ \v -> [Assign eax (Print (XL2S v))]
-    | r == eax = return [Assign r p]
+    | r == rax && s == spillVarS = 
+       withNewVarR $ \v -> [Assign rax (Print (XL2S v))]
+    | r == rax = return [Assign r p]
   spillAssignment r a@(Allocate n init)
-    -- (eax <- (allocate x x))
-    | r == eax && n == spillVarS && init == spillVarS =
-       withNewVarR $ \v -> [Assign eax (Allocate (XL2S v) (XL2S v))]
-    -- (eax <- (allocate x i))
-    | r == eax && n == spillVarS =
-       withNewVarR $ \v -> [Assign eax (Allocate (XL2S v) init)]
-    -- (eax <- (allocate n x))
-    | r == eax && init == spillVarS =
-       withNewVarR $ \v -> [Assign eax (Allocate n (XL2S v))]
-    | r == eax = return [Assign r a]
+    -- (rax <- (allocate x x))
+    | r == rax && n == spillVarS && init == spillVarS =
+       withNewVarR $ \v -> [Assign rax (Allocate (XL2S v) (XL2S v))]
+    -- (rax <- (allocate x i))
+    | r == rax && n == spillVarS =
+       withNewVarR $ \v -> [Assign rax (Allocate (XL2S v) init)]
+    -- (rax <- (allocate n x))
+    | r == rax && init == spillVarS =
+       withNewVarR $ \v -> [Assign rax (Allocate n (XL2S v))]
+    | r == rax = return [Assign r a]
   spillAssignment r ae@(ArrayError a n)
-    -- (eax <- (array-error x x))
-    | r == eax && a == spillVarS && n == spillVarS =
-       withNewVarR $ \v -> [Assign eax (ArrayError (XL2S v) (XL2S v))]
-    -- (eax <- (array-error x i))
-    | r == eax && a == spillVarS =
-       withNewVarR $ \v -> [Assign eax (ArrayError (XL2S v) n)]
-    -- (eax <- (array-error n x))
-    | r == eax && n == spillVarS =
-       withNewVarR $ \v -> [Assign eax (ArrayError a (XL2S v))]
-    | r == eax = return [Assign r ae]
+    -- (rax <- (array-error x x))
+    | r == rax && a == spillVarS && n == spillVarS =
+       withNewVarR $ \v -> [Assign rax (ArrayError (XL2S v) (XL2S v))]
+    -- (rax <- (array-error x i))
+    | r == rax && a == spillVarS =
+       withNewVarR $ \v -> [Assign rax (ArrayError (XL2S v) n)]
+    -- (rax <- (array-error n x))
+    | r == rax && n == spillVarS =
+       withNewVarR $ \v -> [Assign rax (ArrayError a (XL2S v))]
+    | r == rax = return [Assign r ae]
   spillAssignment l r = error $ "bad assignment: " ++ (show $ Assign l r)
 
   spillCJump c@(Comp s1 op s2) l1 l2
@@ -209,7 +209,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
   -- if x or s is being spilled, 
   -- create a new var and read the spilled vars value from memory into it
   -- then do the original computation using the new var instead of x or s
-  spillMathInst :: (Eq a) => L2X -> X86Op -> L2S a -> State Int [L2Instruction a]
+  spillMathInst :: L2X -> X86Op -> L2S -> State Int [L2Instruction]
   spillMathInst x op s 
     -- (x += x) for any op, where x is being spilled (x is now in memory)
     | x == spillVarX && XL2S x == s = withNewVarRW $ \v -> [MathInst v op (XL2S v)]  
@@ -221,7 +221,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
     -- spill var is not in the instruction, so just return it.
     | otherwise = return [MathInst x op s]
 
-  spillMemWrite :: (Eq a) => L2MemLoc -> L2S a -> State Int [L2Instruction a] 
+  spillMemWrite :: L2MemLoc -> L2S -> State Int [L2Instruction]
   spillMemWrite loc@(MemLoc bp off) s
     -- ((mem x 4) <- x)
     -- (s_0 <- (mem ebp stackOffset))

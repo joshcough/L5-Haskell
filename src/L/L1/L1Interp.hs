@@ -30,30 +30,24 @@ import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import L.CompilationUnit
 import L.IOHelpers
-import L.L1L2AST
+import L.L1L2AST hiding (registers)
 import L.L1L2Parser
 import L.Read
 import L.Utils
 
-type RegisterState ws = Map Register ws
-type Memory ws = Vector ws
+type RegisterState = Map Register Int64
+type Memory = Vector Int64
 type Output = [String]
-type Ip ws = ws -- instruction pointer
+type Ip = Int64 -- instruction pointer
 
-class (Bits ws, Num ws, Integral ws, Ord ws, Show ws) => WordSize ws where
-
-instance WordSize Int32
-instance WordSize Int64
-
--- ws is Word Size
-data Computer ws = Computer {
-   _registers :: RegisterState ws
- , _memory    :: Memory ws
- , _program   :: Vector (L1Instruction ws)
- , _labels    :: Map (L1Instruction ws) ws
+data Computer = Computer {
+   _registers :: RegisterState
+ , _memory    :: Memory
+ , _program   :: Vector L1Instruction
+ , _labels    :: Map L1Instruction Int64
  , _output    :: Output
- , _ip        :: Ip ws
- , _heapP     :: ws -- pointer to top of heap
+ , _ip        :: Ip
+ , _heapP     :: Int64 -- pointer to top of heap
  , _halted    :: Bool
 } deriving Show
 
@@ -63,20 +57,29 @@ showOutput c = mkString "" $ reverse (c^.output)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
-memSize = 2048 -- twoMeg
-ebpStart :: WordSize ws => ws
-ebpStart = ((fromIntegral memSize - 1) * 4)
-espStart :: WordSize ws => ws
-espStart = ebpStart
-zero :: WordSize ws => ws
-zero = 0
-registerStartState :: WordSize ws => RegisterState ws
-registerStartState = Map.fromList [(eax, zero), (ebx, zero), (ecx, zero), (edx, zero),
-                                   (edi, zero), (esi, zero), (ebp, ebpStart), (esp, espStart)]
-emptyMem :: WordSize ws => Memory ws
-emptyMem = Vector.replicate memSize 0
+memSize = 2048 :: Int -- twoMeg
+rbpStart = ((fromIntegral memSize - 1) * 4)
+rspStart = rbpStart
+zero = 0 :: Int64
+registerStartState = Map.fromList [
+ (rax, zero),
+ (rbx, zero),
+ (rcx, zero),
+ (rdx, zero),
+ (rdi, zero),
+ (r8 , zero),
+ (r9 , zero),
+ (r10, zero),
+ (r11, zero),
+ (r12, zero),
+ (r13, zero),
+ (r14, zero),
+ (r15, zero),
+ (rsi, zero),
+ (rbp, rbpStart),
+ (rsp, rspStart) ]
+emptyMem = Vector.replicate memSize zero
 
-newComputer :: WordSize ws => L1 ws -> Computer ws
 newComputer (Program main fs) = Computer rss emptyMem prog indices [] 0 0 False where
   rss = registerStartState
   -- put all the instructions into a single vector
@@ -86,64 +89,64 @@ newComputer (Program main fs) = Computer rss emptyMem prog indices [] 0 0 False 
     f (x,i) = (x, fromIntegral i)
 
 -- set the value of a register to an int value
-writeReg :: WordSize ws => Register -> ws -> Computer ws -> Computer ws
+writeReg :: Register -> Int64 -> Computer -> Computer
 writeReg reg newValue c = newReg (Map.insert reg newValue $ c^.registers) c
 
 -- set the value of r1 to the value of r2
-set :: WordSize ws => Register -> Register -> Computer ws -> Computer ws
+set :: Register -> Register -> Computer -> Computer
 set r1 r2 c = writeReg r1 (readReg r2 c) c
 
 -- read the value of a register
-readReg :: WordSize ws => Register -> Computer ws -> ws
+readReg :: Register -> Computer -> Int64
 readReg r c = 
   maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ c^.registers)
 
 -- write an int into memory at the given address
-writeMem :: WordSize ws => ws -> ws -> Computer ws -> Computer ws
+writeMem :: Int64 -> Int64 -> Computer -> Computer
 writeMem addr value c = newMem ((c^.memory) Vector.// [(fromIntegral addr `div` 4, value)]) c
 
 -- read a single int from memory
-readMem :: WordSize ws => ws -> Computer ws -> ws
+readMem :: Int64 -> Computer -> Int64
 readMem addr c = (c^.memory) Vector.! (fromIntegral addr `div` 4)
 
 -- read an array from memory
-readArray :: WordSize ws => ws -> Computer ws -> Vector ws
+readArray :: Int64 -> Computer -> Vector Int64
 readArray addr c = 
   let size = readMem addr c
   in Vector.slice (fromIntegral addr `div` 4 + 1) (fromIntegral size) (c^.memory)
 
 -- push the given int argument onto the top of the stack
--- adjust esp accordingly
+-- adjust rsp accordingly
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: WordSize ws => ws -> Computer ws -> Computer ws
+push :: Int64 -> Computer -> Computer
 push value c =
-  let espVal = readReg esp c - 4
-      c'     = writeReg esp espVal c
-  in  writeMem espVal value c'
+  let rspVal = readReg rsp c - 4
+      c'     = writeReg rsp rspVal c
+  in  writeMem rspVal value c'
 
 -- pop the top value off the stack into the given register
--- adjust esp accordingly.
-pop :: WordSize ws => Register -> Computer ws -> Computer ws
+-- adjust rsp accordingly.
+pop :: Register -> Computer -> Computer
 pop r c =
-  let espVal   = readReg esp c
-      c' = writeReg r (readMem espVal c) c
-  in writeReg esp (espVal + 4) c'
+  let rspVal   = readReg rbp c
+      c' = writeReg r (readMem rspVal c) c
+  in writeReg rsp (rspVal + 4) c'
 
-ret :: WordSize ws => Computer ws -> Computer ws
+ret :: Computer -> Computer
 ret c = 
-  let espVal = readReg esp c
-      done   = espVal >= (fromIntegral $ Vector.length (c^.memory) * 4)
-      c'     = writeReg esp (espVal + 4) c
-      c''    = goto (readMem espVal c') c'
+  let rspVal = readReg rsp c
+      done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 4)
+      c'     = writeReg rsp (rspVal + 4) c
+      c''    = goto (readMem rspVal c') c'
   in if done then halt c else c''
 
-adjustNum :: Bits ws => ws -> ws
+adjustNum :: Int64 -> Int64
 adjustNum n = shiftR n 1
 
 -- TODO: test if heap runs into stack, and vice-versa
-allocate :: WordSize ws => ws -> ws -> Computer ws -> (ws, Computer ws)
+allocate :: Int64 -> Int64 -> Computer -> (Int64, Computer)
 allocate size n c =
   let size'   = adjustNum size
       ns      = Prelude.replicate (fromIntegral size') n
@@ -156,9 +159,8 @@ allocate size n c =
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-l1print :: WordSize ws => ws -> Computer ws -> Computer ws
+l1print :: Int64 -> Computer -> Computer
 l1print n c = addOutput (printContent n 0 ++ "\n") c where
-  --printContent :: Num ws1 => ws1 -> ws1 -> String
   printContent n depth
     | depth >= 4   = "..."
     | n .&. 1 == 1 = show $ shiftR n 1
@@ -170,53 +172,53 @@ l1print n c = addOutput (printContent n 0 ++ "\n") c where
       in "{s:" ++ contents ++ "}"
 
 -- print an array error
-arrayError :: WordSize ws => ws -> ws -> Computer ws -> Computer ws
+arrayError :: Int64 -> Int64 -> Computer -> Computer
 arrayError a x c = haltWith msg c where
   pos  = show $ adjustNum x
   size = show $ readMem a c
   msg  = "attempted to use position " ++ pos ++ 
          " in an array that only has "++ size ++" positions"
 
-findLabelIndex :: WordSize ws => Label -> Computer ws -> ws
+findLabelIndex :: Label -> Computer -> Int64
 findLabelIndex l c =
   maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) (c^.labels))
 
-readS :: WordSize ws => L1S ws -> Computer ws -> ws
+readS :: L1S -> Computer -> Int64
 readS (NumberL1S n) _ = n
 readS (RegL1S r)    c = readReg r c
 readS (LabelL1S l)  c = findLabelIndex l c
 
-newReg :: WordSize ws => RegisterState ws -> Computer ws -> Computer ws
+newReg :: RegisterState -> Computer -> Computer
 newReg r c = c & registers .~ r
-newMem :: Memory ws -> Computer ws -> Computer ws
+newMem :: Memory -> Computer -> Computer
 newMem m c = c & memory .~ m
-goto :: Ip ws -> Computer ws -> Computer ws
+goto :: Ip -> Computer -> Computer
 goto m c = c & ip .~ m
-addOutput :: String -> Computer ws -> Computer ws
+addOutput :: String -> Computer -> Computer
 addOutput s c = c & output %~ (s:)
 haltWith msg c = c & addOutput msg & halted .~ True
 halt c = c & halted .~ True
 currentInst c = (c^.program) Vector.! (fromIntegral $ c^.ip)
 hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
 -- advance the computer to the next instruction
-nextInst :: WordSize ws => Computer ws -> Computer ws
+nextInst :: Computer -> Computer
 nextInst c = goto (c^.ip + 1) c
 -- goto the next instruction after writing a register
-nextInstWR :: WordSize ws => Register -> ws -> Computer ws -> Computer ws
+nextInstWR :: Register -> Int64 -> Computer -> Computer
 nextInstWR r i c = nextInst $ writeReg r i c
 
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
-interpL1 :: WordSize ws => L1 ws -> Computer ws
+interpL1 :: L1 -> Computer
 interpL1 p = go (newComputer p)
 
 -- the main loop, runs a computer until completion
-go :: WordSize ws => Computer ws -> Computer ws
+go :: Computer -> Computer
 go c 
   | c^.halted || not (hasNextInst c) = c
   | otherwise = go $ step (currentInst c) c
 
-step :: WordSize ws => L1Instruction ws -> Computer ws -> Computer ws
+step :: L1Instruction -> Computer -> Computer
 -- Assignment statements
 step (Assign r (CompRHS (Comp s1 op s2))) c  = nextInstWR r 
   (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
@@ -250,16 +252,16 @@ step (LabelDeclaration _) c = nextInst c
 step (Call s) c = 
   let func = readS s c
       c'   = push (c^.ip + 1) c
-      c''  = push (readReg ebp c') c' -- pushl %ebp
-      c''' = set ebp esp c''          -- movl %esp, %ebp
+      c''  = push (readReg rbp c') c' -- pushl %rbp
+      c''' = set rbp rsp c''          -- movl %rsp, %rbp
   in goto func c'''
 -- TailCall
 step (TailCall s) c = goto (readS s c) c
 -- Return
-step Return c = ret $ pop ebp $ set esp ebp c
+step Return c = ret $ pop rbp $ set rsp rbp c
 
 interpL1String :: String -> Either String String
-interpL1String code = showOutput . interpL1 <$> parseL132 (sread code)
+interpL1String code = showOutput . interpL1 <$> parseL1 (sread code)
 
 interpL1OrDie :: String -> String
 interpL1OrDie = (either error id) . interpL1String

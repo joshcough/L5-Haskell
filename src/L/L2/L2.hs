@@ -18,7 +18,7 @@ import L.L1L2Parser
 import L.Read
 import L.Utils
 import L.L1.L1 (compileL1AndRunNative)
-import L.L1.L164
+import L.L1.L1X86
 import L.L1.L1Interp
 import L.L2.Interference
 import L.L2.Liveness
@@ -34,34 +34,34 @@ import L.L2.Vars
 -- it does this until either a) it works, or b) it is out of variables to spill.
 -- the last case results in error.
 
-compileL264 :: String -> Either String L164
-compileL264 code = genL1Code <$> parseL264 (sread code) where
+compileL2 :: String -> Either String L1
+compileL2 code = genL1Code <$> parseL2 (sread code) where
   --genL1Code :: L2 -> L1
   genL1Code (Program main fs) = 
     -- TODO: in scala, I stripped off the main label if it was present
     -- in the main function. Why did I do that? Do I need to here?
     Program (allocate True main) $ (allocate False <$> fs)
 
-compileL264OrDie :: String -> L164
-compileL264OrDie = (either error id) . compileL264
+compileL2OrDie :: String -> L1
+compileL2OrDie = (either error id) . compileL2
 
-compileL264ToX86 :: String -> String
-compileL264ToX86 code = either error id $ compileL264 code >>= genX8664Code
+compileL2ToX86 :: String -> String
+compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code
 
---compileL264File :: IO ()
---compileL264File = compile compileL264OrDie "S"
-compileL264File_ :: FilePath -> IO L164
-compileL264File_ = compile1 compileL264OrDie
+--compileL2File :: IO ()
+--compileL2File = compile compileL2OrDie "S"
+compileL2File_ :: FilePath -> IO L1
+compileL2File_ = compile1 compileL2OrDie
 
 compileL2FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL2FileAndRunNative l2File outputDir = do
-  l1 <- compileL264File_ l2File
+  l1 <- compileL2File_ l2File
   _  <- writeFile l1File (show l1)
   compileL1AndRunNative l1 (Just l2File) outputDir where
   l1File = changeDir (changeExtension l2File "L1") outputDir
 
 interpL2String :: String -> Either String String
-interpL2String code = showOutput . interpL1 <$> compileL264 code
+interpL2String code = showOutput . interpL1 <$> compileL2 code
 
 interpL2OrDie :: String -> String
 interpL2OrDie = (either error id) . interpL2String
@@ -72,22 +72,22 @@ interpL2File =
 
 -- gives back a fully allocated function (if its possible to allocate it)
 -- with all of the variables replaced with the assigned registers.
-allocate :: (Num a, Ord a, Show a) => Bool -> L2Func a -> L1Func a
+allocate :: Bool -> L2Func -> L1Func
 allocate isMain f = let
-    ((allocatedFunction, allocs), espOffset) = allocateCompletely f 
+    ((allocatedFunction, allocs), rspOffset) = allocateCompletely f 
     -- adjust the stack at the start of the function right here.
     label = allocatedFunction !! 0
     bodyWithoutLabel = tail allocatedFunction
-    decEsp :: Num a => L2Instruction a
-    decEsp = MathInst (RegL2X esp) decrement (NumberL2S (- (fromIntegral espOffset)))
-    incEspMaybe :: Num a => [L2Instruction a]
+    decEsp :: L2Instruction
+    decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (- (fromIntegral rspOffset)))
+    incEspMaybe :: [L2Instruction]
     incEspMaybe = if isMain 
-                  then [MathInst (RegL2X esp) increment (NumberL2S (- (fromIntegral espOffset)))] 
+                  then [MathInst (RegL2X rsp) increment (NumberL2S (- (fromIntegral rspOffset)))] 
                   else []
     finalFunction = Func $ concat [[label], [decEsp], bodyWithoutLabel, incEspMaybe]
   in replaceVarsWithRegisters allocs finalFunction
 
-allocateCompletely :: (Num a, Ord a, Show a) => L2Func a -> (([L2Instruction a], Map Variable Register), Int)
+allocateCompletely :: L2Func -> (([L2Instruction], Map Variable Register), Int)
 allocateCompletely originalF = let
   -- TODO: there are no order to these variables
   -- need to pick based on # connections, and liveness length
@@ -98,11 +98,7 @@ allocateCompletely originalF = let
   offset = snd finalState
   in (traceA $ fst finalState, offset)
 
-go :: (Num a, Ord a, Show a) => 
-  Int -> 
-  (Int -> Variable) -> 
-  [L2Instruction a] -> 
-  State Int ([L2Instruction a], Map Variable Register)
+go :: Int -> (Int -> Variable) -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
 go offset nextVarF insts =
   let g = buildInterferenceGraph $ liveness insts
   in case attemptAllocation g of
@@ -112,19 +108,18 @@ go offset nextVarF insts =
 {-
   OLD STUFF THAT USED foldM.
   --nrVarsToSpill = length varsToSpill
-  --espOffset = (- nrVarsToSpill * 8) - (if even nrVarsToSpill then 0 else 8)
+  --rspOffset = (- nrVarsToSpill * 8) - (if even nrVarsToSpill then 0 else 8)
   --finalState = runState (foldM (flip spillDef) (body originalF) (zipWithIndex varsToSpill)) 0
   --finalBody = fst runState
   --finalOffset = snd runState
   --g = buildInterferenceGraph $ liveness finalBody
   --in case attemptAllocation g of
-  --  Just registerMap -> traceA ((Func newBody, registerMap), espOffset)
+  --  Just registerMap -> traceA ((Func newBody, registerMap), rspOffset)
   --  Nothing -> error "allocation impossible"
  -} 
 
 -- TODO: this stuff should be someplace better than this
-registers = [eax, ebx, ecx, edx, edi, esi] 
-regSet = Set.fromList registers
+regSet = Set.fromList allocatableRegisters
 getRegisters s = Set.fromList [ r | RegL2X r <- Set.toList s ]
 
 attemptAllocation :: Interference -> Maybe (Map Variable Register)
@@ -170,7 +165,7 @@ findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   choice :: Maybe Register
   choice = listToMaybe $ Set.toList availableRegisters -- TODO: sort list here.
 
--- sets up the function so that edi and esi can be spilled.
+{-
 initialRewrite :: L2Func a -> L2Func a
 initialRewrite f = let
   z1In  = Assign (VarL2X "__z1") $ SRHS $ (XL2S . RegL2X) edi
@@ -186,3 +181,4 @@ initialRewrite f = let
   label                = body f !! 0
   insts                = drop 1 $ body f
   in Func $ concat [[label], [z1In,z2In], (insts >>= returnAdjustment)]
+-}
