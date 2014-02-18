@@ -1,5 +1,12 @@
 {-# LANGUAGE TupleSections #-}
-module L.L2.L2 where
+module L.L2.L2
+  (
+    compileL2
+   ,compileL2OrDie
+   ,compileL2FileAndRunNative
+   ,interpL2File
+  )
+where
 
 import Control.Applicative
 import Control.Lens

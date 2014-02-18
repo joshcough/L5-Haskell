@@ -9,9 +9,10 @@ module L.L1.L1Interp
   (
     Computer(..)
    ,interpL1
-   ,interpL1File
    ,interpL1OrDie
+   ,interpL1File
    ,interpL1String
+   ,interpL1StringOrDie
    ,showOutput
   )
 where
@@ -260,11 +261,14 @@ step (TailCall s) c = goto (readS s c) c
 -- Return
 step Return c = ret $ pop rbp $ set rsp rbp c
 
+interpL1OrDie :: L1 -> String
+interpL1OrDie = showOutput . interpL1
+
 interpL1String :: String -> Either String String
 interpL1String code = showOutput . interpL1 <$> parseL1 (sread code)
 
-interpL1OrDie :: String -> String
-interpL1OrDie = (either error id) . interpL1String
+interpL1StringOrDie :: String -> String
+interpL1StringOrDie = (either error id) . interpL1String
 
 interpL1File = 
   do s <- compile_ $ (either error id) . interpL1String

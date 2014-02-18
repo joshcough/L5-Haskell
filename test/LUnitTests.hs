@@ -16,7 +16,7 @@ import System.IO.Unsafe
 import L.IOHelpers
 import L.L1.L1
 import L.L1.L1Interp
-import L.L2.L2 (compileL2FileAndRunNative)
+import L.L2.L2
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
@@ -24,7 +24,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree tests_
+  ts <- traverse tree tests2_
   return $ testGroup "Main" ts
 
 tests2_ = [l2Tests]
@@ -34,7 +34,8 @@ tests_ = [
 -- ,interferenceTests
   spillTests
  ,l1InterpreterTests
- ,l164Tests ]
+ ,l164Tests
+ ,l2Tests ]
 
 testDir = "./test/test-fest/"
 
@@ -51,7 +52,7 @@ l1InterpreterTests = TestDef {
  ,dir = "test/x86-64-tests"
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
- ,compute = \_ r e -> strip (interpL1OrDie r) @?= strip e
+ ,compute = \_ r e -> strip (interpL1StringOrDie r) @?= strip e
 }
 l164Tests = TestDef { 
   name = "L1" 
@@ -85,13 +86,21 @@ spillTests = TestDef {
 }
 l2Tests = TestDef {
   name = "L2"
- ,dir  = testDir ++ "2-test/tmp"
+-- ,dir  = testDir ++ "2-test/tmp"
+ ,dir  = testDir ++ "2-test/cough"
  ,inputFileExt = "L2"
- ,outputFileExt = "L1"
- ,compute = \l2f _ l1f -> do
-   actual <- compileL2FileAndRunNative l2f "tmp"
-   strip actual @?= strip (interpL1OrDie l1f)
+ ,outputFileExt = "L2" -- this isn't actually used
+ ,compute = \l2f l2 _->
+   let l1 = compileL2OrDie l2
+       interpRes = interpL1OrDie l1
+   in do
+        x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
+        strip interpRes @?= strip x86res
 }
+
+--   actual <- compileL2FileAndRunNative l2f "tmp"
+--     strip actual @?= strip e
+
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   testFiles = getRecursiveContentsByExt (dir def) (inputFileExt def)
