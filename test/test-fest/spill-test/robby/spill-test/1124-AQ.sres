@@ -1,4 +1,4 @@
-((s0 <- (mem ebp -36))
+((s0 <- (mem rsp -36))
  (cjump s0 <= rdi :U :D)
- (s1 <- (mem ebp -36))
+ (s1 <- (mem rsp -36))
  (cjump s1 <= rdi :U :D))

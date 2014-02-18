@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -8)) (s0 *= :y) ((mem ebp -8) <- s0))
+((s0 <- (mem rsp -8)) (s0 *= :y) ((mem rsp -8) <- s0))

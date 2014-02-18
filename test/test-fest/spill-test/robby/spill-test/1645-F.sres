@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -16)) (rax <- (array-error 4 s0)))
+((s0 <- (mem rsp -16)) (rax <- (array-error 4 s0)))

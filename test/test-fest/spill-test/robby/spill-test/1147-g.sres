@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -20)) (cjump s0 <= :Z :BI :N))
+((s0 <- (mem rsp -20)) (cjump s0 <= :Z :BI :N))

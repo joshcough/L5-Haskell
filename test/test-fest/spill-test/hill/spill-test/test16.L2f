@@ -1,4 +1,4 @@
-(((mem ebp -4) <- rsi)
+(((mem rsp -4) <- rsi)
  (rsi <- rax)
  (r <- rax)
  (t <- rax)
@@ -9,7 +9,7 @@
  (r <- r)
  (d <- 11)
  (rax <- r)
- (rsi <- (mem ebp -4))
+ (rsi <- (mem rsp -4))
  (return))
 r
 -8

@@ -1,1 +1,1 @@
-(((mem ebp -4) <- :X) ((mem ebp -4) <- :X) ((mem ebp -4) <- :X))
+(((mem rsp -4) <- :X) ((mem rsp -4) <- :X) ((mem rsp -4) <- :X))

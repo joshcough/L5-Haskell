@@ -1,21 +1,21 @@
-(((mem ebp -12) <- 30)
- (rax_0 <- (mem ebp -12))
+(((mem rsp -12) <- 30)
+ (rax_0 <- (mem rsp -12))
  (cjump rax_0 <= 31 :first :second)
  :first
- (rax_1 <- (mem ebp -12))
+ (rax_1 <- (mem rsp -12))
  (rax_1 >>= 1)
- ((mem ebp -12) <- rax_1)
- (rax_2 <- (mem ebp -12))
+ ((mem rsp -12) <- rax_1)
+ (rax_2 <- (mem rsp -12))
  (cjump rax_2 <= 15 :third :fourth)
  :second
  (rax_3 <- 4 < 5)
- ((mem ebp -12) <- rax_3)
+ ((mem rsp -12) <- rax_3)
  (goto :end)
  :third
  (goto :end)
  :fourth
  (rax_4 <- 5 < 4)
- ((mem ebp -12) <- rax_4)
+ ((mem rsp -12) <- rax_4)
  :end
- (rax_5 <- (mem ebp -12))
+ (rax_5 <- (mem rsp -12))
  (rax <- (print rax_5)))

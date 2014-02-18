@@ -1,1 +1,1 @@
-(((mem ebp -20) <- rbx) ((mem ebp -20) <- rbx))
+(((mem rsp -20) <- rbx) ((mem rsp -20) <- rbx))

@@ -1,4 +1,4 @@
-(((mem ebp -16) <- J)
- ((mem ebp -16) <- J)
- ((mem ebp -16) <- J)
- ((mem ebp -16) <- J))
+(((mem rsp -16) <- J)
+ ((mem rsp -16) <- J)
+ ((mem rsp -16) <- J)
+ ((mem rsp -16) <- J))

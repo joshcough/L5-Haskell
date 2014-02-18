@@ -1,1 +1,1 @@
-((s0 <- rbx = rbx) ((mem ebp 0) <- s0))
+((s0 <- rbx = rbx) ((mem rsp 0) <- s0))

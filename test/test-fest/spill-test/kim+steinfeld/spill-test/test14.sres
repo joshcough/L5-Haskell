@@ -1,6 +1,6 @@
-(((mem ebp -12) <- 23)
+(((mem rsp -12) <- 23)
  (y <- 15)
- (s_0 <- (mem ebp -12))
+ (s_0 <- (mem rsp -12))
  (cjump s_0 = y :first :second)
  :first
  (y <- 10)
@@ -8,7 +8,7 @@
  :second
  (y <- 5)
  :end
- (s_1 <- (mem ebp -12))
+ (s_1 <- (mem rsp -12))
  (rax <- (allocate rsi s_1))
  (rdx <- (mem rax 4))
  (rax <- (print rdx)))

@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -8)) (rax <- :B = s0) (s1 <- (mem ebp -8)) (rax <- :B = s1))
+((s0 <- (mem rsp -8)) (rax <- :B = s0) (s1 <- (mem rsp -8)) (rax <- :B = s1))

@@ -1,9 +1,9 @@
-(((mem ebp -4) <- 1)
+(((mem rsp -4) <- 1)
  (y <- 2)
- (rax0 <- (mem ebp -4))
+ (rax0 <- (mem rsp -4))
  (cjump rax0 < y :yes :no)
  :yes
- (rax1 <- (mem ebp -4))
+ (rax1 <- (mem rsp -4))
  (rax <- (print rax1))
  :no
  (rax <- (print y)))

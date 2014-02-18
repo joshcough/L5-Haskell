@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -20)) (tail-call s0) (s1 <- (mem ebp -20)) (tail-call s1))
+((s0 <- (mem rsp -20)) (tail-call s0) (s1 <- (mem rsp -20)) (tail-call s1))

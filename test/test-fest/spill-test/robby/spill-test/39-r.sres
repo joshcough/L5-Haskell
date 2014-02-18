@@ -1,4 +1,4 @@
-((rcx <- (mem ebp -28))
- (rcx <- (mem ebp -28))
- (rcx <- (mem ebp -28))
- (rcx <- (mem ebp -28)))
+((rcx <- (mem rsp -28))
+ (rcx <- (mem rsp -28))
+ (rcx <- (mem rsp -28))
+ (rcx <- (mem rsp -28)))

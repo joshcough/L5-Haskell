@@ -1,4 +1,4 @@
-(((mem ebp -16) <- rax)
- ((mem ebp -16) <- rax)
- ((mem ebp -16) <- rax)
- ((mem ebp -16) <- rax))
+(((mem rsp -16) <- rax)
+ ((mem rsp -16) <- rax)
+ ((mem rsp -16) <- rax)
+ ((mem rsp -16) <- rax))

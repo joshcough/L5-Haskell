@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -8)) ((mem rax 4) <- s0))
+((s0 <- (mem rsp -8)) ((mem rax 4) <- s0))

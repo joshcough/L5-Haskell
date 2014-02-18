@@ -1,4 +1,4 @@
-(((mem ebp -24) <- MM)
- ((mem ebp -24) <- MM)
- ((mem ebp -24) <- MM)
- ((mem ebp -24) <- MM))
+(((mem rsp -24) <- MM)
+ ((mem rsp -24) <- MM)
+ ((mem rsp -24) <- MM)
+ ((mem rsp -24) <- MM))

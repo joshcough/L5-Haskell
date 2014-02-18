@@ -1,4 +1,4 @@
-((s0 <- (mem ebp -12))
+((s0 <- (mem rsp -12))
  ((mem KQ 0) <- s0)
- (s1 <- (mem ebp -12))
+ (s1 <- (mem rsp -12))
  ((mem KQ 0) <- s1))

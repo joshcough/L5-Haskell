@@ -3,5 +3,5 @@
  (y <- :x)
  (goto :x)
  (rsi <- y)
- (rax <- (mem ebp -16))
+ (rax <- (mem rsp -16))
  (rdi += rax))

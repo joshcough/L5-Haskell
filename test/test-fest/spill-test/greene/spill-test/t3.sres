@@ -1,1 +1,1 @@
-((rax <- 15) ((mem ebp -4) <- 12) (rax &= p))
+((rax <- 15) ((mem rsp -4) <- 12) (rax &= p))

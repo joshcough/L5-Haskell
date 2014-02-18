@@ -1,1 +1,1 @@
-((azy <- (mem ebp -8)) (azy <- (mem ebp -8)))
+((azy <- (mem rsp -8)) (azy <- (mem rsp -8)))

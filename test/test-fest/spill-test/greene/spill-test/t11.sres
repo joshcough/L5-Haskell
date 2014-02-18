@@ -1,7 +1,7 @@
 (:loop
- ((mem ebp -16) <- 15)
- (rbx <- (mem ebp -16))
- (y_0 <- (mem ebp -16))
+ ((mem rsp -16) <- 15)
+ (rbx <- (mem rsp -16))
+ (y_0 <- (mem rsp -16))
  (cjump y_0 < rbx :loop :end)
  :end
- (rax <- (mem ebp -16)))
+ (rax <- (mem rsp -16)))

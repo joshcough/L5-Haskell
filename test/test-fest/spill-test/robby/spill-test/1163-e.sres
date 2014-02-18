@@ -1,4 +1,4 @@
-((s0 <- (mem ebp -32))
+((s0 <- (mem rsp -32))
  (cjump rdi = s0 :e :E)
- (s1 <- (mem ebp -32))
+ (s1 <- (mem rsp -32))
  (cjump rdi = s1 :e :E))

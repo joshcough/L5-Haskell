@@ -1,4 +1,4 @@
-(((mem ebp -24) <- :y)
- ((mem ebp -24) <- :y)
- ((mem ebp -24) <- :y)
- ((mem ebp -24) <- :y))
+(((mem rsp -24) <- :y)
+ ((mem rsp -24) <- :y)
+ ((mem rsp -24) <- :y)
+ ((mem rsp -24) <- :y))

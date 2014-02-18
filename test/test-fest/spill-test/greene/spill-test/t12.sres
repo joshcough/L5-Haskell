@@ -1,1 +1,1 @@
-(:loop ((mem ebp -16) <- 5) (goto :end) :end (rax <- (mem ebp -16)))
+(:loop ((mem rsp -16) <- 5) (goto :end) :end (rax <- (mem rsp -16)))

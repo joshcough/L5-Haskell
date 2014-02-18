@@ -1,4 +1,4 @@
-(((mem ebp -4) <- :another_fn)
+(((mem rsp -4) <- :another_fn)
  (y <- 7)
  (z <- 9)
  (rcx <- y < z)
@@ -7,5 +7,5 @@
  (rcx <- z <= y)
  (rcx <- y = z)
  (rcx <- z = y)
- (s_0 <- (mem ebp -4))
+ (s_0 <- (mem rsp -4))
  (tail-call s_0))

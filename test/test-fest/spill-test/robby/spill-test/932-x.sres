@@ -1,1 +1,1 @@
-((s0 <- (mem ebp -20)) (rdx <- :c <= s0))
+((s0 <- (mem rsp -20)) (rdx <- :c <= s0))

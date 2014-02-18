@@ -1,4 +1,4 @@
-((s0 <- (mem ebp -28))
+((s0 <- (mem rsp -28))
  (cjump :r < s0 :mth :Uj)
- (s1 <- (mem ebp -28))
+ (s1 <- (mem rsp -28))
  (cjump :r < s1 :mth :Uj))

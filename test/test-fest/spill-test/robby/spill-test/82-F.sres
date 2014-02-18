@@ -1,1 +1,1 @@
-(((mem ebp -32) <- rdx))
+(((mem rsp -32) <- rdx))

@@ -1,1 +1,1 @@
-(((mem ebp -16) <- 15) (rbx <- (mem ebp -16)))
+(((mem rsp -16) <- 15) (rbx <- (mem rsp -16)))

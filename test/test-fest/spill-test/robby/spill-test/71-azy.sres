@@ -1,4 +1,4 @@
-(((mem ebp -8) <- qz)
- ((mem ebp -8) <- qz)
- ((mem ebp -8) <- qz)
- ((mem ebp -8) <- qz))
+(((mem rsp -8) <- qz)
+ ((mem rsp -8) <- qz)
+ ((mem rsp -8) <- qz)
+ ((mem rsp -8) <- qz))

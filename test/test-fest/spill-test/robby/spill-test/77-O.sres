@@ -1,1 +1,1 @@
-(((mem ebp 0) <- m) ((mem ebp 0) <- m) ((mem ebp 0) <- m) ((mem ebp 0) <- m))
+(((mem rsp 0) <- m) ((mem rsp 0) <- m) ((mem rsp 0) <- m) ((mem rsp 0) <- m))

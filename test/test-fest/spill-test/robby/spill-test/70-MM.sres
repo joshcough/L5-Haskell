@@ -1,4 +1,4 @@
-((Tq <- (mem ebp -24))
- (Tq <- (mem ebp -24))
- (Tq <- (mem ebp -24))
- (Tq <- (mem ebp -24)))
+((Tq <- (mem rsp -24))
+ (Tq <- (mem rsp -24))
+ (Tq <- (mem rsp -24))
+ (Tq <- (mem rsp -24)))

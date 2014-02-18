@@ -1,1 +1,1 @@
-((s0 <- :T <= rdi) ((mem ebp -32) <- s0))
+((s0 <- :T <= rdi) ((mem rsp -32) <- s0))

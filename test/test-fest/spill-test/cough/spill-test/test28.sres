@@ -1,4 +1,4 @@
-((s_0 <- (mem ebp -4))
+((s_0 <- (mem rsp -4))
  (rax <- (allocate s_0 s_0))
- (s_1 <- (mem ebp -4))
+ (s_1 <- (mem rsp -4))
  (rax <- (allocate s_1 s_1)))

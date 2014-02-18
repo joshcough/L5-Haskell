@@ -1,1 +1,1 @@
-((s0 <- (mem ebp 0)) (cjump s0 <= rcx :I :v))
+((s0 <- (mem rsp 0)) (cjump s0 <= rcx :I :v))

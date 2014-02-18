@@ -1,4 +1,4 @@
-((s0 <- (mem ebp 0))
+((s0 <- (mem rsp 0))
  (cjump s0 = s0 :E :V)
- (s1 <- (mem ebp 0))
+ (s1 <- (mem rsp 0))
  (cjump s1 = s1 :E :V))

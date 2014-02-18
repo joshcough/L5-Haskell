@@ -1,4 +1,4 @@
-((s0 <- (mem ebp -32))
+((s0 <- (mem rsp -32))
  (rax <- (mem s0 0))
- (s1 <- (mem ebp -32))
+ (s1 <- (mem rsp -32))
  (rax <- (mem s1 0)))
