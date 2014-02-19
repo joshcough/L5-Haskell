@@ -42,7 +42,7 @@ showLiveness is =
   in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
 calleeSave      = S.fromList [rbx, rbp, r12, r13, r14, r15]
-callerSave      = S.fromList [rax, rcx, rdx, rsi, rdi, r8, r8, r10, r11]
+callerSave      = S.fromList [rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11]
 arguments       = S.fromList [rdi, rsi, rdx, rcx, r8, r9]
 returnRegisters = S.fromList [rax, rdx]
 

@@ -24,18 +24,14 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree tests2_
+  ts <- traverse tree tests_
   return $ testGroup "Main" ts
 
-tests2_ = [l2Tests]
-
 tests_ = [
+  spillTests, l1InterpreterTests,l164Tests ] -- passing
 --  livenessTests
 -- ,interferenceTests
-  spillTests
- ,l1InterpreterTests
- ,l164Tests
- ,l2Tests ]
+-- ,l2Tests ]
 
 testDir = "./test/test-fest/"
 
@@ -94,6 +90,7 @@ l2Tests = TestDef {
    let l1 = compileL2OrDie l2
        interpRes = interpL1OrDie l1
    in do
+        _      <- writeFile (changeExtension l2f "L1") (show l1)
         x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
         strip interpRes @?= strip x86res
 }

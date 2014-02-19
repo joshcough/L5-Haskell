@@ -59,7 +59,7 @@ showOutput c = mkString "" $ reverse (c^.output)
 oneMeg = 1048576
 twoMeg = oneMeg * 2
 memSize = 2048 :: Int -- twoMeg
-rbpStart = ((fromIntegral memSize - 1) * 4)
+rbpStart = ((fromIntegral memSize - 1) * 8)
 rspStart = rbpStart
 zero = 0 :: Int64
 registerStartState = Map.fromList [
@@ -104,17 +104,17 @@ readReg r c =
 
 -- write an int into memory at the given address
 writeMem :: Int64 -> Int64 -> Computer -> Computer
-writeMem addr value c = newMem ((c^.memory) Vector.// [(fromIntegral addr `div` 4, value)]) c
+writeMem addr value c = newMem ((c^.memory) Vector.// [(fromIntegral addr `div` 8, value)]) c
 
 -- read a single int from memory
 readMem :: Int64 -> Computer -> Int64
-readMem addr c = (c^.memory) Vector.! (fromIntegral addr `div` 4)
+readMem addr c = (c^.memory) Vector.! (fromIntegral addr `div` 8)
 
 -- read an array from memory
 readArray :: Int64 -> Computer -> Vector Int64
 readArray addr c = 
   let size = readMem addr c
-  in Vector.slice (fromIntegral addr `div` 4 + 1) (fromIntegral size) (c^.memory)
+  in Vector.slice (fromIntegral addr `div` 8 + 1) (fromIntegral size) (c^.memory)
 
 -- push the given int argument onto the top of the stack
 -- adjust rsp accordingly
@@ -123,7 +123,7 @@ readArray addr c =
 --  into the contents of the 32-bit location at address [ESP]."
 push :: Int64 -> Computer -> Computer
 push value c =
-  let rspVal = readReg rsp c - 4
+  let rspVal = readReg rsp c - 8
       c'     = writeReg rsp rspVal c
   in  writeMem rspVal value c'
 
@@ -133,13 +133,13 @@ pop :: Register -> Computer -> Computer
 pop r c =
   let rspVal   = readReg rbp c
       c' = writeReg r (readMem rspVal c) c
-  in writeReg rsp (rspVal + 4) c'
+  in writeReg rsp (rspVal + 8) c'
 
 ret :: Computer -> Computer
 ret c = 
   let rspVal = readReg rsp c
-      done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 4)
-      c'     = writeReg rsp (rspVal + 4) c
+      done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 8)
+      c'     = writeReg rsp (rspVal + 8) c
       c''    = goto (readMem rspVal c') c'
   in if done then halt c else c''
 
@@ -152,9 +152,9 @@ allocate size n c =
   let size'   = adjustNum size
       ns      = Prelude.replicate (fromIntegral size') n
       indices :: [Int]
-      indices = [(fromIntegral $ c^.heapP `div` 4)..]
+      indices = [(fromIntegral $ c^.heapP `div` 8)..]
       heap    = newMem ((c^.memory) Vector.// (zip indices $ size' : ns))
-                       (c & heapP +~ ((size'+1)*4))
+                       (c & heapP +~ ((size'+1)*8))
   in (c^.heapP, heap)
 
 -- print a number or an array

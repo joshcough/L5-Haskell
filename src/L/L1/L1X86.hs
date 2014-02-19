@@ -148,6 +148,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
 
   call :: L1S -> String
   call (LabelL1S name) = "call L1_" ++ name
+  call x = error $ "bad call: " ++ show x
   
   setInstruction = foldOp "setl" "setle" "sete"
   
