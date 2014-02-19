@@ -28,10 +28,12 @@ tests = do
   return $ testGroup "Main" ts
 
 tests_ = [
-  spillTests, l1InterpreterTests,l164Tests ] -- passing
+  spillTests
+ ,l1InterpreterTests
+ ,l164Tests
 --  livenessTests
 -- ,interferenceTests
--- ,l2Tests ]
+ ,l2Tests ]
 
 testDir = "./test/test-fest/"
 
@@ -82,8 +84,7 @@ spillTests = TestDef {
 }
 l2Tests = TestDef {
   name = "L2"
--- ,dir  = testDir ++ "2-test/tmp"
- ,dir  = testDir ++ "2-test/cough"
+ ,dir  = testDir ++ "2-test"
  ,inputFileExt = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
  ,compute = \l2f l2 _->
@@ -92,12 +93,8 @@ l2Tests = TestDef {
    in do
         _      <- writeFile (changeExtension l2f "L1") (show l1)
         x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
-        strip interpRes @?= strip x86res
+        strip x86res @?= strip interpRes
 }
-
---   actual <- compileL2FileAndRunNative l2f "tmp"
---     strip actual @?= strip e
-
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   testFiles = getRecursiveContentsByExt (dir def) (inputFileExt def)
