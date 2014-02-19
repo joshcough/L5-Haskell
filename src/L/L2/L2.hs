@@ -103,7 +103,7 @@ allocateCompletely originalF = let
   -- TODO: the second thing is the offset...
   -- but it probably has to be adjusted somehow
   offset = snd finalState
-  in (traceA $ fst finalState, offset)
+  in (fst finalState, offset)
 
 go :: Int -> (Int -> Variable) -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
 go offset nextVarF insts =

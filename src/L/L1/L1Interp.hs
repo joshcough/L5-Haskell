@@ -131,8 +131,8 @@ push value c =
 -- adjust rsp accordingly.
 pop :: Register -> Computer -> Computer
 pop r c =
-  let rspVal   = readReg rbp c
-      c' = writeReg r (readMem rspVal c) c
+  let rspVal = readReg rbp c
+      c'     = writeReg r (readMem rspVal c) c
   in writeReg rsp (rspVal + 8) c'
 
 ret :: Computer -> Computer
