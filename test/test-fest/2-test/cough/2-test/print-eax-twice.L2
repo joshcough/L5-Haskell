@@ -1,0 +1,6 @@
+((
+  (rax <- 85)
+  (rax <- (print rax))
+  (rbx <- rax)
+  (rax <- (print rax))
+))

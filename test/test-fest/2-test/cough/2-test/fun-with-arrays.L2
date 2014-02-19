@@ -1,0 +1,27 @@
+((
+  (rax <- (allocate 101 3)) ; size 50 array of 1's.
+  (rdi <- rax) ; save the array pointer in rdi
+  (rbx <- 50) ; the array index
+  (rdx <- 1) ; what to put in the array
+
+  ; fill the array backwards so it contains 50 -> 1
+  :filler
+
+  (rcx <- rbx) ; save the current index in rcx
+  (rcx *= 8) ; times by 4 for the real array position
+  (rcx += rdi) ; add in the base pointer
+  (rsi <- rdx) ; encode rdx in rsi
+  (rsi *= 2)
+  (rsi += 1)
+  ((mem rcx 0) <- rsi)
+
+  (rbx -= 1)
+  (rdx += 1)
+  (cjump rbx < 1 :printer :filler)
+
+  ; then print out each item.
+  :printer
+  (rax <- (print rdi))
+
+  :end
+))

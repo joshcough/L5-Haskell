@@ -1,0 +1,15 @@
+((
+  (x <- -1)
+  (rax <- (print x))
+
+  (y <- -3)
+  (rax <- (print y))
+
+  (cjump y < x :end :bad)
+
+  :bad
+  (rax <- (print x)) ; shouldnt happen
+  
+  :end
+  (rax <- (print y)) ; should print -2 (since -3 is -2 encoded)
+))

@@ -1,0 +1,18 @@
+((
+  (rsp -= 32)    ;; save space on the stack for 4 temporaries, but only use 3
+
+  ; put stuff on the stack
+  ((mem rsp 8)  <- 3)
+  ((mem rsp 16) <- 85)
+  ((mem rsp 24) <- 109)
+
+  ; get stuff off the stack...
+  (rdx <- (mem rsp 8))
+  (rax <- (print rdx))
+  (rdx <- (mem rsp 16))
+  (rax <- (print rdx))
+  (rdx <- (mem rsp 24))
+  (rax <- (print rdx))
+
+  (rsp += 32)
+))

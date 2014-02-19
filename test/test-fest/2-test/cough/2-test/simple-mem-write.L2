@@ -1,0 +1,23 @@
+((
+  (rax <- (allocate 9 3)) ; size 4 array of 1's. you can only allocate into rax.
+  (x <- rax) ; save the array pointer in x
+
+  ((mem x 8)  <-  5) ; set the first element to 2
+  ((mem x 16) <-  7) ; set the first element to 3
+  ((mem x 24) <-  9) ; set the first element to 4
+  ((mem x 32) <- 11) ; set the first element to 5
+
+  ; print the elements in the array
+
+  (rsi <- (mem x 8))   ; put the 1st element into x
+  (rax <- (print rsi)) ; print it
+
+  (rsi <- (mem x 16))  ; put the 1st element into x
+  (rax <- (print rsi)) ; print it
+
+  (rsi <- (mem x 24))  ; put the 1st element into x
+  (rax <- (print rsi)) ; print it
+
+  (rsi <- (mem x 32))  ; put the 1st element into x
+  (rax <- (print rsi)) ; print it
+))

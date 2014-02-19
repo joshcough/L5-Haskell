@@ -1,0 +1,5 @@
+(((cjump 2 < 1 :keep_going :done)
+  :keep_going
+  (rax <- (print 3))
+  :done
+  (rax <- (print 5))))

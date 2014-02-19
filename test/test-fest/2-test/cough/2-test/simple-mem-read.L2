@@ -1,0 +1,9 @@
+((
+  (rax <- (allocate 5 5)) ; size 2 array of 2's. you can only allocate into rax.
+  (x   <- rax) ; save the array pointer in rdi
+  (y   <- (mem x 8)) ; put the first element in y
+  (rax <- (print y)) ; print it
+  (y   <- (mem x 16)) ; put the second element into y
+  (rax <- (print y)) ; print it
+  (rax <- (print x)) ; print the whole array just for fun
+))

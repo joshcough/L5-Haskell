@@ -1,0 +1,7 @@
+((
+  (x <- 7) ; set x to 3
+  (x -= 2) ; decrement x. 111 - 10 = 101 = 5 = 2
+  (rax <- (print x))
+  (x -= 2) ; decrement x. 101 - 10 = 11 = 3 = 1
+  (rax <- (print x))
+))

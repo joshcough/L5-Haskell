@@ -1,0 +1,47 @@
+((
+  (rsp -= 16)
+  (rax <- (allocate 101 3)) ; size 50 array of 1's.
+  (rdi <- rax) ; save the array pointer in rdi
+  (rsi <- 50) ; the array index
+  (rdx <- 1) ; what to put in the array
+
+  ; fill the array backwards so it contains 50 -> 1
+  :filler
+
+  (rcx <- rsi) ; save the current index in rcx
+  (rcx *= 8) ; times by 8 for the real array position
+  (rcx += rdi) ; add in the base pointer
+  (rbx <- rdx) ; encode rdx in rbx
+  (rbx *= 2)
+  (rbx += 1)
+  ((mem rcx 0) <- rbx)
+
+  (rsi -= 1)
+  (rdx += 1)
+  (cjump rsi < 1 :printer :filler)
+
+  :printer
+  (rsi <- 1)
+
+  :printer2
+  ; print the elements in the array from start to finish
+  (rcx <- rsi) ; rsi is still the array index
+  (rcx *= 8) ; get the real array index
+  (rcx += rdi) ; add in the base pointer
+  (rcx <- (mem rcx 0)) ; put the 1st element into rcx
+
+  ((mem rsp 0) <- rsi) ; save rsi
+  ((mem rsp 8) <- rdi) ; save rdi
+  (rax <- (print rcx)) ; print it
+  (rdi <- (mem rsp 8)) ; restore rdi
+  (rsi <- (mem rsp 0)) ; restore rsi
+
+  (rdx <- 51)
+  (rsi += 1)
+  (cjump rsi < rdx :printer2 :ender)
+
+  :ender
+  ; should print the entire array since rdi is the pointer to it.
+  (rax <- (print rdi))
+  (rsp += 16)
+))

@@ -1,0 +1,10 @@
+((
+  ; to multiply an encoded number
+  (x <- 5) ; 2, 101
+  (x *= 2) ; first mult by 2; 5*2 = 10 (1010)
+  (x -= 1) ; then subtract 1 (1010 - 1 = 1001)
+  (rax <- (print x))
+  (x *= 2)
+  (x -= 1)
+  (rax <- (print x))
+))

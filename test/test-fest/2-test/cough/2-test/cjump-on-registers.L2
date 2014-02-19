@@ -1,0 +1,33 @@
+((
+  ; this program makes sure that you can do
+  ; comparisons on things that arent encoded numbers.
+  ; or, that comparisons work on any numbers. 
+  ; i guess that means pointers as well. 
+  (rcx <- 6) ; dont think it matters if this is encoded or not.
+  (rdx <- 5) ; dont think it matters if this is encoded or not.
+  (cjump rcx < rdx :keep_going :done)
+  :keep_going
+  (rax <- (print 9999999)) ; aint gonna happen
+  :done
+  (rsi <- rcx) ; print seems to trash cx registers. so save them.
+  (rdi <- rdx)
+  (rax <- (print rdx)) ; should just print 2 (5 -> 101 -> 2)
+
+  ; another comparison test
+  (rbx <- rdi < rsi)
+  ; rbx should now be 1, because rdx is less than rcx.
+  (rax <- (print rbx)) ; should print 0
+
+  ; another comparison test
+  (rbx <- rdi <= rsi)
+  ; rbx should now be 1, because rdx is less than rcx.
+  (rax <- (print rbx)) ; should print 0
+
+  ; do a comparison, resulting in a zero in rbx
+  (rbx <- rsi < rdi)
+  ; make sure we can then compare rbx to the constant 0
+  (cjump rbx <= 0 :terminate :aint_gonna_happen)
+  :aint_gonna_happen
+  :terminate
+  (rax <- (print 85))
+))

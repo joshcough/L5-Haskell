@@ -1,0 +1,20 @@
+((
+  ; set up the stack pointer to get something off the stack, i think...
+  (rsp -= 32)    ;; save space on the stack for 4 temporaries
+
+  ; put something on the stack
+  ((mem rsp 16) <- 3)
+  ((mem rsp 8)  <- 85)
+  ((mem rsp 0)  <- 109)
+
+  (rbx <- (mem rsp 0))
+  (rax <- (print rbx))
+
+  (rbx <- (mem rsp 8))
+  (rax <- (print rbx))
+
+  (rbx <- (mem rsp 16))
+  (rax <- (print rbx))
+
+  (rsp += 32)
+))

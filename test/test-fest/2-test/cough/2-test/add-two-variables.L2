@@ -1,0 +1,6 @@
+(((x <- 7) ; 3
+  (y <- 7) ; 3
+  (x += y) ; x should be 14 (1110)
+  (x -= 1) ; when adding two of our encoded numbers, we must subtract 1.
+  (rax <- (print x)) ; this prints 6 properly
+  ))

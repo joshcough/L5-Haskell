@@ -1,0 +1,10 @@
+((
+  (rax <- -1)
+  (rax <- (print rax))
+
+  (rax <- -3)
+  (rax <- (print rax))
+
+  (rax <- -5)
+  (rax <- (print rax))
+))

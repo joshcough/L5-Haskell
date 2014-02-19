@@ -1,0 +1,11 @@
+(
+  (
+    (call :fun)
+    (rax <- (print 7))
+  )
+
+  (:fun
+    (rax <- (print 5))
+    (return)
+  )
+)

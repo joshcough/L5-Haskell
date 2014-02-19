@@ -1,0 +1,3 @@
+; a single array containing 2 1's (3 is encoded version of 1)
+(((rax <- (allocate 5 3))
+  (rax <- (print rax))))

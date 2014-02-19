@@ -1,0 +1,5 @@
+((
+  (rax <- 3) ; set rax to 1
+  (rax += 2) ; increment rax by 1. 11 + 10 = 101 = 5 = 2
+  (rax <- (print rax))
+))
