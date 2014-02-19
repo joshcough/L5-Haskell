@@ -1,8 +1,0 @@
-(((rax <- 9)
-  (call :function)
-  (rax <- (print rax)))
- (:function
-  (rax <- 5)
-  (rax += 5)
-  (rax -= 1)
-  (return)))

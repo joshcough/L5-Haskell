@@ -1,8 +1,0 @@
-((
-  (rax <- (print 3))
-  (rax <- (print 5))
-  (rax <- (print 7))
-  (rax <- (print 9))
-  (rax <- (print 11))
-  (rax <- (print 13))
-))

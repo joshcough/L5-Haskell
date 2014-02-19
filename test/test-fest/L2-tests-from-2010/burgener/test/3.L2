@@ -1,3 +1,0 @@
-(((five <- 5)
-  (five -= 2)
-  (rax <- (print five))))

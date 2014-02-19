@@ -1,8 +1,0 @@
-(((a <- 1)
-  (b <- 3)
-  (c <- 5)
-  (d <- 7)
-  (rax <- (print a))
-  (rax <- (print b))
-  (rax <- (print c))
-  (rax <- (print d))))

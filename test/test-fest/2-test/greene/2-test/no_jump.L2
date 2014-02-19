@@ -1,6 +1,0 @@
-(((x <- 13)
-  (cjump x < 1 :dontgo :end)
-  :dontgo
-  (x += 15)
-  :end
-  (rax <- (print x))))

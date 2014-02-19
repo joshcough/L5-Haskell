@@ -1,9 +1,0 @@
-(((rbx <- 9)
-  (rax <- rbx)
-  (call :fib)
-  (rbx <- rax)
-  
-  (rax <- (print rbx)))
- (:fib
-  (rax += 8)
-  (return)))

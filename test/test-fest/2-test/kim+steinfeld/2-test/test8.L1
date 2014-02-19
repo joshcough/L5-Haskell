@@ -1,9 +1,0 @@
-((
- (rbx <- :middle)
- (call rbx)
- (rax <- (print rax))
-)
- (:middle
- (rax <- 37)
- (return)
-))

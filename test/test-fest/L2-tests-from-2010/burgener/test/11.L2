@@ -1,5 +1,0 @@
-(((cvar <- 7)
-  (goto :end)
-  (cvar += 2)
-  :end
-  (rax <- (print cvar))))

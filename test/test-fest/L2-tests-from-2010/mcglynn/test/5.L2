@@ -1,6 +1,0 @@
-(((x <- 11)
-  (y <- 21)
-  (z <- 31)
-  (rax <- (print x))
-  (rax <- (print y))
-  (rax <- (print z))))

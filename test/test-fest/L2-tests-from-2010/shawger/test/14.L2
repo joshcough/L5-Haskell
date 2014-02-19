@@ -1,4 +1,0 @@
-(((x <- 5)
-  (y <- 7)
-  (rax <- (allocate x y))
-  (rax <- (print rax))))

@@ -1,1 +1,0 @@
-(((rbx <- 5) (rax <- (allocate 5 0)) (rbx <- rbx) (rax <- (print rbx))))

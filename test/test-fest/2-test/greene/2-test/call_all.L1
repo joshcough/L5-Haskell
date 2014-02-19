@@ -1,7 +1,0 @@
-(((rbx <- 93)
-(rbx <- 93)
-(rbx <- 93)
-(rax <- (print rbx))
-(rax <- (print rbx))
-(rax <- (print rbx))
-))

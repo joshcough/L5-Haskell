@@ -1,2 +1,0 @@
-(((rax <- 7)
-(rax <- (print rax))))

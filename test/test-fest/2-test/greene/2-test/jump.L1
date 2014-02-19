@@ -1,7 +1,0 @@
-(((rax <- 13)
-  (cjump rax <= 17 :go :end)
-  :go
-  (rax += 15)
-  (rax -= 1)
-  :end
-  (rax <- (print rax))))

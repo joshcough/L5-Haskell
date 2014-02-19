@@ -1,9 +1,0 @@
-((
- (rax <- 5)
- (z <- 10)
- (rax += z)
- (rbx <- 5)
- (rbx += z)
- (rax <- (print rbx))
- ))
-

@@ -1,8 +1,0 @@
-((
-(rax <- 3)
-(rbx <- 4)
-(rax *= rax)
-(rbx *= rbx)
-(rax += rbx)
-(rax <- (print rax))
-))

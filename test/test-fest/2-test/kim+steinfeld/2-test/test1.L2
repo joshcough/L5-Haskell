@@ -1,6 +1,0 @@
-((
-(x <- 3)
-(rax <- 4)
-(rax += x)
-(rax <- (print rax))
-))

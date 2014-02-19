@@ -1,9 +1,0 @@
-(((rax <- 1)
-  (rbx <- 10)
-  :loop
-  (rax += 1)
-  (cjump rax < rbx :loop :end)
-  :end
-  (rax <<= 1)
-  (rax += 1)
-  (rax <- (print rax))))

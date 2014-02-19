@@ -1,5 +1,0 @@
-(((size <- 9)
-  (rax <- (allocate size 3))
-  (loc <- rax)
-  (val <- (mem loc 4))
-  (rax <- (print val))))
