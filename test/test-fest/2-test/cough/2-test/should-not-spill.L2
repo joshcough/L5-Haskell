@@ -1,0 +1,21 @@
+(
+  (
+    (rdi <- 3)  ; 1
+    (rsi <- 5)  ; 3
+    (rdx <- 7)  ; 5
+    (call :f)
+    (rax <- (print rax))
+    (return)
+  )
+
+  (:f
+    (a <- rdi)
+    (b <- rsi)
+    (c <- rdx)
+    (a += b)
+    (a += c)
+    (a += 2)
+    (rax <- a)
+    (return)
+  )
+)
