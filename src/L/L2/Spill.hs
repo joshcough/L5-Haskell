@@ -1,6 +1,7 @@
 module L.L2.Spill
   (
-    runSpillMain_
+    defaultSpillPrefix
+   ,runSpillMain_
    ,spill
    ,spillDef
    ,spillTest

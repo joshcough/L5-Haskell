@@ -18,6 +18,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable
+import Debug.Trace
 import L.CompilationUnit
 import L.IOHelpers
 import L.L1L2AST
@@ -81,36 +82,45 @@ interpL2File =
 -- with all of the variables replaced with the assigned registers.
 allocate :: Bool -> L2Func -> L1Func
 allocate isMain f = let
-    ((allocatedFunction, allocs), rspOffset) = allocateCompletely f 
+    ((allocatedFunction, allocs), rspOffset) = allocateCompletely f
+    -- initial rewrite would be here...maybe...maybe initialRewrite would just adjust returns given the offset....
+
     -- adjust the stack at the start of the function right here.
     label = allocatedFunction !! 0
     bodyWithoutLabel = tail allocatedFunction
+    -- make sure the stack only ever moves in by 16, because mac requires that.
+    offset = if even rspOffset then rspOffset * 8 else rspOffset * 8 + 8
     decEsp :: L2Instruction
-    decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (- (fromIntegral rspOffset)))
+    decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (fromIntegral offset))
     incEspMaybe :: [L2Instruction]
     incEspMaybe = if isMain 
-                  then [MathInst (RegL2X rsp) increment (NumberL2S (- (fromIntegral rspOffset)))] 
+                  then [MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))]
                   else []
     finalFunction = Func $ concat [[label], [decEsp], bodyWithoutLabel, incEspMaybe]
   in replaceVarsWithRegisters allocs finalFunction
 
 allocateCompletely :: L2Func -> (([L2Instruction], Map Variable Register), Int)
 allocateCompletely originalF = let
-  -- TODO: there are no order to these variables
-  -- need to pick based on # connections, and liveness length
-  varsToSpill = nub $ body originalF >>= (Set.toList . vars)
-  finalState = runState (go 0 (\i -> varsToSpill !! i) (body originalF)) 0
+  finalState = runState (go 0 (body originalF)) 0
   -- TODO: the second thing is the offset...
   -- but it probably has to be adjusted somehow
   offset = snd finalState
   in (fst finalState, offset)
 
-go :: Int -> (Int -> Variable) -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
-go offset nextVarF insts =
-  let g = buildInterferenceGraph $ liveness insts
-  in case attemptAllocation g of
+go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
+go offset insts =
+  let (Interference g) = buildInterferenceGraph $ liveness insts
+  in case attemptAllocation (Interference g) of
     Just registerMap -> return (insts, registerMap)
-    Nothing -> spillDef (nextVarF offset, offset) insts >>= go (offset + 1) nextVarF
+    Nothing ->
+      -- find the next variable to spill by figuring out which one has the most connections
+      -- TODO: tie should go to the one with the longest liverange.
+      let vs = Set.toList $ vars g
+          s (v1, n1) (v2, n2) = compare n1 n2
+          f (v, _) = not $ isPrefixOf defaultSpillPrefix v
+          conns = filter f $ reverse $ sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
+          v = fst $ head conns
+      in spillDef (v, offset * 8) insts >>= go (offset + 1)
 
 {-
   OLD STUFF THAT USED foldM.
@@ -167,7 +177,7 @@ findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   -- this set might be empty, meaning there is no register for v.
   --   (also meaning the graph is not colorable)
   availableRegisters :: Set Register
-  availableRegisters = nonConflictingRegisters Set.\\ registersConflictingVarsLiveIn 
+  availableRegisters = nonConflictingRegisters Set.\\ registersConflictingVarsLiveIn
   -- choose a register for v, if one is available.
   choice :: Maybe Register
   choice = listToMaybe $ Set.toList availableRegisters -- TODO: sort list here.

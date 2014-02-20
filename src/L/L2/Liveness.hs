@@ -35,7 +35,7 @@ data InstructionInOutSet = InstructionInOutSet {
 
 type IIOS = InstructionInOutSet
 
-showLiveness :: (Num a) => [IIOS] -> String
+showLiveness :: [IIOS] -> String
 showLiveness is = 
   let go :: (IIOS -> S.Set L2X) -> String
       go f = mkString " " $ fmap (showAsList . fmap show) (fmap (S.toList . f) is) 
@@ -44,7 +44,7 @@ showLiveness is =
 calleeSave      = S.fromList [rbx, rbp, r12, r13, r14, r15]
 callerSave      = S.fromList [rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11]
 arguments       = S.fromList [rdi, rsi, rdx, rcx, r8, r9]
-returnRegisters = S.fromList [rax, rdx]
+returnRegisters = S.fromList [rax]
 
 -- generate the gen set for an instruction
 -- (what things are alive during that instruction)
