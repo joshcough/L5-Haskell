@@ -87,7 +87,7 @@ l2Tests = TestDef {
  ,dir  = testDir ++ "2-test"
  ,inputFileExt = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
- ,compute = \l2f l2 _->
+ ,compute = \l2f l2 _ ->
    let l1 = compileL2OrDie l2
        interpRes = interpL1OrDie l1
    in do
