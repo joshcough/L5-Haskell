@@ -84,7 +84,6 @@ allocate :: Bool -> L2Func -> L1Func
 allocate isMain f = let
     ((allocatedFunction, allocs), rspOffset) = allocateCompletely f
     -- initial rewrite would be here...maybe...maybe initialRewrite would just adjust returns given the offset....
-
     -- adjust the stack at the start of the function right here.
     label = allocatedFunction !! 0
     bodyWithoutLabel = tail allocatedFunction
@@ -104,8 +103,7 @@ allocateCompletely originalF = let
   finalState = runState (go 0 (body originalF)) 0
   -- TODO: the second thing is the offset...
   -- but it probably has to be adjusted somehow
-  offset = snd finalState
-  in (fst finalState, offset)
+  in (fst finalState, snd finalState)
 
 go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
 go offset insts =

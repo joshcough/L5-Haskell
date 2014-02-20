@@ -1,0 +1,28 @@
+(
+  (
+    (rdi <- 1)  ; 0
+    (rsi <- 3)  ; 1
+    (rdx <- 10) ; print fibs to 10
+    (call :fib)
+    (return)
+  )
+
+  (:fib
+    (a   <- rdi)
+    (b   <- rsi)
+    (current <- rdx)
+    (cjump current <= 0 :done :f)
+    :f
+    (rax <- (print a))
+    (next <- a)
+    (next += b)
+    (next -= 1)
+    (rdi <- b)
+    (rsi <- next)
+    (current -= 1)
+    (rdx <- current)
+    (call :fib)
+    :done
+    (return)
+  )
+)
