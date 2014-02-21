@@ -37,21 +37,15 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".file\t\"prog.c\"",
       ".text",
       ".globl _go",
-      "_go:",
-      "subq $8, %rsp" ]
-    mainFooter = [
-      "addq $8, %rsp",
-      "ret" ]
+      "_go:" ]
+    mainFooter = [ "ret" ]
 
   genFunc :: [L1Instruction] -> ErrorT String (State Int) [X86Inst]
   genFunc [] = return []
   genFunc insts = do
     labl <- genInstS (head insts)
     body <- compile  (tail insts)
-    return $ concat [labl, header, body] where
-      header = [
-        "pushq %rbp",
-        "movq %rsp, %rbp" ]
+    return $ concat [labl, header, body] where header = []
  
   genFunc_ :: [L1Instruction] -> [String] -> [String] -> ErrorT String (State Int) [X86Inst]
   genFunc_ insts header footer = wrap header footer <$> (compile insts) where
@@ -70,7 +64,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
   genInst (MathInst r op s)  = Right [triple (x86OpName op) (genS s) (genReg r)]
   genInst (Goto s)           = Right [jump (LabelL1S s)]
-  genInst (TailCall s)       = Right ["movq %rbp, %rsp", jump s]
+  genInst (TailCall s)       = Right [jump s]
   -- special case for two numbers
   genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
     Right $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
@@ -83,9 +77,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "cmpq" (genS s2) (genS s1),
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
-  genInst Return = Right [
-    "leave",
-    "ret" ]
+  genInst Return = Right ["ret"]
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases

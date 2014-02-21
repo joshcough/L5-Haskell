@@ -45,10 +45,9 @@ import L.L2.Vars
 compileL2 :: String -> Either String L1
 compileL2 code = genL1Code <$> parseL2 (sread code) where
   --genL1Code :: L2 -> L1
-  genL1Code (Program main fs) = 
-    -- TODO: in scala, I stripped off the main label if it was present
-    -- in the main function. Why did I do that? Do I need to here?
-    Program (allocate True main) $ (allocate False <$> fs)
+  genL1Code (Program main fs) =
+    let mainWithRet = Func (body main ++ [Return])
+    in Program (allocate mainWithRet) $ (allocate <$> fs)
 
 compileL2OrDie :: String -> L1
 compileL2OrDie = (either error id) . compileL2
@@ -80,22 +79,27 @@ interpL2File =
 
 -- gives back a fully allocated function (if its possible to allocate it)
 -- with all of the variables replaced with the assigned registers.
-allocate :: Bool -> L2Func -> L1Func
-allocate isMain f = let
+allocate :: L2Func -> L1Func
+allocate f = let
     ((allocatedFunction, allocs), rspOffset) = allocateCompletely f
-    -- initial rewrite would be here...maybe...maybe initialRewrite would just adjust returns given the offset....
-    -- adjust the stack at the start of the function right here.
-    label = allocatedFunction !! 0
-    bodyWithoutLabel = tail allocatedFunction
+
+    label = case allocatedFunction !! 0 of
+      l@(LabelDeclaration x) -> l
+      _           -> LabelDeclaration "main"
+
     -- make sure the stack only ever moves in by 16, because mac requires that.
-    offset = if even rspOffset then rspOffset * 8 else rspOffset * 8 + 8
-    decEsp :: L2Instruction
+    offset = 8 + (if even rspOffset then rspOffset * 8 else rspOffset * 8 + 8)
     decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (fromIntegral offset))
-    incEspMaybe :: [L2Instruction]
-    incEspMaybe = if isMain 
-                  then [MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))]
-                  else []
-    finalFunction = Func $ concat [[label], [decEsp], bodyWithoutLabel, incEspMaybe]
+    incEsp = MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))
+
+    rewriteReturns insts = insts >>= f where
+      f r@Return       = [incEsp, r]
+      f i              = [i]
+
+    finalFunction = Func $ concat [
+      [label],
+      [decEsp],                                -- adjust the stack at the start of the function.
+      rewriteReturns $ tail allocatedFunction] -- adjust the stack upon returning from the function.
   in replaceVarsWithRegisters allocs finalFunction
 
 allocateCompletely :: L2Func -> (([L2Instruction], Map Variable Register), Int)
@@ -179,21 +183,3 @@ findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
   -- choose a register for v, if one is available.
   choice :: Maybe Register
   choice = listToMaybe $ Set.toList availableRegisters -- TODO: sort list here.
-
-{-
-initialRewrite :: L2Func a -> L2Func a
-initialRewrite f = let
-  z1In  = Assign (VarL2X "__z1") $ SRHS $ (XL2S . RegL2X) edi
-  z2In  = Assign (VarL2X "__z2") $ SRHS $ (XL2S . RegL2X) esi
-  z1Out = Assign (RegL2X edi)    $ SRHS $ (XL2S . VarL2X) "__z1"
-  z2Out = Assign (RegL2X esi)    $ SRHS $ (XL2S . VarL2X) "__z2"
-  -- this business arranges to make sure that edi and esi
-  -- get put back properly before a return or a tail-call.
-  returnAdjustment :: L2Instruction a -> [L2Instruction a]
-  returnAdjustment r@Return       = [z1Out, z2Out, r]
-  returnAdjustment t@(TailCall _) = [z1Out, z2Out, t]
-  returnAdjustment i              = [i]
-  label                = body f !! 0
-  insts                = drop 1 $ body f
-  in Func $ concat [[label], [z1In,z2In], (insts >>= returnAdjustment)]
--}

@@ -24,8 +24,10 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree tests_
+  ts <- traverse tree tests2_
   return $ testGroup "Main" ts
+
+tests2_ = [l2Tests]
 
 tests_ = [
   spillTests
@@ -85,6 +87,7 @@ spillTests = TestDef {
 l2Tests = TestDef {
   name = "L2"
  ,dir  = testDir ++ "2-test"
+-- ,dir  = "robby-2-test"
  ,inputFileExt = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
  ,compute = \l2f l2 _ ->

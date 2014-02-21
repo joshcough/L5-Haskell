@@ -1,0 +1,4 @@
+(((t <- 5)
+ (rax <- (allocate 5 0))
+ (u <- t)
+ (rax <- (print u))))

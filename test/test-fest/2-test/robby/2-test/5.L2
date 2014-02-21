@@ -1,0 +1,13 @@
+(((call :L_1))
+ (:L_1
+  (rax <- (allocate 5 0))
+  ((mem rax 4) <- 21)
+  ((mem rax 8) <- 23)
+  (x <- rax)
+  (y <- x)
+  (y &= 1)
+  (y *= -2)
+  (y += 3)
+  (rax <- (print y))
+  (rax <- rax)
+  (return)))
