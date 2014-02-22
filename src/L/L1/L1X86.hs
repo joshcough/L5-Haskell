@@ -32,7 +32,9 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     adjust i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
 
   genMain :: L1Func -> ErrorT String (State Int) [X86Inst]
-  genMain (Func insts) =  genFunc_ (tail insts) mainHeader mainFooter where
+  genMain (Func insts) = do
+    body <- compile $ tail insts
+    return $ concat [mainHeader, body, mainFooter] where
     mainHeader = [
       ".file\t\"prog.c\"",
       ".text",
@@ -45,11 +47,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genFunc insts = do
     labl <- genInstS (head insts)
     body <- compile  (tail insts)
-    return $ concat [labl, header, body] where header = []
- 
-  genFunc_ :: [L1Instruction] -> [String] -> [String] -> ErrorT String (State Int) [X86Inst]
-  genFunc_ insts header footer = wrap header footer <$> (compile insts) where
-    wrap header footer body = concat [header, body, footer]
+    return $ concat [labl, body]
 
   compile :: [L1Instruction] -> ErrorT String (State Int) [X86Inst]
   compile insts = traverse genInstS insts >>= return . concat
