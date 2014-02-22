@@ -24,7 +24,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree tests2_
+  ts <- traverse tree tests_
   return $ testGroup "Main" ts
 
 tests2_ = [l2Tests]

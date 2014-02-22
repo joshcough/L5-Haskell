@@ -9,8 +9,6 @@ module L.L2.L2
 where
 
 import Control.Applicative
-import Control.Lens
-import Control.Monad.State
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -28,10 +26,7 @@ import L.Utils
 import L.L1.L1 (compileL1AndRunNative)
 import L.L1.L1X86
 import L.L1.L1Interp
-import L.L2.Interference
-import L.L2.Liveness
-import L.L2.Spill
-import L.L2.Vars
+import L.L2.Allocation
 
 -- L2 introduces variables on top of L1.
 -- the L2 compiler is really just a register allocator.
@@ -76,110 +71,3 @@ interpL2OrDie = (either error id) . interpL2String
 interpL2File =
   do s <- compile_ $ (either error id) . interpL2String
      putStrLn (snd s)
-
--- gives back a fully allocated function (if its possible to allocate it)
--- with all of the variables replaced with the assigned registers.
-allocate :: L2Func -> L1Func
-allocate f = let
-    ((allocatedFunction, allocs), rspOffset) = allocateCompletely f
-
-    label = case allocatedFunction !! 0 of
-      l@(LabelDeclaration x) -> l
-      _           -> LabelDeclaration "main"
-
-    -- make sure the stack only ever moves in by 16, because mac requires that.
-    offset = 8 + (if even rspOffset then rspOffset * 8 else rspOffset * 8 + 8)
-    decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (fromIntegral offset))
-    incEsp = MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))
-
-    rewriteReturns insts = insts >>= f where
-      f r@Return       = [incEsp, r]
-      f i              = [i]
-
-    finalFunction = Func $ concat [
-      [label],
-      [decEsp],                                -- adjust the stack at the start of the function.
-      rewriteReturns $ tail allocatedFunction] -- adjust the stack upon returning from the function.
-  in replaceVarsWithRegisters allocs finalFunction
-
-allocateCompletely :: L2Func -> (([L2Instruction], Map Variable Register), Int)
-allocateCompletely originalF = let
-  finalState = runState (go 0 (body originalF)) 0
-  -- TODO: the second thing is the offset...
-  -- but it probably has to be adjusted somehow
-  in (fst finalState, snd finalState)
-
-go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
-go offset insts =
-  let (Interference g) = buildInterferenceGraph $ liveness insts
-  in case attemptAllocation (Interference g) of
-    Just registerMap -> return (insts, registerMap)
-    Nothing ->
-      -- find the next variable to spill by figuring out which one has the most connections
-      -- TODO: tie should go to the one with the longest liverange.
-      let vs = Set.toList $ vars g
-          s (v1, n1) (v2, n2) = compare n1 n2
-          f (v, _) = not $ isPrefixOf defaultSpillPrefix v
-          conns = filter f $ reverse $ sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
-          v = fst $ head conns
-      in spillDef (v, offset * 8) insts >>= go (offset + 1)
-
-{-
-  OLD STUFF THAT USED foldM.
-  --nrVarsToSpill = length varsToSpill
-  --rspOffset = (- nrVarsToSpill * 8) - (if even nrVarsToSpill then 0 else 8)
-  --finalState = runState (foldM (flip spillDef) (body originalF) (zipWithIndex varsToSpill)) 0
-  --finalBody = fst runState
-  --finalOffset = snd runState
-  --g = buildInterferenceGraph $ liveness finalBody
-  --in case attemptAllocation g of
-  --  Just registerMap -> traceA ((Func newBody, registerMap), rspOffset)
-  --  Nothing -> error "allocation impossible"
- -} 
-
--- TODO: this stuff should be someplace better than this
-regSet = Set.fromList allocatableRegisters
-getRegisters s = Set.fromList [ r | RegL2X r <- Set.toList s ]
-
-attemptAllocation :: Interference -> Maybe (Map Variable Register)
-attemptAllocation i@(Interference g) = let 
-    vs = vars g
-    pairings :: Map Variable Register
-    pairings = foldl (findMatch g) Map.empty (Set.toList vs) -- TODO: sort list here
-    unpairedVars :: Set Variable
-    unpairedVars = vs Set.\\ Map.keysSet pairings
-  in if Set.null unpairedVars then Just pairings else Nothing
-
--- try to assign a register to a variable
---   if its not possible, just return the input map
---   if it is, return the input map + (v, r)
-findMatch :: InterferenceGraph -> Map Variable Register -> Variable -> Map Variable Register
-findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
-  -- everything v conflicts with (reisters and variables)
-  conflicts    :: Set L2X
-  conflicts    = connections (_Variable # v) g
-  -- just the variables v conflicts with
-  varConflicts :: Set Variable
-  varConflicts = vars conflicts
-  -- just the registers v conflicts with
-  regConflicts :: Set Register
-  regConflicts = getRegisters $ conflicts Set.\\ Set.map VarL2X varConflicts
-  -- all the registers v does NOT conflict with
-  nonConflictingRegisters :: Set Register
-  nonConflictingRegisters =  regSet Set.\\ regConflicts
-  -- the set of registers that are already 
-  -- taken by variables that v conflicts with
-  registersConflictingVarsLiveIn :: Set Register
-  registersConflictingVarsLiveIn = Set.fromList $ do
-    v <- Set.toList varConflicts
-    maybe [] (\a -> [a]) $ Map.lookup v pairs
-  -- the available registers come from taking 
-  -- the registers it doesnt conflict with, and removing those
-  -- that are already taken by variables v conflicts with
-  -- this set might be empty, meaning there is no register for v.
-  --   (also meaning the graph is not colorable)
-  availableRegisters :: Set Register
-  availableRegisters = nonConflictingRegisters Set.\\ registersConflictingVarsLiveIn
-  -- choose a register for v, if one is available.
-  choice :: Maybe Register
-  choice = listToMaybe $ Set.toList availableRegisters -- TODO: sort list here.
