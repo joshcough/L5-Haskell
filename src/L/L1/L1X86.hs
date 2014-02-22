@@ -17,19 +17,15 @@ import System.IO
 -- X86 Generation code
 type X86Inst = String
 
-genX86Code :: Bool -> L1-> Either String String
-genX86Code adjustStack l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
+genX86Code :: L1-> Either String String
+genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
   genCodeS (Program main funcs) = do
     x86Funcs <- compiledFunctions
     return $ dump $ concat [mainHeader, concat x86Funcs, ["\n"]] where
 
     compiledFunctions :: ErrorT String (State Int) [[X86Inst]]
-    compiledFunctions = Data.Traversable.sequence $ fmap compile (adjustedMain : funcs)
-
-    adjustedMain = Func $ concat [labelMain (body main) ++ [Return]]
-    labelMain is@(LabelDeclaration "main" : rest) = is
-    labelMain is = LabelDeclaration "main" : is
+    compiledFunctions = Data.Traversable.sequence $ fmap compile (main : funcs)
 
     dump :: [X86Inst] -> String
     dump insts = mkString "\n" $ map indent insts
@@ -41,25 +37,8 @@ genX86Code adjustStack l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       "_go:" ]
 
   compile :: L1Func -> ErrorT String (State Int) [X86Inst]
-  compile f = traverse genInstS (body f') >>= return . concat where
-    f' = if adjustStack then adjustStackInFunction f else f
+  compile f = traverse genInstS (body f) >>= return . concat where
 
-  {-
-    if we need to adjust the stack then
-      -  we need to decrement the stack pointer when we enter the function
-      -  whenever we return, we must make sure to put the stack pointer back.
-         (by incrementing it by the amount we decremented it by 8)
-         rewriteReturns puts that increment in front of all returns in the function.
-   -}
-  adjustStackInFunction :: L1Func -> L1Func
-  adjustStackInFunction (Func (labl : insts)) =
-    Func $ concat [[labl, decEsp], rewriteReturns insts] where
-      decEsp = MathInst rsp decrement (NumberL1S 8)
-      incEsp = MathInst rsp increment (NumberL1S 8)
-      rewriteReturns insts = insts >>= f where
-        f r@Return = [incEsp, r]
-        f i        = [i]
-  
   genInstS :: L1Instruction -> ErrorT String (State Int) [X86Inst]
   genInstS (Call s) = return [call s]
   genInstS i = either throwError return $ genInst i

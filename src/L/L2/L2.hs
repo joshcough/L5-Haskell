@@ -48,7 +48,7 @@ compileL2OrDie :: String -> L1
 compileL2OrDie = (either error id) . compileL2
 
 compileL2ToX86 :: String -> String
-compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code False
+compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code
 
 --compileL2File :: IO ()
 --compileL2File = compile compileL2OrDie "S"

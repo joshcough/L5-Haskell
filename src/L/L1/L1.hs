@@ -9,6 +9,7 @@ module L.L1.L1
    ,runNative
   ) where
 
+import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Error
 import Data.List
@@ -25,7 +26,7 @@ import System.Environment
 import System.IO
 
 compileL1 :: Bool -> String -> Either String String
-compileL1 adjustStack code = parseL1 (sread code) >>= genX86Code adjustStack
+compileL1 adjustStack code = (adjustStackInProgram adjustStack . adjustMain <$> parseL1 (sread code)) >>= genX86Code
 
 compileL1OrDie :: Bool -> String -> String
 compileL1OrDie adjustStack = (either error id) . compileL1 adjustStack
@@ -47,7 +48,7 @@ compileL1AndRunNative :: Bool -> L1 -> Maybe FilePath -> FilePath -> IO String
 compileL1AndRunNative adjustStack l1 inputFile outputDir = do
   _   <- writeFile sFile s
   runNative sFile outputDir where 
-  s = either error id $ genX86Code adjustStack l1
+  s = either error id $ genX86Code (adjustStackInProgram adjustStack $ adjustMain l1)
   sFile = case inputFile of
     Just f  -> changeDir (changeExtension f "S") outputDir
     Nothing -> outputDir ++ "tmp.S"
@@ -63,3 +64,35 @@ runNative sFile outputDir =
     _ <- rawSystem "gcc" ["-o", outFile, oFile, "bin/runtime.o"]
     _ <- rawSystem "bin/run.sh" [outFile, resFile]
     readFile resFile
+
+{-
+  if we need to adjust the stack then
+    -  we need to decrement the stack pointer when we enter the function
+    -  whenever we return, we must make sure to put the stack pointer back.
+       (by incrementing it by the amount we decremented it by 8)
+       rewriteReturns puts that increment in front of all returns in the function.
+ -}
+adjustStackInProgram :: Bool -> L1 -> L1
+adjustStackInProgram True (Program main fs) =
+  Program (adjustStackInFunction main) (fmap adjustStackInFunction fs)
+adjustStackInProgram False p = p
+
+adjustStackInFunction :: L1Func -> L1Func
+adjustStackInFunction (Func (labl : insts)) =
+  Func $ concat [[labl, decEsp], rewriteReturns insts] where
+    decEsp = MathInst rsp decrement (NumberL1S 8)
+    incEsp = MathInst rsp increment (NumberL1S 8)
+    rewriteReturns insts = insts >>= f where
+      f r@Return = [incEsp, r]
+      f i        = [i]
+
+adjustMain :: L1 -> L1
+adjustMain (Program main fs) = Program (adjustMain_ main) fs
+adjustMain_ :: L1Func -> L1Func
+adjustMain_ (Func body) = Func $ concat [mainLabel : mainBody ++ [Return]] where
+  mainLabel = LabelDeclaration "main"
+  mainBody = stripLabel (reverse $ stripReturn $ reverse body) where
+    stripLabel is@(LabelDeclaration "main" : rest) = rest
+    stripLabel is = is
+    stripReturn (Return : rest) = stripReturn rest
+    stripReturn rest = rest
