@@ -60,7 +60,7 @@ l164Tests = TestDef {
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
  ,compute = \r _ e -> do 
-   res <- compileL1FileAndRunNative r "tmp"
+   res <- compileL1FileAndRunNative True r "tmp"
    strip res @?= strip e
 }
 livenessTests = TestDef { 
@@ -87,16 +87,15 @@ spillTests = TestDef {
 l2Tests = TestDef {
   name = "L2"
  ,dir  = testDir ++ "2-test"
--- ,dir  = "robby-2-test"
  ,inputFileExt = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
  ,compute = \l2f l2 _ ->
    let l1 = compileL2OrDie l2
        interpRes = interpL1OrDie l1
    in do
-        _      <- writeFile (changeExtension l2f "L1") (show l1)
-        x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
-        strip x86res @?= strip interpRes
+    _      <- writeFile (changeExtension l2f "L1") (show l1)
+    x86res <- compileL1AndRunNative False l1 (Just l2f) "tmp"
+    strip x86res @?= strip interpRes
 }
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where

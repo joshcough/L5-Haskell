@@ -4,7 +4,7 @@ module L.L1.L1
    ,compileL1FileAndRunNative
    ,compileL1
    ,compileL1OrDie
-   ,compileL1File
+   --,compileL1File
    ,compileL1File_
    ,runNative
   ) where
@@ -24,20 +24,18 @@ import System.Cmd
 import System.Environment 
 import System.IO
 
-compileL1 :: String -> Either String String
-compileL1 code = parseL1 (sread code) >>= genX86Code
+compileL1 :: Bool -> String -> Either String String
+compileL1 adjustStack code = parseL1 (sread code) >>= genX86Code adjustStack
 
-compileL1OrDie :: String -> String
-compileL1OrDie = (either error id) . compileL1
+compileL1OrDie :: Bool -> String -> String
+compileL1OrDie adjustStack = (either error id) . compileL1 adjustStack
 
-compileL1File :: IO ()
-compileL1File = compile compileL1OrDie "S"
-compileL1File_ :: FilePath -> IO String
-compileL1File_ = compile1 compileL1OrDie
+compileL1File_ :: Bool -> FilePath -> IO String
+compileL1File_ adjustStack = compile1 (compileL1OrDie adjustStack)
 
-compileL1FileAndRunNative :: FilePath -> FilePath -> IO String
-compileL1FileAndRunNative l1File outputDir = do
-  s <- compileL1File_ l1File
+compileL1FileAndRunNative :: Bool -> FilePath -> FilePath -> IO String
+compileL1FileAndRunNative adjustStack l1File outputDir = do
+  s <- compileL1File_ adjustStack l1File
   _   <- writeFile sFile s
   runNative sFile outputDir where 
   sFile = changeDir (changeExtension l1File "S") outputDir
@@ -45,11 +43,11 @@ compileL1FileAndRunNative l1File outputDir = do
 -- the second argument is represents where the original code came from
 -- maybe it came from an L5-L2 file. 
 -- or, maybe it didn't come from a file at all
-compileL1AndRunNative :: L1 -> Maybe FilePath -> FilePath -> IO String
-compileL1AndRunNative l1 inputFile outputDir = do
+compileL1AndRunNative :: Bool -> L1 -> Maybe FilePath -> FilePath -> IO String
+compileL1AndRunNative adjustStack l1 inputFile outputDir = do
   _   <- writeFile sFile s
   runNative sFile outputDir where 
-  s = either error id $ genX86Code l1
+  s = either error id $ genX86Code adjustStack l1
   sFile = case inputFile of
     Just f  -> changeDir (changeExtension f "S") outputDir
     Nothing -> outputDir ++ "tmp.S"

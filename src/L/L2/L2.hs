@@ -48,7 +48,7 @@ compileL2OrDie :: String -> L1
 compileL2OrDie = (either error id) . compileL2
 
 compileL2ToX86 :: String -> String
-compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code
+compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code False
 
 --compileL2File :: IO ()
 --compileL2File = compile compileL2OrDie "S"
@@ -59,7 +59,7 @@ compileL2FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL2FileAndRunNative l2File outputDir = do
   l1 <- compileL2File_ l2File
   _  <- writeFile l1File (show l1)
-  compileL1AndRunNative l1 (Just l2File) outputDir where
+  compileL1AndRunNative False l1 (Just l2File) outputDir where
   l1File = changeDir (changeExtension l2File "L1") outputDir
 
 interpL2String :: String -> Either String String
