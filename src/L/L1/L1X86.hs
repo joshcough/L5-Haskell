@@ -23,10 +23,9 @@ type X86Inst = String
 genX86Code :: L1 -> Either String String
 genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
-  genCodeS (Program (Func mainBody) funcs) = do
-    x86Main  <- genFunc $ mainBody ++ [Return]
-    x86Funcs <- genFunc $ concat $ map body funcs
-    return $ dump $ concat [mainHeader, x86Main, x86Funcs, ["\n"]] where
+  genCodeS (Program main funcs) = do
+    x86Funcs <- compile $ concat $ [body main ++ [Return]] ++ map body funcs
+    return $ dump $ concat [mainHeader, x86Funcs, ["\n"]] where
     dump :: [X86Inst] -> String
     dump insts = mkString "\n" $ map indent insts
     indent i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
@@ -35,13 +34,6 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".text",
       ".globl _go",
       "_go:" ]
-
-  genFunc :: [L1Instruction] -> ErrorT String (State Int) [X86Inst]
-  genFunc [] = return []
-  genFunc insts = do
-    labl <- genInstS (head insts)
-    body <- compile  (tail insts)
-    return $ concat [labl, body]
 
   compile :: [L1Instruction] -> ErrorT String (State Int) [X86Inst]
   compile insts = traverse genInstS insts >>= return . concat
@@ -123,7 +115,6 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genS (NumberL1S i) = "$" ++ show i
   genS (LabelL1S  l) = "$L1_" ++ l
   genS (RegL1S    r) = genReg r
-  --genS (RegL1S    r) = "%" ++ (show r)
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
   jump :: L1S -> String
