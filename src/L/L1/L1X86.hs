@@ -23,24 +23,18 @@ type X86Inst = String
 genX86Code :: L1 -> Either String String
 genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
-  genCodeS (Program main funcs) = do
-    x86Main  <- genMain main
+  genCodeS (Program (Func mainBody) funcs) = do
+    x86Main  <- genFunc $ mainBody ++ [Return]
     x86Funcs <- genFunc $ concat $ map body funcs
-    return $ dump $ concat [x86Main, x86Funcs, ["\n"]] where
+    return $ dump $ concat [mainHeader, x86Main, x86Funcs, ["\n"]] where
     dump :: [X86Inst] -> String
-    dump insts = mkString "\n" $ map adjust insts
-    adjust i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
-
-  genMain :: L1Func -> ErrorT String (State Int) [X86Inst]
-  genMain (Func insts) = do
-    body <- compile $ tail insts
-    return $ concat [mainHeader, body, mainFooter] where
+    dump insts = mkString "\n" $ map indent insts
+    indent i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
     mainHeader = [
       ".file\t\"prog.c\"",
       ".text",
       ".globl _go",
       "_go:" ]
-    mainFooter = [ "ret" ]
 
   genFunc :: [L1Instruction] -> ErrorT String (State Int) [X86Inst]
   genFunc [] = return []
