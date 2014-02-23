@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rsp -= 16)
   (rax <- (allocate 5 5)) ; size 2 array of 2's. you can only allocate into rax.
   (rdi <- rax) ; save the array pointer in rdi
@@ -20,4 +21,6 @@
 
   (rax <- (print rdi)) ; print the whole array just for fun
   (rsp += 16)
+  (rsp += 8)
+  (return)
 ))

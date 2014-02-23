@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   ; set up the stack pointer to get something off the stack, i think...
   (rsp -= 32)    ;; save space on the stack for 3 temporaries
 
@@ -18,4 +19,6 @@
   (rax <- (print rbx))
 
   (rsp += 16)
+  (rsp += 8)
+  (return)
 ))

@@ -1,5 +1,10 @@
-(((cjump 2 < 1 :keep_going :done)
+((
+  (rsp -= 8)
+  (cjump 2 < 1 :keep_going :done)
   :keep_going
   (rax <- (print 3))
   :done
-  (rax <- (print 5))))
+  (rax <- (print 5))
+  (rsp += 8)
+  (return)
+))

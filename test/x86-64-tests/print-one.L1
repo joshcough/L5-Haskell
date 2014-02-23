@@ -1,2 +1,7 @@
-(((rax <- 3)
-  (rax <- (print rax))))
+((
+  (rsp -= 8)
+  (rax <- 3)
+  (rax <- (print rax))
+  (rsp += 8)
+  (return)
+))

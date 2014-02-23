@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rsi <- 2)
   :w
 
@@ -25,4 +26,6 @@
   :_A_A_A_A_A_A_A_A_
   (rax <- 3)
   (rax <- (print rax))
-  ))
+  (rsp += 8)
+  (return)
+))

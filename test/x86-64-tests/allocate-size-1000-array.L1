@@ -1,3 +1,8 @@
 ; allocate an array of 1000 1's (3 is encoded version of 1)
-(((rax <- (allocate 2001 3))
-  (rax <- (print rax))))
+((
+  (rsp -= 8)
+  (rax <- (allocate 2001 3))
+  (rax <- (print rax))
+  (rsp += 8)
+  (return)
+))

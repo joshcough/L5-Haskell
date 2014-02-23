@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rbx <- 7 < 8) ;; puts a 1 in rbx.
   (rax <- (print rbx)) ;; 1 is printed as 0 because of our number encoding scheme.
 
@@ -19,4 +20,6 @@
   (rbx <- 8 = 7) ;; puts a zero in rbx.
   (rbx += 1) ;; add one because zero isnt a number in our encoding scheme.
   (rax <- (print rbx)) ;; 1 is printed as 0 because of our number encoding scheme.
+  (rsp += 8)
+  (return)
 ))

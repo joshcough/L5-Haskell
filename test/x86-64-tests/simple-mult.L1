@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   ; to multiply an encoded number
   (rax <- 5) ; 2, 101
   (rax *= 2) ; first mult by 2; 5*2 = 10 (1010)
@@ -17,4 +18,6 @@
   (rax *= 4) ; first mult by 4; 5*4 = 20 (10100)
   (rax -= 3) ; then subtract 3 (10100 - 3 = 10001, or 8)
   (rax <- (print rax))
+  (rsp += 8)
+  (return)
 ))

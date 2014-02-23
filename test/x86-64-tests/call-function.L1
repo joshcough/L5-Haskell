@@ -1,11 +1,16 @@
 (
   (
+    (rsp -= 8)
     (call :fun)
     (rax <- (print 7))
+    (rsp += 8)
+    (return)
   )
 
   (:fun
+    (rsp -= 8)
     (rax <- (print 5))
+    (rsp += 8)
     (return)
   )
 )

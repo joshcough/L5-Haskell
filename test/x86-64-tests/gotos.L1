@@ -1,7 +1,12 @@
-(((goto :keep_going)
+((
+  (rsp -= 8)
+  (goto :keep_going)
   :keep_going
   (rax <- (print 3))
   (goto :end)
   (rax <- (print 5)) ; should not be printed
   :end
-  (rax <- (print 7))))
+  (rax <- (print 7))
+  (rsp += 8)
+  (return)
+))

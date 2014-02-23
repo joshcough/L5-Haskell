@@ -10,7 +10,6 @@ module L.L1.L1Interp
     Computer(..)
    ,interpL1
    ,interpL1OrDie
-   ,interpL1File
    ,interpL1String
    ,interpL1StringOrDie
    ,showOutput
@@ -35,6 +34,7 @@ import L.L1L2AST hiding (registers)
 import L.L1L2Parser
 import L.Read
 import L.Utils
+import L.L1.L1 (adjustMain)
 
 type RegisterState = Map Register Int64
 type Memory = Vector Int64
@@ -50,17 +50,32 @@ data Computer = Computer {
  , _ip        :: Ip
  , _heapP     :: Int64 -- pointer to top of heap
  , _halted    :: Bool
+}
+makeClassy ''Computer
+
+data PrintableComputer  = PrintableComputer {
+   registersP :: RegisterState
+ , memoryP    :: Memory
+ , outputP    :: Output
+ , ipP        :: Ip
+ , instP      :: L1Instruction
+ , heapPP     :: Int64 -- pointer to top of heap
+ , haltedP    :: Bool
 } deriving Show
 
-makeClassy ''Computer
+instance Show Computer where
+  show c = show $ printable c where
+    printable c =
+      PrintableComputer
+        (c^.registers) (c^.memory) (c^.output) (c^.ip)
+        (currentInst c) (c^.heapP) (c^.halted)
 
 showOutput c = mkString "" $ reverse (c^.output)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
 memSize = 2048 :: Int -- twoMeg
-rbpStart = ((fromIntegral memSize - 1) * 8)
-rspStart = rbpStart
+rspStart = ((fromIntegral memSize) * 8)
 zero = 0 :: Int64
 registerStartState = Map.fromList [
  (rax, zero),
@@ -77,14 +92,14 @@ registerStartState = Map.fromList [
  (r14, zero),
  (r15, zero),
  (rsi, zero),
- (rbp, rbpStart),
+ (rbp, zero),
  (rsp, rspStart) ]
 emptyMem = Vector.replicate memSize zero
 
 newComputer (Program main fs) = Computer rss emptyMem prog indices [] 0 0 False where
   rss = registerStartState
   -- put all the instructions into a single vector
-  insts = Prelude.concat $ (body main ++ [Return]) : (fmap body fs)
+  insts = Prelude.concat $ fmap body $ main : fs
   prog = Vector.fromList insts
   indices = Map.fromList $ fmap f $ zipWithIndex insts where
     f (x,i) = (x, fromIntegral i)
@@ -131,17 +146,9 @@ push value c =
 -- adjust rsp accordingly.
 pop :: Register -> Computer -> Computer
 pop r c =
-  let rspVal = readReg rbp c
+  let rspVal = readReg rsp c
       c'     = writeReg r (readMem rspVal c) c
   in writeReg rsp (rspVal + 8) c'
-
-ret :: Computer -> Computer
-ret c = 
-  let rspVal = readReg rsp c
-      done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 8)
-      c'     = writeReg rsp (rspVal + 8) c
-      c''    = goto (readMem rspVal c') c'
-  in if done then halt c else c''
 
 adjustNum :: Int64 -> Int64
 adjustNum n = shiftR n 1
@@ -211,7 +218,9 @@ nextInstWR r i c = nextInst $ writeReg r i c
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> Computer
-interpL1 p = go (newComputer p)
+interpL1 p = let
+  c = newComputer $ adjustMain p
+  in go c --(traceSA (show $ c^.program) c)
 
 -- the main loop, runs a computer until completion
 go :: Computer -> Computer
@@ -249,17 +258,19 @@ step (Goto l) c = goto (findLabelIndex l c) c
 -- LabelDec, just advance
 step (LabelDeclaration _) c = nextInst c
 -- Call
---   TODO: push return location onto stack, have return goto it.
-step (Call s) c = 
+step (Call s) c =
   let func = readS s c
       c'   = push (c^.ip + 1) c
-      c''  = push (readReg rbp c') c' -- pushl %rbp
-      c''' = set rbp rsp c''          -- movl %rsp, %rbp
-  in goto func c'''
+  in goto func c'
 -- TailCall
 step (TailCall s) c = goto (readS s c) c
 -- Return
-step Return c = ret $ pop rbp $ set rsp rbp c
+step Return c =
+  let rspVal = readReg rsp c
+      done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 8)
+      c'     = writeReg rsp (rspVal + 8) c
+      c''    = goto (readMem rspVal c') c'
+  in if done then halt c else c''
 
 interpL1OrDie :: L1 -> String
 interpL1OrDie = showOutput . interpL1
@@ -270,6 +281,3 @@ interpL1String code = showOutput . interpL1 <$> parseL1 (sread code)
 interpL1StringOrDie :: String -> String
 interpL1StringOrDie = (either error id) . interpL1String
 
-interpL1File = 
-  do s <- compile_ $ (either error id) . interpL1String
-     putStrLn (snd s)

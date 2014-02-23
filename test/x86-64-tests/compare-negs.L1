@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rsi <- -1)
   (rax <- (print rsi))
 
@@ -14,4 +15,6 @@
   :end
   (rdi <- -3)
   (rax <- (print rdi)) ; should print -2 (since -3 is -2 encoded)
+  (rsp += 8)
+  (return)
 ))

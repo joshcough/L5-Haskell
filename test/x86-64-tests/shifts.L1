@@ -1,4 +1,5 @@
 ((
+ (rsp -= 8)
  (rax <- 7) ; 111
  (rax >>= 1) ; 011
  (rax <- (print rax)) ; prints 1
@@ -29,4 +30,6 @@
  (rbx <- 13)
  (rax &= rbx) ; 01101 -> 01001 -> 9 -> 4
  (rax <- (print rax)) ; prints 4
+ (rsp += 8)
+ (return)
 )) 

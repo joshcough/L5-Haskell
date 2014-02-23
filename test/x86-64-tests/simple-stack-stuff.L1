@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rsp -= 32)    ;; save space on the stack for 3 temporaries
 
   ; put something on the stack
@@ -15,4 +16,6 @@
   (rax <- (print rdx))
 
   (rsp += 32)
+  (rsp += 8)
+  (return)
 ))

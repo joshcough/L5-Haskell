@@ -1,6 +1,9 @@
 ((
+  (rsp -= 8)
   (rax <- 85)
   (rax <- (print rax))
   (rbx <- rax)
   (rax <- (print rax))
+  (rsp += 8)
+  (return)
 ))

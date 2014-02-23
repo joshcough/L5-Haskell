@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   ; to multiply an encoded number
   (rsi <- 5) ; 2, 101
   (rsi *= 2) ; first mult by 2; 5*2 = 10 (1010)
@@ -11,4 +12,6 @@
   (rsi *= 2)
   (rsi -= 1)
   (rax <- (print rsi))
+  (rsp += 8)
+  (return)
 ))

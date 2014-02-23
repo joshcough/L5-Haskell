@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rax <- (allocate 101 3)) ; size 50 array of 1's.
   (rdi <- rax) ; save the array pointer in rdi
   (rbx <- 50) ; the array index
@@ -24,4 +25,6 @@
   (rax <- (print rdi))
 
   :end
+  (rsp += 8)
+  (return)
 ))

@@ -23,7 +23,7 @@ import L.L1L2AST
 import L.L1L2Parser
 import L.Read
 import L.Utils
-import L.L1.L1 (CompilationMode(..), compileL1AndRunNative)
+import L.L1.L1 (compileL1AndRunNative)
 import L.L1.L1X86
 import L.L1.L1Interp
 import L.L2.Allocation
@@ -59,7 +59,7 @@ compileL2FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL2FileAndRunNative l2File outputDir = do
   l1 <- compileL2File_ l2File
   _  <- writeFile l1File (show l1)
-  compileL1AndRunNative L2Mode l1 (Just l2File) outputDir where
+  compileL1AndRunNative l1 (Just l2File) outputDir where
   l1File = changeDir (changeExtension l2File "L1") outputDir
 
 interpL2String :: String -> Either String String

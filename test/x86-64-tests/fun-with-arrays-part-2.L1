@@ -1,4 +1,5 @@
 ((
+  (rsp -= 8)
   (rsp -= 16)
   (rax <- (allocate 101 3)) ; size 50 array of 1's.
   (rdi <- rax) ; save the array pointer in rdi
@@ -44,4 +45,6 @@
   ; should print the entire array since rdi is the pointer to it.
   (rax <- (print rdi))
   (rsp += 16)
+  (rsp += 8)
+  (return)
 ))

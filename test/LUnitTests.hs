@@ -60,7 +60,7 @@ l164Tests = TestDef {
  ,inputFileExt = "L1"
  ,outputFileExt = "res"
  ,compute = \r _ e -> do 
-   res <- compileL1FileAndRunNative L1Mode r "tmp"
+   res <- compileL1FileAndRunNative r "tmp"
    strip res @?= strip e
 }
 livenessTests = TestDef { 
@@ -94,7 +94,7 @@ l2Tests = TestDef {
        interpRes = interpL1OrDie l1
    in do
     _      <- writeFile (changeExtension l2f "L1") (show l1)
-    x86res <- compileL1AndRunNative L2Mode l1 (Just l2f) "tmp"
+    x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
     strip x86res @?= strip interpRes
 }
 
