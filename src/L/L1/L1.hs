@@ -1,6 +1,7 @@
 module L.L1.L1 
   (
-    compileL1AndRunNative
+    CompilationMode(..)
+   ,compileL1AndRunNative
    ,compileL1FileAndRunNative
    ,compileL1
    ,compileL1OrDie
@@ -25,18 +26,20 @@ import System.Cmd
 import System.Environment 
 import System.IO
 
-compileL1 :: Bool -> String -> Either String String
-compileL1 adjustStack code = (adjustStackInProgram adjustStack . adjustMain <$> parseL1 (sread code)) >>= genX86Code
+data CompilationMode = L1Mode | L2Mode
 
-compileL1OrDie :: Bool -> String -> String
-compileL1OrDie adjustStack = (either error id) . compileL1 adjustStack
+compileL1 :: CompilationMode -> String -> Either String String
+compileL1 mode code = (adjustStackInProgram mode . adjustMain <$> parseL1 (sread code)) >>= genX86Code
 
-compileL1File_ :: Bool -> FilePath -> IO String
-compileL1File_ adjustStack = compile1 (compileL1OrDie adjustStack)
+compileL1OrDie :: CompilationMode -> String -> String
+compileL1OrDie mode = (either error id) . compileL1 mode
 
-compileL1FileAndRunNative :: Bool -> FilePath -> FilePath -> IO String
-compileL1FileAndRunNative adjustStack l1File outputDir = do
-  s <- compileL1File_ adjustStack l1File
+compileL1File_ :: CompilationMode -> FilePath -> IO String
+compileL1File_ mode = compile1 (compileL1OrDie mode)
+
+compileL1FileAndRunNative :: CompilationMode -> FilePath -> FilePath -> IO String
+compileL1FileAndRunNative mode l1File outputDir = do
+  s <- compileL1File_ mode l1File
   _   <- writeFile sFile s
   runNative sFile outputDir where 
   sFile = changeDir (changeExtension l1File "S") outputDir
@@ -44,11 +47,11 @@ compileL1FileAndRunNative adjustStack l1File outputDir = do
 -- the second argument is represents where the original code came from
 -- maybe it came from an L5-L2 file. 
 -- or, maybe it didn't come from a file at all
-compileL1AndRunNative :: Bool -> L1 -> Maybe FilePath -> FilePath -> IO String
-compileL1AndRunNative adjustStack l1 inputFile outputDir = do
+compileL1AndRunNative :: CompilationMode -> L1 -> Maybe FilePath -> FilePath -> IO String
+compileL1AndRunNative mode l1 inputFile outputDir = do
   _   <- writeFile sFile s
   runNative sFile outputDir where 
-  s = either error id $ genX86Code (adjustStackInProgram adjustStack $ adjustMain l1)
+  s = either error id $ genX86Code (adjustStackInProgram mode $ adjustMain l1)
   sFile = case inputFile of
     Just f  -> changeDir (changeExtension f "S") outputDir
     Nothing -> outputDir ++ "tmp.S"
@@ -72,10 +75,10 @@ runNative sFile outputDir =
        (by incrementing it by the amount we decremented it by 8)
        rewriteReturns puts that increment in front of all returns in the function.
  -}
-adjustStackInProgram :: Bool -> L1 -> L1
-adjustStackInProgram True (Program main fs) =
+adjustStackInProgram :: CompilationMode -> L1 -> L1
+adjustStackInProgram L1Mode (Program main fs) =
   Program (adjustStackInFunction main) (fmap adjustStackInFunction fs)
-adjustStackInProgram False p = p
+adjustStackInProgram L2Mode p = p
 
 adjustStackInFunction :: L1Func -> L1Func
 adjustStackInFunction (Func (labl : insts)) =
