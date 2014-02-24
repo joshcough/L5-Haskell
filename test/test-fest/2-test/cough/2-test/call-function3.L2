@@ -1,0 +1,17 @@
+(
+  (
+    (rdi <- 7)
+    (rsi <- 9)
+    (call :fun2)
+    (rax <- (print rax))
+  )
+
+  (:fun2
+    (x <- rdi)
+    (y <- rsi)
+    (rax <- (print x))
+    (rax <- (print y))
+    (rax <- 85)
+    (return)
+  )
+)

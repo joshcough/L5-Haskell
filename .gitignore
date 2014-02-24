@@ -25,3 +25,4 @@ wip
 .cabal-sandbox
 goo
 *.S64*
+*.iml
