@@ -1,8 +1,0 @@
-((x <- 5)
- (y <- x)
- (y += x)
- (x <- :func1)
- (tail-call x))
-x
--4
-s_

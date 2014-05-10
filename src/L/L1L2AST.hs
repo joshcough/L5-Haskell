@@ -58,8 +58,8 @@ data Instruction x s =
   Goto Label                 |
   CJump (Comp s) Label Label |
   LabelDeclaration Label     |
-  Call s                     |
-  TailCall s                 |
+  Call Label                 |
+  TailCall Label             |
   Return deriving (Eq, Ord)
 
 data Func x s = Func { body :: [Instruction x s]}
@@ -104,11 +104,11 @@ instance (Show x, Show s) => Show (Instruction x s) where
   show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
   show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
   show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
-  show (Goto l)             = showAsList ["goto", ":" ++ l]
-  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, ":" ++ l1, ":" ++ l2]
-  show (LabelDeclaration l) = ":" ++ l
-  show (Call s)             = showAsList ["call", show s]
-  show (TailCall s)         = showAsList ["tail-call", show s]
+  show (Goto l)             = showAsList ["goto", l]
+  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, l1, l2]
+  show (LabelDeclaration l) = l
+  show (Call s)             = showAsList ["call", s]
+  show (TailCall s)         = showAsList ["tail-call", s]
   show Return               = "(return)"
 
 instance Show Register where
@@ -177,14 +177,15 @@ foldOp _ _ a EQ   = a
 
 -- L1 AST (uses shared L1/L2 AST)
 type L1X = Register
-data L1S = NumberL1S Int64 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
+data L1S = CharL1S Char | NumberL1S Int64 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
 type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
 type L1 = Program L1X L1S
 
 instance Show L1S where
+  show (CharL1S c)   = show c
   show (NumberL1S n) = show n
-  show (LabelL1S l)  = ":" ++ l
+  show (LabelL1S l)  = l
   show (RegL1S r)    = show r
 
 -- L2 AST (uses shared L1/L2 AST)
@@ -221,7 +222,7 @@ instance Show L2X where
 
 instance Show L2S where
   show (NumberL2S n)   = show n
-  show (LabelL2S l)    = ":" ++ l
+  show (LabelL2S l)    = l
   show (XL2S x)        = show x
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2

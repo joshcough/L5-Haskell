@@ -1,6 +1,7 @@
 module L.Read 
   (
     SExpr(..)
+   ,debugShowSExpr
    ,flatten
    ,showAsList
    ,sreadWithRest
@@ -14,12 +15,21 @@ import L.Utils
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace
 
-data SExpr = AtomSym String | AtomNum Int | List [SExpr] deriving (Eq)
+data SExpr = AtomSym String | AtomNum Int | AtomChar Char | List [SExpr] deriving (Eq)
 
 instance Show SExpr where
-  show (AtomSym s) = s
-  show (AtomNum i) = show i
-  show (List exps) = showAsList $ fmap show exps
+  show (AtomSym s)  = s
+  show (AtomNum i)  = show i
+  show (AtomChar c) = show c
+  show (List exps)  = showAsList $ fmap show exps
+
+debugShowSExpr :: SExpr -> String
+debugShowSExpr (AtomSym s)   = wrap "symbol" s
+debugShowSExpr (AtomNum i)   = wrap "number" i
+debugShowSExpr (AtomChar c)  = wrap "char"   c
+debugShowSExpr l@(List exps) = wrap "list"   (fmap debugShowSExpr exps)
+
+wrap typ dat = concat ["{", typ, ": ", show dat, "}"]
 
 showAsList :: [String] -> String
 showAsList as = "(" ++ (mkString " " as) ++ ")"
@@ -28,7 +38,7 @@ sread :: String -> SExpr
 sread s = let (sexpr, _) = readWithRest (preprocess s) in sexpr
 
 sreadWithRest :: String -> (SExpr, String)
-sreadWithRest s = readWithRest (preprocess s)
+sreadWithRest = readWithRest . preprocess 
 
 preprocess :: String -> String
 preprocess s = concat $ map ((++ " ") . trim . removeComments) (lines s)
@@ -55,6 +65,7 @@ readWithRest :: String -> (SExpr,String)
 readWithRest (' ' : tail) = readWithRest tail
 readWithRest ('(' : tail) = readL tail (List [])
 --readWithRest ('"' : tail) = readStringLit tail ['"']
+readWithRest ('\'' : c : '\'' : tail) = (AtomChar c, tail)
 readWithRest (c : tail) = readChars (c : tail) []
 
 --readStringLit :: String -> String -> (SExpr, String)

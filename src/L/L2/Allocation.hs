@@ -40,7 +40,7 @@ allocate f = Func finalL1Body where
    -}
   label = case allocatedBody !! 0 of
     l@(LabelDeclaration x) -> l
-    _ -> LabelDeclaration "main"
+    _ -> LabelDeclaration ":main"
 
   {-
     Make sure the stack is always aligned to 16 bytes, which is an x86-64 requirement.
@@ -164,15 +164,17 @@ findMatch g pairs v = maybe pairs (\r -> Map.insert v r pairs) choice where
 replaceVarsWithRegisters :: Map Variable Register -> [L2Instruction] -> [L1Instruction]
 replaceVarsWithRegisters replacements insts = fmap replaceInInst insts where
   replaceInInst :: L2Instruction -> L1Instruction
-  replaceInInst (Assign x rhs)        = Assign (getRegister x) (replaceInRHS rhs)
-  replaceInInst (MathInst x op s)     = MathInst (getRegister x) op (replaceInS s)
-  replaceInInst (MemWrite   loc s)    = MemWrite (replaceInMemLoc loc) (replaceInS s)
-  replaceInInst (Goto s)              = Goto s
-  replaceInInst (CJump comp l1 l2)    = CJump (replaceInComp comp) l1 l2
-  replaceInInst (Call s)              = Call $ replaceInS s
-  replaceInInst (TailCall s)          = TailCall $ replaceInS s
-  replaceInInst (LabelDeclaration ld) = LabelDeclaration ld
-  replaceInInst Return                = Return
+  replaceInInst (Assign x rhs)       = Assign (getRegister x) (replaceInRHS rhs)
+  replaceInInst (MathInst x op s)    = MathInst (getRegister x) op (replaceInS s)
+  replaceInInst (MemWrite   loc s)   = MemWrite (replaceInMemLoc loc) (replaceInS s)
+  replaceInInst (CJump comp l1 l2)   = CJump (replaceInComp comp) l1 l2
+  -- these could all be replaced with an underscore, but
+  -- i want to explicitely list them all out in case things change
+  replaceInInst (Goto l)             = (Goto l)
+  replaceInInst (Call l)             = (Call l)
+  replaceInInst (TailCall l)         = (TailCall l)
+  replaceInInst (LabelDeclaration l) = (LabelDeclaration l)
+  replaceInInst Return               = Return
 
   replaceInS :: L2S -> L1S
   replaceInS (XL2S (VarL2X v)) = maybe (error "bad register") RegL1S $ Map.lookup v replacements

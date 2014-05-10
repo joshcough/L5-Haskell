@@ -1,8 +1,0 @@
-((s0 <- (mem rsp -4))
- (call s0)
- (s1 <- (mem rsp -4))
- (call s1)
- (s2 <- (mem rsp -4))
- (call s2)
- (s3 <- (mem rsp -4))
- (call s3))

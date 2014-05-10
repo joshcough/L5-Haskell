@@ -28,8 +28,8 @@ varsInst = varsI where
   varsI (Goto _)                   = Set.empty
   varsI (CJump (Comp s1 _ s2) _ _) = Set.unions [varsS s1, varsS s2]
   varsI (LabelDeclaration _)       = Set.empty
-  varsI (Call s)                   = varsS s
-  varsI (TailCall s)               = varsS s
+  varsI (Call s)                   = Set.empty
+  varsI (TailCall s)               = Set.empty
   varsI Return                     = Set.empty
 
   varsX (RegL2X _) = Set.empty

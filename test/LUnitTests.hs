@@ -30,8 +30,8 @@ tests = do
 tests2_ = [l2Tests]
 
 tests_ = [
-  spillTests
- ,l1InterpreterTests
+--  spillTests
+  l1InterpreterTests
  ,l164Tests
 --  livenessTests
 -- ,interferenceTests

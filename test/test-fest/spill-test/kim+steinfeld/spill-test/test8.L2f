@@ -1,6 +1,0 @@
-((rbx <- :middle)
- (x <- rbx)
- (call x))
-x
--4
-s_

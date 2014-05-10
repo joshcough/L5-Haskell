@@ -73,15 +73,11 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
   spillI (CJump c@(Comp s1 _ s2) l1 l2) = spillCJump c l1 l2 
   spillI (MathInst x op s)              = spillMathInst x op s
   spillI (MemWrite loc s)               = spillMemWrite loc s
-  spillI (Call s)
-    | s == spillVarS = withNewVarR $ \v -> [Call (XL2S v)]
-    | otherwise = return [Call s]
-  spillI (TailCall s) 
-    | s == spillVarS = withNewVarR $ \v -> [TailCall (XL2S v)]
-    | otherwise = return [TailCall s]
-  spillI g@(Goto _)                 = return [g]
-  spillI l@(LabelDeclaration _)     = return [l]
-  spillI r@Return                   = return [r]
+  spillI c@(Call _)                     = return [c]
+  spillI t@(TailCall _)                 = return [t]
+  spillI g@(Goto _)                     = return [g]
+  spillI l@(LabelDeclaration _)         = return [l]
+  spillI r@Return                       = return [r]
   
   spillAssignment :: L2X -> AssignRHS L2X L2S -> State Int [L2Instruction]
   -- assignments to variable from variable

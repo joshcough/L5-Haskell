@@ -258,12 +258,12 @@ step (Goto l) c = goto (findLabelIndex l c) c
 -- LabelDec, just advance
 step (LabelDeclaration _) c = nextInst c
 -- Call
-step (Call s) c =
-  let func = readS s c
+step (Call l) c =
+  let func = findLabelIndex l c
       c'   = push (c^.ip + 1) c
   in goto func c'
 -- TailCall
-step (TailCall s) c = goto (readS s c) c
+step (TailCall l) c = goto (findLabelIndex l c) c
 -- Return
 step Return c =
   let rspVal = readReg rsp c

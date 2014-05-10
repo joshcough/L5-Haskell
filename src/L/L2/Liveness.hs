@@ -55,11 +55,11 @@ gen i = genI i where
   genI (Assign x rhs)             = genRHS rhs
   genI (MathInst x _ s)           = S.unions [genX x,  genS s]
   genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
-  genI (Goto s)                   = S.empty
+  genI (Goto _)                   = S.empty
   genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
   genI (LabelDeclaration _)       = S.empty
-  genI (Call s)                   = S.unions [genS s,  arguments]
-  genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
+  genI (Call _)                   = S.unions [arguments]
+  genI (TailCall _)               = S.unions [arguments, calleeSave]
   genI Return                     = S.unions [returnRegisters, calleeSave]
 
   genX :: L2X -> S.Set L2X

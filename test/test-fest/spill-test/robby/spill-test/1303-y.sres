@@ -1,1 +1,0 @@
-((s0 <- (mem rsp -8)) (tail-call s0))
