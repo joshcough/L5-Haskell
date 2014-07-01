@@ -1,14 +1,5 @@
 module L.L5.L5AST where
 
-import Control.Applicative
-import Control.Monad.State
-import Control.Monad.Trans
-import Data.Foldable
-import Data.Map (Map)
-import qualified Data.Map as Map
-import qualified Data.Sequence as Seq
-import Data.Traversable
-
 type Variable = String
 
 data PrimFun = 
