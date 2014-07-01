@@ -25,7 +25,12 @@ getMem = fmap snd get
 getEnv = fmap fst get
 putEnv e = do (_, m) <- get; put (e, m)
 putMem m = do (e, _) <- get; put (e, m)
-locally modifyEnv action = do e <- getEnv; putEnv (modifyEnv e); action <* putEnv e;
+locally modifyEnv action = do 
+  e <- getEnv
+  putEnv (modifyEnv e)
+  res <- action
+  putEnv e
+  return res
 
 runInterp :: E -> IO Runtime
 runInterp e = evalStateT (interp e) (Map.empty, [])
