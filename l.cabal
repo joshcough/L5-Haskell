@@ -44,6 +44,9 @@ library
     L.L2.Liveness
     L.L2.Spill
     L.L2.Vars
+    -- L5
+    L.L5.L5AST
+    L.L5.L5Interp
 
   build-depends:
     base                      >= 4       && < 5,
