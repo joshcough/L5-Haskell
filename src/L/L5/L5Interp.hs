@@ -15,6 +15,14 @@ import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
 import Data.Traversable
 import L.L5.L5AST
+import Data.Array.IO (IOArray)
+import qualified Data.Array.IO as IOArray
+
+main = do arr <- IOArray.newArray (1,10) 37 :: IO (IOArray Int Int)
+          a   <- IOArray.readArray arr 1
+          IOArray.writeArray arr 1 64
+          b   <- IOArray.readArray arr 1 
+          print (a,b)
 
 data Runtime = Num Int | Pointer Int | Closure [Variable] E Env
   deriving Eq
@@ -22,7 +30,7 @@ instance Show Runtime where
   show (Num i) = show i
   show (Pointer _) = "pointer"
   show (Closure _ _ _) = "<function>"
-type Mem = [Runtime]
+type Mem = (IOArray Int Runtime, Int) -- heap, and heap pointer
 type Env = Map Variable Runtime
 type M x = StateT (Env, Mem) IO x
 
@@ -43,9 +51,17 @@ locally modifyEnv action = do
   return res where
   putEnv e = do (_, m) <- get; put (e, m)
 
+heapSize = 1000
+emptyMem :: IO Mem
+emptyMem = do
+  mem <- IOArray.newArray (0,heapSize - 1) (Num 0)
+  return (mem, 0)
+
 -- | top level entry point (interprets e, and runs the monadic action)
 runInterp :: E -> IO Runtime
-runInterp e = evalStateT (interp e) (Map.empty, [])
+runInterp e = do
+  mem <- emptyMem
+  evalStateT (interp e) (Map.empty, mem)
 
 -- | interpret an E, building a monadic operation to be run.
 interp :: E -> M Runtime
@@ -54,7 +70,7 @@ interp (Var v)             = envLookup  v <$> getEnv
 interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
 interp (LetRec v e body)   = error "todo"
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
-interp (NewTuple es)       = traverse interp es >>= makeArray (length es)
+interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
 interp (LitInt i)          = return $ Num i
 interp (PrimFunE p)        = interpPrim p
@@ -90,44 +106,49 @@ interpApp f es = do
 -- | array reference
 arrayRef :: E -> E -> M Runtime
 arrayRef e1 e2 = do
-  (_, arr) <- evalArray e1
-  index    <- evalNumber e2
-  return $ arr !! index
+  (mem,_) <- getMem
+  p       <- evalPointer e1 
+  index   <- evalNumber e2
+  lift $ IOArray.readArray mem (p + index + 1)
 
 -- | get array length
 arrayLength :: E -> M Runtime
-arrayLength e = Num . fst <$> evalArray e
+arrayLength e = do
+  (mem,_) <- getMem
+  p       <- evalPointer e
+  lift $ IOArray.readArray mem p
 
--- TODO: can this be rewritten with evalArray after changing to STArray?
+-- | sets the arr[i] = e
 arraySet :: E -> E -> E -> M Runtime
-arraySet e1 e2 e3 = do
-  p     <- evalPointer e1
-  index <- evalNumber e2
-  r     <- interp e3
-  mem   <- getMem
-  _     <- putMem $ toList $ Seq.update (p + index + 1) r (Seq.fromList mem)
+arraySet arr i e = do
+  p        <- evalPointer arr
+  index    <- evalNumber i
+  r        <- interp e
+  (mem,hp) <- getMem
+  _        <- lift $ IOArray.writeArray mem (p + index + 1) r
   return lTrue
 
--- makes a new array from the given Runtime objects
-makeArray :: Int -> [Runtime] -> M Runtime
-makeArray size rs = do
-  (pointer, newMem) <- makeArrayPure <$> getMem <*> return size <*> return rs
-  _ <- putMem $ newMem
-  return $ pointer
+-- makes a new array from the given Runtime objects and puts it on the heap
+makeHeapArray :: Int -> [Runtime] -> M Runtime
+makeHeapArray size rs = do
+  (mem, hp) <- getMem
+  _         <- lift $ writeArrayIntoHeap mem hp (Pointer hp : rs)
+  _         <- putMem (mem, hp + size)
+  return $ Pointer hp where
+  writeArrayIntoHeap :: IOArray Int Runtime -> Int -> [Runtime] -> IO [()]
+  writeArrayIntoHeap mem hp rs = 
+    Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs 
 
 -- makes an array of size e1 with each slot filled with e2
 newArray :: E -> E -> M Runtime
 newArray e1 e2 = do
   size <- evalNumber e1
   val  <- interp e2
-  makeArray size $ replicate size val
+  makeHeapArray size $ replicate size val
 
 -- TODO: might be a function in Maybe to make this easier.
 envLookup :: Variable -> Env -> Runtime
 envLookup v env = maybe (runtimeError $ "unbound variable: " ++ v) id (Map.lookup v env)
-
-getArray :: Int -> M (Int, [Runtime])
-getArray i = getArrayPure <$> getMem <*> return i
 
 evalNumber  :: E -> M Int
 evalNumber  e = foldRuntime (\(Num i) -> i) evalErrN evalErrN <$> interp e 
@@ -138,8 +159,6 @@ evalPointer e = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interp e
 evalClosure :: E -> M Runtime
 evalClosure e = foldRuntime evalErrC evalErrC id <$> interp e
   where evalErrC = evalErr "<function>"
-evalArray :: E -> M (Int, [Runtime])
-evalArray e = evalPointer e >>= getArray
 
 evalErr :: String -> Runtime -> a -- hmm...
 evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ (show r)
@@ -154,22 +173,19 @@ binOp f e1 e2 = f <$> evalNumber e1 <*> evalNumber e2 >>= return . Num
 -- I didn't design this language.
 boolBinOp :: (Int -> Int -> Bool) -> E -> E -> M Runtime
 boolBinOp f = binOp $ \x y -> if f x y then 0 else 1 
-  
+ 
+getHeapList :: M [Runtime]
+getHeapList = fst <$> getMem >>= lift . IOArray.getElems
+
 showRuntime :: Runtime -> M String
-showRuntime r = showRuntimePure <$> getMem <*> return r
+showRuntime r = showRuntimePure <$> getHeapList <*> return r
 
 showArray :: Int -> M String
-showArray i = showArrayPure <$> getMem <*> return (Pointer i)
+showArray i = showArrayPure <$> getHeapList <*> return (Pointer i)
 
 -- Pure Code
 
--- TODO: this is obviously horribly inefficient and needs MArray or STArray
--- returns a pointer to the array in the heap
--- and the new heap
-makeArrayPure :: Mem -> Int -> [Runtime] -> (Runtime, Mem)
-makeArrayPure mem size rs = (Pointer $ length mem, mem ++ [Num size] ++ rs)
-
-getArrayPure :: Mem -> Int -> (Int, [Runtime])
+getArrayPure :: [Runtime] -> Int -> (Int, [Runtime])
 getArrayPure mem i = (size, arr) where
   view       = drop i mem
   (Num size) = foldRuntime id err err $ head view
@@ -193,10 +209,10 @@ foldRuntime fn fp fc r = f r where
   f p@(Pointer _)     = fp p
   f c@(Closure _ _ _) = fc c
 
-showRuntimePure :: Mem -> Runtime -> String
+showRuntimePure :: [Runtime] -> Runtime -> String
 showRuntimePure m = foldRuntime show (showArrayPure m) show
 
-showArrayPure :: Mem -> Runtime -> String
+showArrayPure :: [Runtime] -> Runtime -> String
 showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
   (size, arr) = getArrayPure mem i 
   body = join $ intersperse "," (show <$> arr)
