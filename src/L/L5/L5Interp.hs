@@ -2,6 +2,7 @@ module L.L5.L5Interp
   (
     interp
    ,runInterp
+   ,locally
   )
 where
 
@@ -17,12 +18,6 @@ import Data.Traversable
 import L.L5.L5AST
 import Data.Array.IO (IOArray)
 import qualified Data.Array.IO as IOArray
-
-main = do arr <- IOArray.newArray (1,10) 37 :: IO (IOArray Int Int)
-          a   <- IOArray.readArray arr 1
-          IOArray.writeArray arr 1 64
-          b   <- IOArray.readArray arr 1 
-          print (a,b)
 
 data Runtime = Num Int | Pointer Int | Closure [Variable] E Env
   deriving Eq
@@ -43,6 +38,7 @@ getEnv = fst <$> get
 putMem m = do (e, _) <- get; put (e, m)
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
+locally :: (Env -> Env) -> M a -> M a
 locally modifyEnv action = do 
   e <- getEnv
   putEnv $ modifyEnv e
@@ -68,7 +64,10 @@ interp :: E -> M Runtime
 interp (Lambda vs e)       = Closure vs e <$> getEnv
 interp (Var v)             = envLookup  v <$> getEnv
 interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
-interp (LetRec v e body)   = error "todo"
+interp (LetRec ves body)   = let
+  newEnv = error "todo" -- need to run M to build up the new env...
+  interpInEnv e = locally (Map.union newEnv) (interp e)
+  in interpInEnv body
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2

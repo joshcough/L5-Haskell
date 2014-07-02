@@ -22,7 +22,7 @@ data E =
     Lambda [Variable] E
   | Var Variable
   | Let [(Variable, E)] E
-  | LetRec Variable E E
+  | LetRec [(Variable, E)] E
   | IfStatement E E E
   | NewTuple [E]
   | Begin E E
