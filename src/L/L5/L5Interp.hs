@@ -1,9 +1,15 @@
-module L.L5.L5Interp where
+module L.L5.L5Interp
+  (
+    interp
+   ,runInterp
+  )
+where
 
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Trans
 import Data.Foldable
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
@@ -33,17 +39,18 @@ locally modifyEnv action = do
   putEnv e
   return res
 
+-- top level entry point
 runInterp :: E -> IO Runtime
 runInterp e = evalStateT (interp e) (Map.empty, [])
 
 interp :: E -> M
-interp (Lambda vs e)       = do env <- getEnv; return $ (Closure vs e env)
-interp (Var v)             = envLookup v <$> getEnv
+interp (Lambda vs e)       = Closure vs e <$> getEnv
+interp (Var v)             = envLookup  v <$> getEnv
 interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
 interp (LetRec v e body)   = error "todo"
-interp (IfStatement p t f) = do pv <- interp p; interp $ case pv of (Num 0) -> t; _ -> f
+interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeArray (length es)
-interp (Begin e1 e2)       = do _ <- interp e1; interp e2
+interp (Begin e1 e2)       = interp e1 >> interp e2
 interp (LitInt i)          = return $ Num i
 interp (PrimFunE p)        = interpPrim p
 interp (App f es)          = interpApp f es
@@ -64,9 +71,7 @@ interpPrim (ASet e1 e2 e3)  = arraySet e1 e2 e3
 interpPrim (ALen e)         = arrayLength e
 
 interpPrint :: E -> M
-interpPrint e = do
-  r <- interp e
-  printRuntime r >> lift (print "\n") >> return lTrue
+interpPrint e = do; r <- interp e; (showRuntime r >>= lift . print) >> return lTrue
 
 interpApp :: E -> [E] -> M
 interpApp f es = do
@@ -79,28 +84,39 @@ makeArray :: Int -> [Runtime] -> M
 makeArray size rs = do
   mem <- getMem
   _   <- putMem $ mem ++ [Num size] ++ rs
-  return $ Num $ length mem
+  return $ Pointer $ length mem
 
 -- TODO: might be a function in Maybe to make this easier.
 envLookup :: Variable -> Env -> Runtime
-envLookup v env = maybe (error $ "unbound variable: " ++ v) id (Map.lookup v env)
+envLookup v env = maybe (runtimeError $ "unbound variable: " ++ v) id (Map.lookup v env)
 
+newArray :: E -> E -> M
 newArray e1 e2 = do
   (Num size) <- evalNumber e1
   val        <- interp e2
   makeArray size $ replicate size val
 
+getArray :: Int -> StateT S IO (Int, [Runtime])
+getArray i = getArrayPure <$> getMem <*> return i
+
+getArrayPure :: Mem -> Int -> (Int, [Runtime])
+getArrayPure mem i = (size, arr) where
+  view       = drop i mem
+  (Num size) = foldRuntime id err err $ head view
+  err r      = runtimeError $ "bug, bad array index: " ++ show r
+  arr        = take size $ drop 1 view
+
+arrayRef :: E -> E -> M
 arrayRef e1 e2 = do
-  (Pointer p) <- evalPointer e1
+  (_, arr) <- evalArray e1
   (Num index) <- evalNumber e2
-  mem         <- getMem
-  return $ mem !! (p + index + 1)
+  return $ arr !! index
 
-arrayLength e = do
-  (Pointer index) <- evalPointer e
-  mem <- getMem
-  return . arraySize $ mem !! index
+arrayLength :: E -> M
+arrayLength e = Num . fst <$> evalArray e
 
+-- TODO: can this be rewritten with evalArray after changing to STArray?
+arraySet :: E -> E -> E -> M
 arraySet e1 e2 e3 = do
   (Pointer p) <- evalPointer e1
   (Num index) <- evalNumber e2
@@ -130,9 +146,14 @@ evalPointer e = foldRuntime evalErrP id evalErrP <$> interp e
 evalClosure :: E -> M
 evalClosure e = foldRuntime evalErrC evalErrC id <$> interp e
   where evalErrC = evalErr "<function>"
+evalArray :: E -> StateT S IO (Int, [Runtime])
+evalArray e = do (Pointer i) <- evalPointer e; getArray i
 
 evalErr :: String -> Runtime -> a -- hmm...
-evalErr typ r = error $ "expected " ++ typ ++ " but got: " ++ (show r)
+evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ (show r)
+
+runtimeError :: String -> a
+runtimeError msg = error $ "Runtime error: " ++ msg 
 
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc r = f r where
@@ -147,25 +168,21 @@ binOp f e1 e2 = do
   return . Num $ f (getVal r1) (getVal r2) where
   getVal (Num i) = i
 
+-- I know 0 is horrible for true,
+-- I didn't design this language.
 boolBinOp :: (Int -> Int -> Bool) -> E -> E -> M
-boolBinOp f = binOp $ \x y -> boolToNum $ f x y where 
-  -- I know 0 is horrible for true,
-  -- I didn't design this language.
-  boolToNum b = if b then 0 else 1
+boolBinOp f = binOp $ \x y -> if f x y then 0 else 1 
   
-printRuntime :: Runtime -> StateT S IO ()
-printRuntime (Num i)         = lift $ print i
-printRuntime (Pointer i)     = printMem i
-printRuntime (Closure _ _ _) = lift $ print "<function>"
+showRuntime :: Runtime -> StateT S IO String
+showRuntime r = showRuntimePure <$> getMem <*> return r
 
-printMem :: Int -> StateT S IO ()
-printMem i = do
-  mem <- getMem
-  let view       = drop i mem
-      (Num size) = arraySize $ head view 
-      arr        = take size $ drop 1 view
-  traverse_ printRuntime arr
+showArray :: Int -> StateT S IO String
+showArray i = showArrayPure <$> getMem <*> return (Pointer i)
 
-arraySize :: Runtime -> Runtime
-arraySize (Num s) = Num s
-arraySize _ = error "bad array size"
+showRuntimePure :: Mem -> Runtime -> String
+showRuntimePure m = foldRuntime show (showArrayPure m) show
+
+showArrayPure :: Mem -> Runtime -> String
+showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
+  (size, arr) = getArrayPure mem i 
+  body = join $ intersperse "," (show <$> arr)
