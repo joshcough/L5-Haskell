@@ -16,6 +16,7 @@ data PrimFun =
   | ARef     E E
   | ASet     E E E
   | ALen     E
+  deriving Eq
 
 data E = 
     Lambda [Variable] E
@@ -28,3 +29,4 @@ data E =
   | App E [E]
   | LitInt Int
   | PrimFunE PrimFun
+  deriving Eq
