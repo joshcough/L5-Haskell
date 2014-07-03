@@ -3,6 +3,7 @@ module L.L5.L5Interp
     interp
    ,runInterp
    ,locally
+   ,letrecExample
   )
 where
 
@@ -64,10 +65,9 @@ interp :: E -> M Runtime
 interp (Lambda vs e)       = Closure vs e <$> getEnv
 interp (Var v)             = envLookup  v <$> getEnv
 interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
-interp (LetRec ves body)   = let
-  newEnv = error "todo" -- need to run M to build up the new env...
-  interpInEnv e = locally (Map.union newEnv) (interp e)
-  in interpInEnv body
+interp (LetRec ves body)   = locally newEnv (interp body) where
+  newEnv old = new where new = Map.union (Map.fromList (toClosure <$> ves)) old 
+                         toClosure (v, Lambda vs e) = (v, Closure vs e new)
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
@@ -215,3 +215,14 @@ showArrayPure :: [Runtime] -> Runtime -> String
 showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
   (size, arr) = getArrayPure mem i 
   body = join $ intersperse "," (show <$> arr)
+
+zero = LitInt 0
+one = LitInt 1
+f = Var "f"
+g = Var "g"
+x = Var "x"
+lambdaExample rec = Lambda ["x"] ifExample where
+  beginExample = Begin (PrimFunE $ Print x) (App rec [PrimFunE $ Sub x one])
+  ifExample = IfStatement (PrimFunE $ EqualTo x zero) x beginExample
+letrecExample = LetRec [("f", lambdaExample g), ("g", lambdaExample f)] $ App f [LitInt 15]
+
