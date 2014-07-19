@@ -14,6 +14,7 @@ import Data.Foldable
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Sequence as Seq
 import Data.Traversable
 import L.L5.L5AST
@@ -48,16 +49,18 @@ locally modifyEnv action = do
   return res where
   putEnv e = do (_, m) <- get; put (e, m)
 
-heapSize = 1000
-emptyMem :: IO Mem
-emptyMem = do
-  mem <- IOArray.newArray (0,heapSize - 1) (Num 0)
+defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
+emptyMem :: Int -> IO Mem
+emptyMem heapSize = do
+  mem <- IOArray.newArray (0, heapSize - 1) (Num 0)
   return (mem, 0)
 
 -- | top level entry point (interprets e, and runs the monadic action)
-runInterp :: E -> IO Runtime
-runInterp e = do
-  mem <- emptyMem
+runInterp = runInterpH defaultHeapSize 
+
+runInterpH :: Int -> E -> IO Runtime
+runInterpH heapSize e = do
+  mem <- emptyMem heapSize
   evalStateT (interp e) (Map.empty, mem)
 
 -- | interpret an E, building a monadic operation to be run.
@@ -91,33 +94,33 @@ interpPrim (ARef e1 e2)     = arrayRef e1 e2
 interpPrim (ASet e1 e2 e3)  = arraySet e1 e2 e3
 interpPrim (ALen e)         = arrayLength e
 
--- | prints the given E.
+-- | prints the given E. (print e)
 interpPrint :: E -> M Runtime
 interpPrint e = do r <- interp e; (showRuntime r >>= lift . print) >> return lTrue
 
--- | function application
+-- | function application (f e...)
 interpApp :: E -> [E] -> M Runtime
 interpApp f es = do
   (Closure vars body env) <- evalClosure f
   rs <- traverse interp es
   locally (\_ -> Map.union (Map.fromList (zip vars rs)) env) (interp body)
 
--- | array reference
+-- | array reference (arr[i])
 arrayRef :: E -> E -> M Runtime
-arrayRef e1 e2 = do
+arrayRef arr i = do
   (mem,_) <- getMem
-  p       <- evalPointer e1 
-  index   <- evalNumber e2
+  p       <- evalPointer arr
+  index   <- evalNumber i
   lift $ IOArray.readArray mem (p + index + 1)
 
--- | get array length
+-- | get array length (size arr)
 arrayLength :: E -> M Runtime
-arrayLength e = do
+arrayLength arr = do
   (mem,_) <- getMem
-  p       <- evalPointer e
+  p       <- evalPointer arr
   lift $ IOArray.readArray mem p
 
--- | sets the arr[i] = e
+-- | sets the (arr[i] = e)
 arraySet :: E -> E -> E -> M Runtime
 arraySet arr i e = do
   p        <- evalPointer arr
@@ -145,14 +148,9 @@ newArray e1 e2 = do
   val  <- interp e2
   makeHeapArray size $ replicate size val
 
--- TODO: might be a function in Maybe to make this easier.
-envLookup :: Variable -> Env -> Runtime
-envLookup v env = maybe (runtimeError $ "unbound variable: " ++ v) id (Map.lookup v env)
-
-evalNumber  :: E -> M Int
+evalNumber, evalPointer  :: E -> M Int
 evalNumber  e = foldRuntime (\(Num i) -> i) evalErrN evalErrN <$> interp e 
   where evalErrN = evalErr "Number"
-evalPointer :: E -> M Int
 evalPointer e = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interp e
   where evalErrP = evalErr "Pointer"
 evalClosure :: E -> M Runtime
@@ -184,6 +182,10 @@ showArray i = showArrayPure <$> getHeapList <*> return (Pointer i)
 
 -- Pure Code
 
+envLookup :: Variable -> Env -> Runtime
+envLookup v env =
+  fromMaybe (runtimeError $ "unbound variable: " ++ v) (Map.lookup v env)
+
 getArrayPure :: [Runtime] -> Int -> (Int, [Runtime])
 getArrayPure mem i = (size, arr) where
   view       = drop i mem
@@ -196,11 +198,9 @@ lTrue  = Num 0
 -- | False for L5, this cant be tested for equality, because everything other than 0 is false.
 lFalse = Num 1 
 
-isNumber :: Runtime -> Runtime
+isNumber, isArray :: Runtime -> Runtime
 isNumber = foldRuntime (const lTrue) (const lFalse) (const lFalse)
-
-isArray :: Runtime -> Runtime
-isArray = foldRuntime (const lFalse) (const lTrue) (const lFalse)
+isArray  = foldRuntime (const lFalse) (const lTrue) (const lFalse)
 
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc r = f r where

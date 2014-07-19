@@ -1,4 +1,8 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, NoMonomorphismRestriction, DefaultSignatures #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 
 module L.L1L2AST where
 
@@ -200,14 +204,10 @@ instance AsVariable String where
 data L2X = RegL2X Register | VarL2X Variable
 
 instance AsRegister L2X where
-  _Register = prism RegL2X $ \r -> case r of
-    RegL2X x -> Right x
-    _        -> Left r
+  _Register = prism RegL2X $ \case RegL2X x -> Right x; r -> Left r
 
 instance AsVariable L2X where
-  _Variable = prism VarL2X $ \r -> case r of
-    VarL2X x -> Right x
-    _        -> Left r
+  _Variable = prism VarL2X $ \case VarL2X x -> Right x; r -> Left r
 
 data L2S = XL2S L2X | NumberL2S Int64 | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X

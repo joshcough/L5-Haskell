@@ -108,20 +108,20 @@ namesAndContents fileNames = zip fileNames <$> contents fileNames
 dropRightWhile :: (a -> Bool) -> [a] -> [a]
 dropRightWhile f = reverse . dropWhile f . reverse
 
+notDot = (/=) '.'
+
 takeRightWhile :: (a -> Bool) -> [a] -> [a]
 takeRightWhile f = reverse . takeWhile f . reverse
 
-getExtension :: FilePath -> String
-getExtension = takeRightWhile (\c -> not (c == '.'))
-
-getFileName :: FilePath -> String
-getFileName = takeRightWhile (\c -> not (c == '/'))
+getExtension, getFileName :: FilePath -> String
+getExtension = takeRightWhile notDot
+getFileName = takeRightWhile notDot
 
 changeDir :: FilePath -> FilePath -> FilePath
 changeDir file newDir = newDir ++ "/" ++ getFileName file
 
-changeExtension :: String -> String -> String
-changeExtension file newExt = (dropRightWhile (\c -> not (c == '.')) file) ++ newExt
+changeExtension :: FilePath -> String -> String
+changeExtension file newExt = (dropRightWhile notDot file) ++ newExt
 
 getRecursiveContents :: FilePath -> IO [FilePath]
 getRecursiveContents topdir = do
