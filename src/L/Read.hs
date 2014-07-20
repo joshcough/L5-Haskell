@@ -1,7 +1,9 @@
 module L.Read 
   (
-    SExpr(..)
+    ParseResult
+   ,SExpr(..)
    ,flatten
+   ,liftP
    ,showAsList
    ,sreadWithRest
    ,sread
@@ -35,17 +37,18 @@ preprocess s = concat $ map ((++ " ") . trim . removeComments) (lines s)
 removeComments :: String -> String
 removeComments s = takeWhile (not . (==';')) s
 
-readL :: String -> SExpr -> (SExpr,String)
-readL (')' : tail) (List acc) = (List acc, tail)
-readL (' ' : tail) acc = readL tail acc
-readL (x : xs) (List acc) = let (next, rest) = readWithRest(x : xs) in readL rest (List (acc ++ [next]))
-readL _ _ = error "unterminated list"
+readL :: Char -> String -> SExpr -> (SExpr,String)
+readL ')' (')' : tail) (List acc) = (List acc, tail)
+readL ']' (']' : tail) (List acc) = (List acc, tail)
+readL end (' ' : tail) acc = readL end tail acc
+readL end (x : xs) (List acc) = let (next, rest) = readWithRest(x : xs) in readL end rest (List (acc ++ [next]))
+readL _ _ _ = error "unterminated list"
 
 ends = [' ', ')', ']']
 readChars :: String -> String -> (SExpr, String)
 readChars (c : tail) acc
-  | elem c ends = (symOrNum acc, c : tail)  
-  | otherwise   = readChars tail (acc ++ [c]) 
+  | elem c ends = (symOrNum acc, c : tail)
+  | otherwise   = readChars tail (acc ++ [c])
 readChars [] acc = (symOrNum acc, [])
 
 symOrNum :: String -> SExpr
@@ -53,7 +56,8 @@ symOrNum s = if isInt s then AtomNum (read s :: Int) else AtomSym s
 
 readWithRest :: String -> (SExpr,String)
 readWithRest (' ' : tail) = readWithRest tail
-readWithRest ('(' : tail) = readL tail (List [])
+readWithRest ('(' : tail) = readL ')' tail (List [])
+readWithRest ('[' : tail) = readL ']' tail (List [])
 --readWithRest ('"' : tail) = readStringLit tail ['"']
 readWithRest (c : tail) = readChars (c : tail) []
 
@@ -70,6 +74,10 @@ flatten :: SExpr -> [String]
 flatten (AtomSym s) = [s]
 flatten (AtomNum n) = [show n]
 flatten (List ss) = ss >>= flatten
+
+type ParseResult p = Either String p
+liftP :: (SExpr -> ParseResult p) -> String -> ParseResult p
+liftP f s = f (sread s)
 
 --------------------
 ------ tests -------

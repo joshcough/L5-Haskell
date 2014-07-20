@@ -14,19 +14,23 @@ import L.Read
 import L.L1L2AST
 import L.Utils
 
-type ParseResult p = Either String p
-
 data Parser x s = Parser {
+  level  :: String,
   parseX :: String -> ParseResult x,
   parseS :: String -> ParseResult s
 }
+
+parseError :: String -> Parser x s -> String -> Either String a
+parseError  msg p exp = Left $ concat [level p, " Parse Error: '", msg, "' in: ", show exp]
+parseError_ :: String -> Parser x s -> SExpr -> Either String a
+parseError_ msg p exp = parseError msg p (show exp)
 
 parseProgram :: Parser x s -> SExpr -> ParseResult (Program x s)
 parseProgram p (List ((List main) : funcs)) = do
   main'  <- (parseMain p) main
   funcs' <- traverse (parseFunction p) funcs
   return $ Program main' funcs'
-parse _ bad = Left $ "bad program" ++ show bad
+parse p bad = parseError_ "bad program" p bad
 
 parseMain :: Parser x s -> [SExpr] -> ParseResult (Func x s)
 parseMain p exps =
@@ -38,18 +42,18 @@ parseFunction p (List ((AtomSym name) : exps)) =
 
 parseInstructionList :: Parser x s -> SExpr -> ParseResult [(Instruction x s)]
 parseInstructionList p (List exps) = traverse (parseI p) exps
-parseInstructionList p _ = Left "not an instruction list"
+parseInstructionList p bad = parseError_ "not an instruction list" p bad
 
 parseI :: Parser x s -> SExpr -> ParseResult (Instruction x s)
 parseI p a@(AtomSym s) = maybe
-  (Left $ "not an instruction " ++ show a)
+  (parseError_ "not an instruction " p a)
   id
   (parseLabelOrRegister
     (Right . LabelDeclaration)
-    (const $ Left $ "expected a label " ++ show a)
+    (const $ parseError_ "expected a label " p a)
     s
   )
-parseI p a@(AtomNum n) = Left $ "bad instruction" ++ show a
+parseI p a@(AtomNum n) = parseError_ "bad instruction" p a
 parseI p l@(List ss) = case (flatten l) of
   [x, "<-", "print", s] -> do
     x' <- (parseX p) x
@@ -99,7 +103,7 @@ parseI p l@(List ss) = case (flatten l) of
     s' <- (parseS p) s
     return $ TailCall s'
   ["return"]       -> Right Return
-  xs -> Left $ "bad instruction" ++ show l
+  _ -> parseError_ "bad instruction" p l
   {-
   I wanted these at the bottom, but had to move them to the top
   because of some weird compiler error.
@@ -113,15 +117,18 @@ parseI p l@(List ss) = case (flatten l) of
       cmp' <- compOpFromSym cmp
       s2'  <- (parseS p) s2
       return $ Comp s1' cmp' s2'
-
-parseX86Operator :: String -> ParseResult X86Op
-parseX86Operator "+="  = Right increment
-parseX86Operator "-="  = Right decrement
-parseX86Operator "*="  = Right multiply
-parseX86Operator "<<=" = Right leftShift
-parseX86Operator ">>=" = Right rightShift
-parseX86Operator "&="  = Right bitwiseAnd
-parseX86Operator _     = Left "bad operator"
+    parseX86Operator :: String -> ParseResult X86Op
+    parseX86Operator "+="  = Right increment
+    parseX86Operator "-="  = Right decrement
+    parseX86Operator "*="  = Right multiply
+    parseX86Operator "<<=" = Right leftShift
+    parseX86Operator ">>=" = Right rightShift
+    parseX86Operator "&="  = Right bitwiseAnd
+    parseX86Operator bad   = parseError_ "bad operator" p (AtomSym bad)
+    -- todo add check for divisible by 4
+    parseN4 = liftP f where
+      f (AtomNum n) = Right n
+      f bad = parseError_ "not a number" p bad
 
 parseLabel :: String -> Label
 parseLabel s = drop 1 s
@@ -133,30 +140,23 @@ parseLabelOrRegister _ f r           = fmap f $ parseRegister r
 parseRegister :: String -> Maybe Register
 parseRegister = registerFromName
 
--- todo add check for divisible by 4
-parseN4 n = case (sread n) of
-  AtomNum n -> Right n
-  AtomSym s -> Left $ "not a number" ++ n
-
 -- L1 Parser (uses shared L1/L2 Parser)
 l1Parser :: Parser L1X L1S
-l1Parser = Parser parseL1Reg parseL1S where
-  parseL1Reg s = maybe (Left $ "invalid register: " ++ s) Right (parseRegister s)
-  parseL1S s = case (sread s) of
-    AtomNum n -> Right $ NumberL1S (fromIntegral n)
-    AtomSym s -> maybe (Left $ "invalid s: " ++ s) Right $ parseLabelOrRegister LabelL1S RegL1S s
+l1Parser = Parser "L1" parseL1Reg (liftP parseL1S) where
+  parseL1Reg s = maybe (parseError "invalid register" l1Parser s) Right (parseRegister s)
+  parseL1S (AtomNum n) = Right $ NumberL1S (fromIntegral n)
+  parseL1S (AtomSym s) = maybe (parseError "invalid s" l1Parser s) Right $ parseLabelOrRegister LabelL1S RegL1S s
 
 parseL1 = parseProgram l1Parser
 parseL1InstList = parseInstructionList l1Parser
 
 -- L2 Parser (uses shared L1/L2 Parser)
 l2Parser :: Parser L2X L2S
-l2Parser = Parser (parseX VarL2X RegL2X) parseL2S where
+l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftP parseL2S) where
   parseX v r  s = Right $ maybe (v s) r (parseRegister s)
-  parseL2S    s = case (sread s) of
-    AtomNum n -> Right $ NumberL2S (fromIntegral n)
-    AtomSym s -> maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
-                   parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
+  parseL2S (AtomNum n) = Right $ NumberL2S (fromIntegral n)
+  parseL2S (AtomSym s) = maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
+                           parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
 
 parseL2 = parseProgram l2Parser
 parseL2InstList = parseInstructionList l2Parser
