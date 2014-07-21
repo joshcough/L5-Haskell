@@ -80,19 +80,19 @@ interp (App f es)          = interpApp f es
 
 -- | interpret a Primitive function
 interpPrim :: PrimFun -> M Runtime
-interpPrim (Print e)        = interpPrint e
-interpPrim (Add e1 e2)      = binOp (+) e1 e2
-interpPrim (Sub e1 e2)      = binOp (-) e1 e2
-interpPrim (Mult e1 e2)     = binOp (*) e1 e2
-interpPrim (LessThan e1 e2) = boolBinOp (<) e1 e2
-interpPrim (LessThanOrEqualTo e1 e2) = boolBinOp (<=) e1 e2
-interpPrim (EqualTo e1 e2)  = boolBinOp (==) e1 e2
-interpPrim (IsNumber e)     = isNumber <$> interp e
-interpPrim (IsArray e)      = isArray  <$> interp e
-interpPrim (NewArray e1 e2) = newArray e1 e2
-interpPrim (ARef e1 e2)     = arrayRef e1 e2
-interpPrim (ASet e1 e2 e3)  = arraySet e1 e2 e3
-interpPrim (ALen e)         = arrayLength e
+interpPrim (Print    e)        = interpPrint e
+interpPrim (Add      e1 e2)    = intBinOp  (+) e1 e2
+interpPrim (Sub      e1 e2)    = intBinOp  (-) e1 e2
+interpPrim (Mult     e1 e2)    = intBinOp  (*) e1 e2
+interpPrim (LessThan e1 e2)    = boolBinOp (<) e1 e2
+interpPrim (LTorEQ   e1 e2)    = boolBinOp (<=) e1 e2
+interpPrim (EqualTo  e1 e2)    = boolBinOp (==) e1 e2
+interpPrim (IsNumber e)        = isNumber <$> interp e
+interpPrim (IsArray  e)        = isArray  <$> interp e
+interpPrim (NewArray e1 e2)    = newArray e1 e2
+interpPrim (ARef     e1 e2)    = arrayRef e1 e2
+interpPrim (ASet     e1 e2 e3) = arraySet e1 e2 e3
+interpPrim (ALen     e)        = arrayLength e
 
 -- | prints the given E. (print e)
 interpPrint :: E -> M Runtime
@@ -163,13 +163,13 @@ evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ (show r)
 runtimeError :: String -> a
 runtimeError msg = error $ "Runtime error: " ++ msg 
 
-binOp :: (Int -> Int -> Int) -> E -> E -> M Runtime
-binOp f e1 e2 = f <$> evalNumber e1 <*> evalNumber e2 >>= return . Num
+intBinOp :: (Int -> Int -> Int) -> E -> E -> M Runtime
+intBinOp f e1 e2 = f <$> evalNumber e1 <*> evalNumber e2 >>= return . Num
 
 -- I know 0 is horrible for true,
 -- I didn't design this language.
 boolBinOp :: (Int -> Int -> Bool) -> E -> E -> M Runtime
-boolBinOp f = binOp $ \x y -> if f x y then 0 else 1 
+boolBinOp f = intBinOp $ \x y -> if f x y then 0 else 1
  
 getHeapList :: M [Runtime]
 getHeapList = fst <$> getMem >>= lift . IOArray.getElems

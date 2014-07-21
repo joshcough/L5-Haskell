@@ -7,6 +7,7 @@ module L.L1L2Parser
     ,parseL2InstList
   ) where
 
+import Control.Applicative
 import Control.Monad
 import Data.Maybe
 import Data.Traversable
@@ -26,19 +27,19 @@ parseError_ :: String -> Parser x s -> SExpr -> Either String a
 parseError_ msg p exp = parseError msg p (show exp)
 
 parseProgram :: Parser x s -> SExpr -> ParseResult (Program x s)
-parseProgram p (List ((List main) : funcs)) = do
-  main'  <- (parseMain p) main
-  funcs' <- traverse (parseFunction p) funcs
-  return $ Program main' funcs'
+parseProgram p (List ((List main) : funcs)) =
+  liftM2 Program (parseMain p main) (traverse (parseFunction p) funcs)
 parse p bad = parseError_ "bad program" p bad
 
 parseMain :: Parser x s -> [SExpr] -> ParseResult (Func x s)
-parseMain p exps =
-  do { body <- traverse (parseI p) exps; return $ Func $ (LabelDeclaration "main") : body }
+parseMain p exps = do
+  body <- traverse (parseI p) exps
+  return $ Func $ (LabelDeclaration "main") : body
 
 parseFunction :: Parser x s -> SExpr -> ParseResult (Func x s)
-parseFunction p (List ((AtomSym name) : exps)) =
-  do { body <- traverse (parseI p) exps; return $ Func $ LabelDeclaration (parseLabel name) : body }
+parseFunction p (List ((AtomSym name) : exps)) = do
+  body <- traverse (parseI p) exps
+  return $ Func $ LabelDeclaration (parseLabel name) : body
 
 parseInstructionList :: Parser x s -> SExpr -> ParseResult [(Instruction x s)]
 parseInstructionList p (List exps) = traverse (parseI p) exps
@@ -55,53 +56,25 @@ parseI p a@(AtomSym s) = maybe
   )
 parseI p a@(AtomNum n) = parseError_ "bad instruction" p a
 parseI p l@(List ss) = case (flatten l) of
-  [x, "<-", "print", s] -> do
-    x' <- (parseX p) x
-    s' <- (parseS p) s
-    return $ Assign x' (Print s')
-  [x, "<-", "allocate", s1, s2] -> do
-    x'  <- (parseX p) x
-    s1' <- (parseS p) s1
-    s2' <- (parseS p) s2
-    return $ Assign x' $ Allocate s1' s2'
-  [x, "<-", "array-error", s1, s2] -> do
-    x'  <- (parseX p) x
-    s1' <- (parseS p) s1
-    s2' <- (parseS p) s2
-    return $ Assign x' $ ArrayError s1' s2'
-  [x, "<-", s]  -> do
-    x' <- (parseX p) x
-    s' <- (parseS p) s
-    return $ Assign x' $ SRHS s'
-  [x1, "<-", "mem", x2, n4] -> do
-    x1' <- (parseX p) x1
-    x2' <- (parseX p) x2
-    n4' <- parseN4 n4
-    return $ Assign x1' $ MemRead $ MemLoc x2' n4'
-  ["mem", x, n4, "<-", s] -> do
-    x'  <- (parseX p) x
-    n4' <- parseN4 n4
-    s'  <- (parseS p) s
-    return $ MemWrite (MemLoc x' n4') s'
-  [x, op, s] -> do 
-    x' <- (parseX p) x
-    s' <- (parseS p) s
-    op' <- parseX86Operator op
-    return $ MathInst x' op' s'
-  [cx, "<-", s1, cmp, s2] -> do
-    cx'  <- (parseX p) cx
-    cmp' <- parseComp s1 cmp s2
-    return $ Assign cx' $ CompRHS cmp'
+  [x, "<-", "print", s] -> liftM2 Assign (parseX p x) (Print <$> parseS p s)
+  [x, "<-", "allocate", s1, s2] ->
+    liftM2 Assign (parseX p x) (liftM2 Allocate (parseS p s1) (parseS p s2))
+  [x, "<-", "array-error", s1, s2] ->
+    liftM2 Assign (parseX p x) (liftM2 ArrayError (parseS p s1) (parseS p s2))
+  [x, "<-", s]  -> liftM2 Assign (parseX p x) (SRHS <$> parseS p s)
+  [x1, "<-", "mem", x2, n4] ->
+    liftM2 Assign (parseX p x1) (MemRead <$> liftM2 MemLoc (parseX p x2) (parseN4 n4))
+  ["mem", x, n4, "<-", s] ->
+    liftM2 MemWrite (liftM2 MemLoc (parseX p x) (parseN4 n4)) (parseS p s)
+  [x, op, s] ->
+    liftM3 MathInst (parseX p x) (parseX86Operator op) (parseS p s)
+  [cx, "<-", s1, cmp, s2] -> 
+    liftM2 Assign (parseX p cx) (CompRHS <$> parseComp s1 cmp s2)
   ["goto", l] -> Right $ Goto (parseLabel l)
-  ["cjump", s1, cmp, s2, l1, l2] -> do
-    cmp' <- parseComp s1 cmp s2
-    return $ CJump cmp' (parseLabel l1) (parseLabel l2)
-  ["call", s]      -> do
-    s' <- (parseS p) s
-    return $ Call s'
-  ["tail-call", s] -> do
-    s' <- (parseS p) s
-    return $ TailCall s'
+  ["cjump", s1, cmp, s2, l1, l2] ->
+    liftM3 CJump (parseComp s1 cmp s2) (parseLabelM l1) (parseLabelM l2)
+  ["call", s] -> Call <$> parseS p s
+  ["tail-call", s] -> TailCall <$> parseS p s
   ["return"]       -> Right Return
   _ -> parseError_ "bad instruction" p l
   {-
@@ -112,11 +85,8 @@ parseI p l@(List ss) = case (flatten l) of
   parseB ["eax", "<-", "array-error", t1, t2] = "array-error"
   -}
   where
-    parseComp s1 cmp s2 = do
-      s1'  <- (parseS p) s1
-      cmp' <- compOpFromSym cmp
-      s2'  <- (parseS p) s2
-      return $ Comp s1' cmp' s2'
+    parseComp s1 cmp s2 =
+      liftM3 Comp (parseS p s1) (compOpFromSym cmp) (parseS p s2)
     parseX86Operator :: String -> ParseResult X86Op
     parseX86Operator "+="  = Right increment
     parseX86Operator "-="  = Right decrement
@@ -129,6 +99,8 @@ parseI p l@(List ss) = case (flatten l) of
     parseN4 = liftP f where
       f (AtomNum n) = Right n
       f bad = parseError_ "not a number" p bad
+
+parseLabelM = return . parseLabel
 
 parseLabel :: String -> Label
 parseLabel s = drop 1 s

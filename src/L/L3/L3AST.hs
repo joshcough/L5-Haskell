@@ -1,10 +1,11 @@
 module L.L3.L3AST where
 
+import L.L1L2AST (Variable, Label)
 import L.Read (showAsList)
 
-type Label    = String
+type L3 = Program
+
 data Program  = Program E [Func]
-type Variable = String
 data V        = VarV Variable | NumV Int | LabelV Label
 data Func     = Func { name :: Label, args :: [Variable], body :: E }
 data E        = Let Variable D E | IfStatement V E E | DE D

@@ -7,7 +7,7 @@ data PrimFun =
   | Sub      E E 
   | Mult     E E 
   | LessThan E E
-  | LessThanOrEqualTo E E 
+  | LTorEQ E E
   | EqualTo  E E
   | IsNumber E 
   | IsArray  E
