@@ -37,21 +37,18 @@ compileL1File_ = compile1 compileL1OrDie
 compileL1FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL1FileAndRunNative l1File outputDir = do
   s <- compileL1File_ l1File
-  _   <- writeFile sFile s
+  _ <- writeFile sFile s
   runNative sFile outputDir where 
   sFile = changeDir (changeExtension l1File "S") outputDir
 
 -- the second argument is represents where the original code came from
 -- maybe it came from an L5-L2 file. 
--- or, maybe it didn't come from a file at all
-compileL1AndRunNative :: L1 -> Maybe FilePath -> FilePath -> IO String
+compileL1AndRunNative :: L1 -> FilePath -> FilePath -> IO String
 compileL1AndRunNative l1 inputFile outputDir = do
   _   <- writeFile sFile s
   runNative sFile outputDir where
   s = either error id $ genX86Code $ adjustMain l1
-  sFile = case inputFile of
-    Just f  -> changeDir (changeExtension f "S") outputDir
-    Nothing -> outputDir ++ "tmp.S"
+  sFile = changeDir (changeExtension inputFile "S") outputDir
 
 runNative :: FilePath -> FilePath -> IO String
 runNative sFile outputDir = 

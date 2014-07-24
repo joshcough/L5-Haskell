@@ -3,7 +3,9 @@ module L.L1L2Parser
      l1Parser
     ,l2Parser
     ,parseL1
+    ,parseL1OrDie
     ,parseL2
+    ,parseL2OrDie
     ,parseL2InstList
   ) where
 
@@ -120,6 +122,7 @@ l1Parser = Parser "L1" parseL1Reg (liftP parseL1S) where
   parseL1S (AtomSym s) = maybe (parseError "invalid s" l1Parser s) Right $ parseLabelOrRegister LabelL1S RegL1S s
 
 parseL1 = parseProgram l1Parser
+parseL1OrDie = (either error id) . parseL1
 parseL1InstList = parseInstructionList l1Parser
 
 -- L2 Parser (uses shared L1/L2 Parser)
@@ -131,4 +134,6 @@ l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftP parseL2S) where
                            parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
 
 parseL2 = parseProgram l2Parser
+parseL2OrDie = (either error id) . parseL2
 parseL2InstList = parseInstructionList l2Parser
+

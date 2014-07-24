@@ -3,7 +3,10 @@ module L.L2.L2
   (
     compileL2
    ,compileL2OrDie
+   ,compileL2AndRunNative
    ,compileL2FileAndRunNative
+   ,compileL2ToL1
+   ,interpL2
    ,interpL2File
   )
 where
@@ -37,12 +40,14 @@ import L.L2.Allocation
 -- it does this until either a) it works, or b) it is out of variables to spill.
 -- the last case results in error.
 
+-- this is the main function, the rest are just various helpers
+compileL2ToL1 :: L2 -> L1
+compileL2ToL1 (Program main fs) =
+  Program (allocate mainWithRet) $ (allocate <$> fs) where 
+  mainWithRet = Func (body main ++ [Return])
+
 compileL2 :: String -> Either String L1
-compileL2 code = genL1Code <$> parseL2 (sread code) where
-  --genL1Code :: L2 -> L1
-  genL1Code (Program main fs) =
-    let mainWithRet = Func (body main ++ [Return])
-    in Program (allocate mainWithRet) $ (allocate <$> fs)
+compileL2 code = compileL2ToL1 <$> parseL2 (sread code)
 
 compileL2OrDie :: String -> L1
 compileL2OrDie = (either error id) . compileL2
@@ -50,17 +55,25 @@ compileL2OrDie = (either error id) . compileL2
 compileL2ToX86 :: String -> String
 compileL2ToX86 code = either error id $ compileL2 code >>= genX86Code
 
---compileL2File :: IO ()
---compileL2File = compile compileL2OrDie "S"
 compileL2File_ :: FilePath -> IO L1
 compileL2File_ = compile1 compileL2OrDie
 
+-- the second argument is represents where the original code came from
+-- maybe it came from an L5-L3 file. 
+compileL2AndRunNative :: L2 -> FilePath -> FilePath -> IO String
+compileL2AndRunNative l2 inputFile outputDir =
+  let l1 = compileL2ToL1 l2 in do
+  _  <- writeFile l1File (show l1)
+  compileL1AndRunNative l1 inputFile outputDir where
+  l1File = changeDir (changeExtension inputFile "L1") outputDir
+
 compileL2FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL2FileAndRunNative l2File outputDir = do
-  l1 <- compileL2File_ l2File
-  _  <- writeFile l1File (show l1)
-  compileL1AndRunNative l1 (Just l2File) outputDir where
-  l1File = changeDir (changeExtension l2File "L1") outputDir
+  l2 <- parseL2OrDie . sread <$> readFile l2File
+  compileL2AndRunNative l2 l2File outputDir
+
+interpL2 :: L2 -> Computer
+interpL2 l2 = interpL1 $ compileL2ToL1 l2
 
 interpL2String :: String -> Either String String
 interpL2String code = showOutput . interpL1 <$> compileL2 code

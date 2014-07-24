@@ -1,6 +1,5 @@
-module L.L3.L3 
+module L.Compiler
   (
-    compileL3
    --,compileL3OrDie
    --,compileL3FileAndRunNative
    --,interpL3File
@@ -8,30 +7,37 @@ module L.L3.L3
 where
 
 import Control.Applicative
-import L.CompilationUnit
 import L.IOHelpers
-import L.L1L2AST
-import L.L1L2Parser
 import L.L1.L1Interp (Computer, showOutput)
 import L.Read
 import L.Utils
-import L.L2.L2 (compileL2ToL1, compileL2AndRunNative, interpL2)
-import L.L3.L3AST
-import L.L3.Linearize
-import L.L3.L3Parser
 
-compileL3ToL2 :: L3 -> L2
-compileL3ToL2 = linearize
+type CompilationResult o = Either String o
 
-compileL3 :: String -> Either String L2
-compileL3 code = compileL3ToL2 <$> parseL3 (sread code)
+data Compiler i o = Compiler {
+  parse   :: (SExpr -> ParseResult i), 
+  compile :: (i -> CompilationResult o)
+}
 
-compileL3OrDie :: String -> L2
-compileL3OrDie = (either error id) . compileL3
+type Interpreter i = i -> Computer
 
-compileL3File_ :: FilePath -> IO L2
-compileL3File_ = compile1 compileL3OrDie
+compileString :: Compiler i o -> String -> CompilationResult o
+compileString compiler code = do
+  i <- parse compiler (sread code)
+  compile compiler i
 
+compileStringOrDie :: Compiler i o -> String -> o
+compileStringOrDie c code = (either error id) (compileString c code)
+
+compileFile :: Compiler i o -> FilePath -> IO (CompilationResult o)
+compileFile c f = do { code <- readFile f; return $ compileString c code }
+
+compileAndInterpret :: Compiler i o -> Interpreter o -> i -> Either String Computer
+compileAndInterpret compiler interpreter input = do
+  o <- compile compiler input
+  return $ interpreter o
+
+{-
 compileL3FileAndRunNative :: FilePath -> FilePath -> IO String
 compileL3FileAndRunNative l3File outputDir = do
   l2 <- compileL3File_ l3File
@@ -51,3 +57,4 @@ interpL3OrDie = (either error id) . interpL3String
 interpL3File =
   do s <- compile_ $ (either error id) . interpL3String
      putStrLn (snd s)
+-}

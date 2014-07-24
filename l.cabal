@@ -28,6 +28,7 @@ library
 
   exposed-modules:
     L.CompilationUnit
+    L.Compiler
     L.IOHelpers
     L.L1L2AST
     L.L1L2Parser
@@ -48,6 +49,7 @@ library
     L.L3.L3
     L.L3.L3AST
     L.L3.L3Parser
+    L.L3.Linearize
     -- L5
     L.L5.L5AST
     L.L5.L5Core

@@ -1,17 +1,16 @@
 module L.L3.L3AST where
 
+import Data.Int
 import L.L1L2AST (Variable, Label)
 import L.Read (showAsList)
 
-type L3 = Program
-
-data Program  = Program E [Func]
-data V        = VarV Variable | NumV Int | LabelV Label
-data Func     = Func { name :: Label, args :: [Variable], body :: E }
-data E        = Let Variable D E | IfStatement V E E | DE D
-data Biop     = Add V V | Sub V V | Mult V V | LessThan V V | LTorEq V V | Eq V V
-data Pred     = IsNum V | IsArray V
-data D        =
+data L3   = L3 E [Func]
+data V    = VarV Variable | NumV Int64 | LabelV Label
+data Func = Func { name :: Label, args :: [Variable], body :: E }
+data E    = Let Variable D E | IfStatement V E E | DE D
+data Biop = Add V V | Sub V V | Mult V V | LessThan V V | LTorEq V V | Eq V V
+data Pred = IsNum V | IsArray V
+data D    =
     BiopD Biop
   | PredD Pred
   | FunCall V [V]
@@ -64,7 +63,7 @@ instance Show E where
   show (DE d)                = show d
 
 instance Show Func where show (Func n a l) = showAsList [n, showAsList a, show l]
-instance Show Program where show (Program e fs) = showAsList (show e : fmap show fs)
+instance Show L3 where show (L3 e fs) = showAsList (show e : fmap show fs)
 
 {-
   case class Num(n: Int) extends V { def *(i:Int) = Num(n*i); def +(i:Int) = Num(n+i) }

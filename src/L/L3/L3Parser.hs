@@ -1,4 +1,4 @@
-module L.L3.L3Parser (parseProgram) where
+module L.L3.L3Parser (parseL3) where
 
 import Control.Applicative
 import Control.Monad
@@ -11,8 +11,8 @@ l3ParseError :: String -> SExpr -> Either String a
 l3ParseError msg exp = Left $ concat ["L3 Parse Error: '", msg, "' in: ", show exp]
 
 -- p ::= (e (l (x ...) e) ...)
-parseProgram :: SExpr -> ParseResult Program
-parseProgram (List (main : funcs)) = liftM2 Program (parseE main) (traverse parseFunction funcs)
+parseL3 :: SExpr -> ParseResult L3
+parseL3 (List (main : funcs)) = liftM2 L3 (parseE main) (traverse parseFunction funcs)
 parse bad = l3ParseError "bad L3-program" bad
 
 parseLabel :: SExpr -> ParseResult Label
@@ -34,7 +34,7 @@ parseArg bad = l3ParseError "bad L3-variable" bad
 parseV :: SExpr -> ParseResult V
 parseV (AtomSym (':' : rest)) = Right $ LabelV rest
 parseV (AtomSym v) = Right $ VarV v
-parseV (AtomNum n) = Right $ NumV n
+parseV (AtomNum n) = Right $ NumV (fromIntegral n)
 parseV bad         = l3ParseError "bad L3-V" bad
 
 -- e ::= (let ([x d]) e) | (if v e e) | d

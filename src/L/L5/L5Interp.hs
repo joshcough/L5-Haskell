@@ -126,8 +126,8 @@ arraySet arr i e = do
   p        <- evalPointer arr
   index    <- evalNumber i
   r        <- interp e
-  (mem,hp) <- getMem
-  _        <- lift $ IOArray.writeArray mem (p + index + 1) r
+  (mem,_)  <- getMem
+  ()       <- lift $ IOArray.writeArray mem (p + index + 1) r
   return lTrue
 
 -- makes a new array from the given Runtime objects and puts it on the heap

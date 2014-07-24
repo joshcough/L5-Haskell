@@ -45,6 +45,7 @@ rbx = _Register # Rbx
 rcx = _Register # Rcx
 rdx = _Register # Rdx
 
+-- TODO: convert Int to Int64?
 data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
 data Comp s     = Comp s CompOp s deriving (Eq, Ord)
