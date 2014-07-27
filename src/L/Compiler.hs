@@ -1,60 +1,63 @@
-module L.Compiler
-  (
-   --,compileL3OrDie
-   --,compileL3FileAndRunNative
-   --,interpL3File
-  )
-where
+{-# LANGUAGE GADTs #-}
+
+module L.Compiler where
 
 import Control.Applicative
-import L.IOHelpers
 import L.L1.L1Interp (Computer, showOutput)
 import L.Read
-import L.Utils
 
-type CompilationResult o = Either String o
+type Val a               = Either String a
+type Parser            i = SExpr -> Val i
+type Compiler        i o = i -> Val o
+type Interpreter       i = i -> Computer
+type NativeRunner      o = String -> FilePath -> o -> IO (Val String) 
 
-data Compiler i o = Compiler {
-  parse   :: (SExpr -> ParseResult i), 
-  compile :: (i -> CompilationResult o)
-}
+data Language i o where
+  Language :: (Show i, Show o) =>
+    Parser i -> Compiler  i o -> Interpreter i -> NativeRunner o -> Language i o
 
-type Interpreter i = i -> Computer
+parser       (Language p _ _ _) = p
+compiler     (Language _ c _ _) = c
+interpreter  (Language _ _ i _) = i
+nativeRunner (Language _ _ _ n) = n
 
-compileString :: Compiler i o -> String -> CompilationResult o
-compileString compiler code = do
-  i <- parse compiler (sread code)
-  compile compiler i
+-- parsing
+parseString :: Language i o -> String -> Val i
+parseString l = liftParser $ parser l
 
-compileStringOrDie :: Compiler i o -> String -> o
-compileStringOrDie c code = (either error id) (compileString c code)
+-- compilation
+compileString :: Language i o -> String -> Val o
+compileString l s = parseString l s >>= compiler l
 
-compileFile :: Compiler i o -> FilePath -> IO (CompilationResult o)
-compileFile c f = do { code <- readFile f; return $ compileString c code }
-
-compileAndInterpret :: Compiler i o -> Interpreter o -> i -> Either String Computer
-compileAndInterpret compiler interpreter input = do
-  o <- compile compiler input
-  return $ interpreter o
+compileFile :: Language i o -> FilePath -> IO (Val o)
+compileFile l file = readFile file >>= return . compileString l
 
 {-
-compileL3FileAndRunNative :: FilePath -> FilePath -> IO String
-compileL3FileAndRunNative l3File outputDir = do
-  l2 <- compileL3File_ l3File
-  _  <- writeFile l2File (show l2)
-  compileL2AndRunNative l2 l3File outputDir where
-  l2File = changeDir (changeExtension l3File "L2") outputDir
+-- interpretation
+compileAndInterpret :: Language i o -> i -> Val Computer
+compileAndInterpret l i = interpreter l <$> compiler l i
 
-interpL3 :: L3 -> Computer
-interpL3 l3 = interpL2 $ compileL3ToL2 l3
+compileAndInterpretString :: Language i o -> String -> Val Computer
+compileAndInterpretString l s = parseString l s >>= compileAndInterpret l 
 
-interpL3String :: String -> Either String String
-interpL3String code = showOutput . interpL2 <$> compileL3 code
+compileAndInterpretFile :: Language i o -> FilePath -> IO (Val Computer)
+compileAndInterpretFile l = withFile $ compileAndInterpretString l
 
-interpL3OrDie :: String -> String
-interpL3OrDie = (either error id) . interpL3String
+type NativeRunner      o = String -> FilePath -> o -> IO (Val String)
 
-interpL3File =
-  do s <- compile_ $ (either error id) . interpL3String
-     putStrLn (snd s)
 -}
+
+-- native execution
+compileAndRunNative :: Language i o -> String -> FilePath -> i -> IO (Val String)
+compileAndRunNative lang name outputDir input = f $ compiler lang input where
+  f = either (return . Left) (nativeRunner lang name outputDir)
+
+compileAndRunNativeString :: Language i o -> String -> FilePath -> String -> IO (Val String)
+compileAndRunNativeString lang name outputDir input = f $ parseString lang input where
+  f = either (return . Left) (compileAndRunNative lang name outputDir)
+
+compileAndRunNativeFile :: Language i o -> String -> FilePath -> FilePath -> IO (Val String)
+compileAndRunNativeFile lang name outputDir inputFile = do
+  code <- readFile inputFile
+  compileAndRunNativeString lang name outputDir code
+

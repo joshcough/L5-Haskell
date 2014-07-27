@@ -115,7 +115,7 @@ takeRightWhile f = reverse . takeWhile f . reverse
 
 getExtension, getFileName :: FilePath -> String
 getExtension = takeRightWhile notDot
-getFileName = takeRightWhile notDot
+getFileName = takeRightWhile ('/' /=)
 
 changeDir :: FilePath -> FilePath -> FilePath
 changeDir file newDir = newDir ++ "/" ++ getFileName file

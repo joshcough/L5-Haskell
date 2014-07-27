@@ -3,7 +3,7 @@ module L.Read
     ParseResult
    ,SExpr(..)
    ,flatten
-   ,liftP
+   ,liftParser
    ,showAsList
    ,sreadWithRest
    ,sread
@@ -12,6 +12,8 @@ module L.Read
 import Data.List
 import Data.Char (isSpace)
 import L.Utils
+
+type ParseResult a = Either String a
 
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace
@@ -75,9 +77,8 @@ flatten (AtomSym s) = [s]
 flatten (AtomNum n) = [show n]
 flatten (List ss) = ss >>= flatten
 
-type ParseResult p = Either String p
-liftP :: (SExpr -> ParseResult p) -> String -> ParseResult p
-liftP f s = f (sread s)
+liftParser :: (SExpr -> ParseResult p) -> String -> ParseResult p
+liftParser f = f . sread
 
 --------------------
 ------ tests -------

@@ -34,7 +34,7 @@ import L.L1L2AST hiding (registers)
 import L.L1L2Parser
 import L.Read
 import L.Utils
-import L.L1.L1 (adjustMain)
+import L.L1.MainAdjuster (adjustMain)
 
 type RegisterState = Map Register Int64
 type Memory = Vector Int64

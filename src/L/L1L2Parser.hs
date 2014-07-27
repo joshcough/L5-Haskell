@@ -98,7 +98,7 @@ parseI p l@(List ss) = case (flatten l) of
     parseX86Operator "&="  = Right bitwiseAnd
     parseX86Operator bad   = parseError_ "bad operator" p (AtomSym bad)
     -- todo add check for divisible by 4
-    parseN4 = liftP f where
+    parseN4 = liftParser f where
       f (AtomNum n) = Right n
       f bad = parseError_ "not a number" p bad
 
@@ -116,7 +116,7 @@ parseRegister = registerFromName
 
 -- L1 Parser (uses shared L1/L2 Parser)
 l1Parser :: Parser L1X L1S
-l1Parser = Parser "L1" parseL1Reg (liftP parseL1S) where
+l1Parser = Parser "L1" parseL1Reg (liftParser parseL1S) where
   parseL1Reg s = maybe (parseError "invalid register" l1Parser s) Right (parseRegister s)
   parseL1S (AtomNum n) = Right $ NumberL1S (fromIntegral n)
   parseL1S (AtomSym s) = maybe (parseError "invalid s" l1Parser s) Right $ parseLabelOrRegister LabelL1S RegL1S s
@@ -127,7 +127,7 @@ parseL1InstList = parseInstructionList l1Parser
 
 -- L2 Parser (uses shared L1/L2 Parser)
 l2Parser :: Parser L2X L2S
-l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftP parseL2S) where
+l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftParser parseL2S) where
   parseX v r  s = Right $ maybe (v s) r (parseRegister s)
   parseL2S (AtomNum n) = Right $ NumberL2S (fromIntegral n)
   parseL2S (AtomSym s) = maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $

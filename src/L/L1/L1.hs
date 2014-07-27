@@ -1,22 +1,12 @@
-module L.L1.L1 
-  (
-    adjustMain
-   ,compileL1AndRunNative
-   ,compileL1FileAndRunNative
-   ,compileL1
-   ,compileL1OrDie
-   ,compileL1File_
-   ,runNative
-  ) where
+module L.L1.L1 (l1Language) where
 
 import Control.Applicative
-import Control.Monad.State
-import Control.Monad.Error
-import Data.List
 import Data.Traversable
-import L.CompilationUnit
+import L.Compiler
 import L.L1L2AST
 import L.L1L2Parser
+import L.L1.L1Interp
+import L.L1.MainAdjuster
 import L.IOHelpers
 import L.Read
 import L.Utils
@@ -25,33 +15,24 @@ import System.Cmd
 import System.Environment 
 import System.IO
 
-compileL1 :: String -> Either String String
-compileL1 code = (adjustMain <$> parseL1 (sread code)) >>= genX86Code
+l1Language :: Language L1 String
+l1Language  = Language 
+  parseL1 
+  compileL1
+  interpL1
+  (\name dir i -> Right <$> runSCodeNative name dir i)
 
-compileL1OrDie :: String -> String
-compileL1OrDie = (either error id) . compileL1
+compileL1 :: L1 -> Either String String
+compileL1 = genX86Code . adjustMain
 
-compileL1File_ :: FilePath -> IO String
-compileL1File_ = compile1 compileL1OrDie
+runSCodeNative :: String -> FilePath -> String -> IO String
+runSCodeNative name outputDir sCode = do
+  _ <- writeFile sFile sCode
+  runSFileNative sFile outputDir where
+  sFile = changeDir outputDir (name ++ ".S")
 
-compileL1FileAndRunNative :: FilePath -> FilePath -> IO String
-compileL1FileAndRunNative l1File outputDir = do
-  s <- compileL1File_ l1File
-  _ <- writeFile sFile s
-  runNative sFile outputDir where 
-  sFile = changeDir (changeExtension l1File "S") outputDir
-
--- the second argument is represents where the original code came from
--- maybe it came from an L5-L2 file. 
-compileL1AndRunNative :: L1 -> FilePath -> FilePath -> IO String
-compileL1AndRunNative l1 inputFile outputDir = do
-  _   <- writeFile sFile s
-  runNative sFile outputDir where
-  s = either error id $ genX86Code $ adjustMain l1
-  sFile = changeDir (changeExtension inputFile "S") outputDir
-
-runNative :: FilePath -> FilePath -> IO String
-runNative sFile outputDir = 
+runSFileNative :: FilePath -> FilePath -> IO String
+runSFileNative sFile outputDir = 
   let f newExt = changeDir (changeExtension sFile newExt) outputDir
       oFile   = f "S.o"
       outFile = f "S.out"
@@ -62,13 +43,3 @@ runNative sFile outputDir =
     _ <- rawSystem "bin/run.sh" [outFile, resFile]
     readFile resFile
 
-adjustMain :: L1 -> L1
-adjustMain (Program main fs) = Program (adjustMain_ main) fs
-adjustMain_ :: L1Func -> L1Func
-adjustMain_ (Func body) = Func $ concat [mainLabel : mainBody ++ [Return]] where
-  mainLabel = LabelDeclaration "main"
-  mainBody = stripLabel (reverse $ stripReturn $ reverse body) where
-    stripLabel is@(LabelDeclaration "main" : rest) = stripLabel rest
-    stripLabel is = is
-    stripReturn (Return : rest) = stripReturn rest
-    stripReturn rest = rest
