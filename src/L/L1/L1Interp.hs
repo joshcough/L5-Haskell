@@ -12,6 +12,7 @@ module L.L1.L1Interp
    ,interpL1OrDie
    ,interpL1String
    ,interpL1StringOrDie
+   ,newComputer
    ,showOutput
   )
 where

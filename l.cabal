@@ -32,12 +32,14 @@ library
     L.IOHelpers
     L.L1L2AST
     L.L1L2Parser
+    L.NativeRunner
     L.Read
     L.Utils
     -- L1
     L.L1.L1
     L.L1.L1Interp
     L.L1.L1X86
+    L.L1.MainAdjuster
     -- L2
     L.L2.Allocation
     L.L2.Interference
@@ -67,7 +69,8 @@ library
     mtl                       >= 2       && < 2.2,
     process                   >= 1.1.0.2,
     text                      >= 1.1.1.1,
-    vector                    >= 0.10.0.1
+    vector                    >= 0.10.0.1,
+    void                      >= 0.6.1
 
 -- executable for the 64 bit L1 Compiler
 executable L164Main

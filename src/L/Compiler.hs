@@ -1,56 +1,80 @@
 {-# LANGUAGE GADTs #-}
 
-module L.Compiler where
+module L.Compiler (
+   Val 
+  ,Language(..)
+  ,compile
+  ,compileString
+  ,compileFile
+  ,compileAndRunNative
+  ,compileAndRunNativeString
+  ,compileAndRunNativeFile
+  ,interpret
+  ,interpretString
+  ,interpretFile
+) where
 
 import Control.Applicative
+import Data.Maybe
 import L.L1.L1Interp (Computer, showOutput)
+import L.IOHelpers
 import L.Read
+import L.NativeRunner
 
 type Val a               = Either String a
 type Parser            i = SExpr -> Val i
 type Compiler        i o = i -> Val o
 type Interpreter       i = i -> Computer
-type NativeRunner      o = String -> FilePath -> o -> IO (Val String) 
+type Extension           = String
 
 data Language i o where
   Language :: (Show i, Show o) =>
-    Parser i -> Compiler  i o -> Interpreter i -> NativeRunner o -> Language i o
+    Parser i      ->
+    Compiler  i o ->
+    Interpreter i ->
+    Extension     ->
+    Maybe (Language o a) ->
+    Language i o
 
-parser       (Language p _ _ _) = p
-compiler     (Language _ c _ _) = c
-interpreter  (Language _ _ i _) = i
-nativeRunner (Language _ _ _ n) = n
+parser       (Language p _ _ _ _) = p
+compiler     (Language _ c _ _ _) = c
+interpreter  (Language _ _ i _ _) = i
+extension    (Language _ _ _ e _) = e
 
 -- parsing
 parseString :: Language i o -> String -> Val i
 parseString l = liftParser $ parser l
 
 -- compilation
+compile = compiler
+
 compileString :: Language i o -> String -> Val o
-compileString l s = parseString l s >>= compiler l
+compileString l s = parseString l s >>= compile l
 
 compileFile :: Language i o -> FilePath -> IO (Val o)
 compileFile l file = readFile file >>= return . compileString l
 
-{-
 -- interpretation
-compileAndInterpret :: Language i o -> i -> Val Computer
-compileAndInterpret l i = interpreter l <$> compiler l i
+interpret = interpreter
 
-compileAndInterpretString :: Language i o -> String -> Val Computer
-compileAndInterpretString l s = parseString l s >>= compileAndInterpret l 
+interpretString :: Language i o -> String -> Val Computer
+interpretString l s = interpret l <$> parseString l s
 
-compileAndInterpretFile :: Language i o -> FilePath -> IO (Val Computer)
-compileAndInterpretFile l = withFile $ compileAndInterpretString l
-
-type NativeRunner      o = String -> FilePath -> o -> IO (Val String)
-
--}
+interpretFile :: Language i o -> FilePath -> IO (Val Computer)
+interpretFile l file = readFile file >>= return . interpretString l
 
 -- native execution
 compileAndRunNative :: Language i o -> String -> FilePath -> i -> IO (Val String)
-compileAndRunNative lang name outputDir input = f $ compiler lang input where
-  f = either (return . Left) (nativeRunner lang name outputDir)
+compileAndRunNative l@(Language _ _ _ _ subLang) name outputDir input =
+  f $ compile l input where
+  f = either (return . Left) $ \code -> do
+    _ <- writeFile codeFile (showCode code)
+    maybe 
+      (Right <$> runSCodeNative name outputDir (showCode code))
+      (\sub -> compileAndRunNative sub name outputDir code)
+      subLang where
+  showCode code = maybe (read $ show code) (\_ -> show code) subLang
+  codeFile = changeDir outputDir $ name ++ "." ++ maybe "S" extension subLang
 
 compileAndRunNativeString :: Language i o -> String -> FilePath -> String -> IO (Val String)
 compileAndRunNativeString lang name outputDir input = f $ parseString lang input where

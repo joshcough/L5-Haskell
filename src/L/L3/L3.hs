@@ -13,13 +13,8 @@ l3Language  = Language
   parseL3
   (Right . compileL3ToL2)
   (interpL2 . compileL3ToL2)
-  runL2Native
-
-runL2Native :: String -> FilePath -> L2 -> IO (Val String)
-runL2Native name outputDir l2 = do
-  _ <- writeFile l2File (show l2)
-  compileAndRunNative l2Language name outputDir l2 where
-  l2File = changeDir outputDir (name ++ ".L2")
+  "L3"
+  (Just l2Language)
 
 compileL3ToL2 :: L3 -> L2
 compileL3ToL2 = linearize

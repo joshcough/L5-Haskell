@@ -35,15 +35,10 @@ l2Language  = Language
   parseL2
   (Right . compileL2ToL1)
   (interpL1 . compileL2ToL1)
-  runL1Native
+  "L2"
+  (Just l1Language)
 
 interpL2 = interpL1 . compileL2ToL1
-
-runL1Native :: String -> FilePath -> L1 -> IO (Val String)
-runL1Native name outputDir l1 = do
-  _ <- writeFile l1File (show l1)
-  compileAndRunNative l1Language name outputDir l1 where
-  l1File = changeDir outputDir (name ++ ".L1")
 
 -- this is the main function, the rest are just various helpers
 compileL2ToL1 :: L2 -> L1
