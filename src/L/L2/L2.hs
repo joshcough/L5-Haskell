@@ -1,23 +1,10 @@
-{-# LANGUAGE TupleSections #-}
 module L.L2.L2 (l2Language, interpL2) where
 
 import Control.Applicative
-import Data.List
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Maybe
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Traversable
-import Debug.Trace
 import L.Compiler
-import L.IOHelpers
 import L.L1L2AST
 import L.L1L2Parser
-import L.Read
-import L.Utils
 import L.L1.L1 
-import L.L1.L1X86
 import L.L1.L1Interp
 import L.L2.Allocation
 
@@ -34,7 +21,7 @@ l2Language :: Language L2 L1
 l2Language  = Language
   parseL2
   (Right . compileL2ToL1)
-  (interpL1 . compileL2ToL1)
+  interpL2
   "L2"
   (Just l1Language)
 

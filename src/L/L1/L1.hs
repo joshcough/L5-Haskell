@@ -9,7 +9,6 @@ import L.L1.L1X86
 
 l1Language :: Language L1 String
 l1Language  = Language parseL1 compileL1 interpL1 "L1" Nothing
-  --(\name dir i -> Right <$> runSCodeNative name dir i)
 
 compileL1 :: L1 -> Either String String
 compileL1 = genX86Code . adjustMain
