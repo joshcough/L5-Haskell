@@ -10,7 +10,7 @@ runSCodeNative :: String -> FilePath -> String -> IO String
 runSCodeNative name outputDir sCode = do
   _ <- writeFile sFile sCode
   runSFileNative sFile outputDir where
-  sFile = changeDir outputDir (name ++ ".S")
+  sFile = changeDir (name ++ ".S") outputDir
 
 runSFileNative :: FilePath -> FilePath -> IO String
 runSFileNative sFile outputDir = 

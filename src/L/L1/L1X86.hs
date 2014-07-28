@@ -5,7 +5,6 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.List
 import Data.Traversable
-import L.CompilationUnit
 import L.L1L2AST
 import L.L1L2Parser
 import L.IOHelpers

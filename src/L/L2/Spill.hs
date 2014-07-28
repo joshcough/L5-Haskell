@@ -10,7 +10,7 @@ module L.L2.Spill
 import Control.Applicative
 import Control.Monad.State
 import Data.Traversable
-import L.CompilationUnit
+import L.IOHelpers (mapFileContents)
 import L.L1L2AST
 import L.L1L2Parser
 import L.Read
@@ -36,7 +36,7 @@ spillTest input = case (sreadWithRest input) of
     in showAsList $ fmap show $ fst $ runState (spill pre (var, off) ins) 0
 
 runSpillMain_ :: FilePath -> IO String
-runSpillMain_ = compile1 spillTest
+runSpillMain_ = mapFileContents spillTest
 
 spillDef (v,i) = spill defaultSpillPrefix (v, i)
 

@@ -27,7 +27,6 @@ library
   hs-source-dirs: src
 
   exposed-modules:
-    L.CompilationUnit
     L.Compiler
     L.IOHelpers
     L.L1L2AST

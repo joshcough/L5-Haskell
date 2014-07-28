@@ -9,11 +9,8 @@ module L.L1.L1Interp
   (
     Computer(..)
    ,interpL1
-   ,interpL1OrDie
-   ,interpL1String
-   ,interpL1StringOrDie
    ,newComputer
-   ,showOutput
+   ,showComputerOutput
   )
 where
 
@@ -29,7 +26,6 @@ import qualified Data.Map as Map
 import Data.Tuple
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import L.CompilationUnit
 import L.IOHelpers
 import L.L1L2AST hiding (registers)
 import L.L1L2Parser
@@ -71,7 +67,7 @@ instance Show Computer where
         (c^.registers) (c^.memory) (c^.output) (c^.ip)
         (currentInst c) (c^.heapP) (c^.halted)
 
-showOutput c = mkString "" $ reverse (c^.output)
+showComputerOutput c = mkString "" $ reverse (c^.output)
 
 oneMeg = 1048576
 twoMeg = oneMeg * 2
@@ -272,13 +268,4 @@ step Return c =
       c'     = writeReg rsp (rspVal + 8) c
       c''    = goto (readMem rspVal c') c'
   in if done then halt c else c''
-
-interpL1OrDie :: L1 -> String
-interpL1OrDie = showOutput . interpL1
-
-interpL1String :: String -> Either String String
-interpL1String code = showOutput . interpL1 <$> parseL1 (sread code)
-
-interpL1StringOrDie :: String -> String
-interpL1StringOrDie = (either error id) . interpL1String
 

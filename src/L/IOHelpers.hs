@@ -4,6 +4,8 @@ module L.IOHelpers
    ,changeExtension
    ,fileArgMain
    ,getExtension
+   ,getDir
+   ,getFileName
    ,getRecursiveContents
    ,getRecursiveContentsByExt
    ,listFiles
@@ -11,8 +13,10 @@ module L.IOHelpers
    ,mapFileContentsAndPrint
    ,putFileNames
    ,putList
+   ,readMapAndWriteFileArg
    ,touch
    ,withFileArg
+   ,withFileArgT
   ) where
 
 import Control.Applicative
@@ -105,6 +109,9 @@ dirFileNamesAndContents dir = zip <$> (filesWithFullPaths dir) <*> (dirContents 
 namesAndContents :: [FilePath] -> IO [(String, String)]
 namesAndContents fileNames = zip fileNames <$> contents fileNames
 
+dropRight :: Int -> [a] -> [a]
+dropRight n = reverse . drop n . reverse
+
 dropRightWhile :: (a -> Bool) -> [a] -> [a]
 dropRightWhile f = reverse . dropWhile f . reverse
 
@@ -116,6 +123,9 @@ takeRightWhile f = reverse . takeWhile f . reverse
 getExtension, getFileName :: FilePath -> String
 getExtension = takeRightWhile notDot
 getFileName = takeRightWhile ('/' /=)
+
+getDir :: FilePath -> FilePath
+getDir file = dropRight (length $ getFileName file) file
 
 changeDir :: FilePath -> FilePath -> FilePath
 changeDir file newDir = newDir ++ "/" ++ getFileName file
@@ -137,14 +147,36 @@ getRecursiveContentsByExt :: FilePath -> String -> IO [FilePath]
 getRecursiveContentsByExt dir ext = 
   getRecursiveContents dir >>= (return . filter (endsWith ext))
 
-mapFileContents :: (String -> a) -> FilePath -> IO a
-mapFileContents f file = fmap f $ readFile file
-
 mapFileContentsAndPrint :: Show a => (String -> a) -> FilePath -> IO ()
 mapFileContentsAndPrint f file = mapFileContents f file >>= putStrLn . show
 
-withFileArg :: (FilePath -> IO ()) -> IO ()
+withFileArg :: (FilePath -> IO a) -> IO a
 withFileArg f = fmap (!! 0) getArgs >>= f
 
 fileArgMain :: Show a => (String -> a) -> IO ()
 fileArgMain f =  withFileArg $ mapFileContentsAndPrint f 
+
+-- read input file from first command line arg, 
+-- map its name and contents over f, 
+-- and return the path and the results 
+withFileArgT :: (FilePath -> String -> a) -> IO (FilePath, a)
+withFileArgT f = do           
+  inputFile <- fmap (!! 0) getArgs
+  a <- mapFileContents (f inputFile) inputFile
+  return (inputFile, a)
+
+-- read the given input file, and compile it
+mapFileContents :: (String -> a) -> FilePath -> IO a
+mapFileContents f inputFile =
+  do s <- readFile inputFile
+     length s `seq` return (f s)
+
+-- read the first command line argument
+-- its a file - read that file
+-- run the given function on its contents
+-- write the results to a new file with the same name as the original file
+-- but with a different extension (the given one)
+readMapAndWriteFileArg :: (String -> String) -> String -> IO ()
+readMapAndWriteFileArg f newExt = do
+  (file, s) <- withFileArgT $ \_ -> f
+  writeFile (changeExtension file newExt) s

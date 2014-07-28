@@ -17,8 +17,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Debug.Trace
-import L.CompilationUnit
-import L.IOHelpers (withFileArg)
+import L.IOHelpers (withFileArg,mapFileContents)
 import L.L1L2AST
 import L.Read (showAsList)
 import L.Utils (mkString, traceA)
@@ -188,10 +187,10 @@ runInterference = buildInterferenceGraph . runLiveness
 -- return a the result wrapped in a CompilationUnit for testing purposes
 -- it allows the result file to be read.
 runInterferenceMain_ :: FilePath -> IO Interference
-runInterferenceMain_ = compile1 runInterference
+runInterferenceMain_ = mapFileContents runInterference
 
 -- reads first command line argument, loads that file
 -- calls runLiveness on it, shows it, and returns it.
 runInterferenceMain :: IO ()
 runInterferenceMain = withFileArg $ \f ->
-  compile1 runInterference f >>= (putStrLn . show)
+  mapFileContents runInterference f >>= (putStrLn . show)

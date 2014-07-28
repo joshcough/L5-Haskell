@@ -1,10 +1,12 @@
 module Main (main) where
 
-import L.CompilationUnit (compile_)
-import L.L1.L1Interp (interpL1String)
+import L.Compiler
+import L.IOHelpers
+import L.L1.L1
+import L.L1.L1Interp
 
 main = interpL1File
 
-interpL1File =
-  do s <- compile_ $ (either error id) . interpL1String
-     putStrLn (snd s)
+interpL1File = 
+  do s <- withFileArgT $ \_ code -> runVal $ interpretString l1Language code
+     putStrLn . showComputerOutput $ snd s

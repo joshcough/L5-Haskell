@@ -20,10 +20,9 @@ import Data.List
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
-import L.CompilationUnit
 import L.L1L2AST
 import L.L1L2Parser
-import L.IOHelpers
+import L.IOHelpers (mapFileContents, withFileArg)
 import L.Read
 import L.Utils
 
@@ -100,13 +99,13 @@ runLiveness = liveness . extract . parseL2InstList . sread
 -- calculate the liveness for a string containing a list of instructions
 -- that string is read from the given filepath
 livenessMain_ :: FilePath -> IO [IIOS]
-livenessMain_ = compile1 runLiveness
+livenessMain_ = mapFileContents runLiveness
 
 -- reads first command line argument, loads that file
--- calls runLiveness on it, shows it, and returns it.
+-- calls runLiveness on it, and prints the result.
 livenessMain :: IO ()
 livenessMain = withFileArg $ \f -> 
-  compile1 (showLiveness . runLiveness) f >>= putStrLn
+  mapFileContents (showLiveness . runLiveness) f >>= putStrLn
 
 --withFileArg :: (FilePath -> IO ()) -> IO ()
 --fileArgMain :: Show a => (String -> a) -> IO ()

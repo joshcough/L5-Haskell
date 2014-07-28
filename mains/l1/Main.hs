@@ -1,10 +1,11 @@
 module Main (main) where
 
-import L.L1.L1 (runNative)
+import L.IOHelpers
+import L.NativeRunner
 import L.Utils
 import System.Environment
 
 main = do
   inputFile <- fmap (!! 0) getArgs
-  res <- runNative inputFile "tmp"
+  res <- runSCodeNative (getFileName inputFile) (getDir inputFile) "tmp"
   putStrLn res

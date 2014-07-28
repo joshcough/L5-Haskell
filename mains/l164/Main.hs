@@ -1,9 +1,11 @@
 module Main (main) where
 
+import L.Compiler
+import L.IOHelpers
 import L.L1.L1
-import L.CompilationUnit
 
 main = compileL1File
 
 compileL1File :: IO ()
-compileL1File = compile compileL1OrDie "S"
+compileL1File =
+  readMapAndWriteFileArg (runVal . compileString l1Language) "S"

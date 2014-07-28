@@ -9,8 +9,10 @@ import Control.Applicative
 import Control.Exception
 import Data.List
 import Data.Traversable
+import Debug.Trace
 import System.IO.Unsafe
 
+import L.Compiler
 import L.IOHelpers
 import L.L1.L1
 import L.L1.L1Interp
@@ -33,28 +35,32 @@ tests_ = [
 
 testDir = "./test/test-fest/"
 
+runInterp lang file = showComputerOutput . runVal <$> interpretFile lang file
+
 data TestDef = TestDef 
   { name :: String
   , dir  :: FilePath
   , inputFileExt  :: String
   , outputFileExt :: String
-  , compute :: FilePath -> String -> String -> Assertion
+  , compute :: (FilePath, String) -> (FilePath, String) -> Assertion
   }
 
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
  ,dir = "test/x86-64-tests"
- ,inputFileExt = "L1"
+ ,inputFileExt  = "L1"
  ,outputFileExt = "res"
- ,compute = \_ r e -> strip (interpL1StringOrDie r) @?= strip e
+ ,compute = \(l1f,_) (_,e) -> do
+   interpRes <- runInterp l1Language l1f
+   strip interpRes @?= strip e
 }
 l164Tests = TestDef { 
   name = "L1" 
  ,dir  = "test/x86-64-tests"
- ,inputFileExt = "L1"
+ ,inputFileExt  = "L1"
  ,outputFileExt = "res"
- ,compute = \r _ e -> do 
-   res <- compileL1FileAndRunNative r "tmp"
+ ,compute = \(r,_) (_,e) -> do 
+   res <- runVal <$> compileAndRunNativeFile l1Language "tmp" r
    strip res @?= strip e
 }
 -- Liveness tests are somewhat useless after moving to x86-64
@@ -65,7 +71,7 @@ livenessTests = TestDef {
  ,dir  = testDir ++ "liveness-test/cough"
  ,inputFileExt  = "L2f"
  ,outputFileExt = "lres"
- ,compute = \_ r e -> sread (showLiveness $ runLiveness r) @?= sread e
+ ,compute = \(_,r) (_,e) -> sread (showLiveness $ runLiveness r) @?= sread e
 }
 -- TODO: Interference suffer the same problem as liveness tests.
 interferenceTests = TestDef { 
@@ -73,7 +79,7 @@ interferenceTests = TestDef {
  ,dir  = testDir ++ "graph-test/cough"
  ,inputFileExt  = "L2f" 
  ,outputFileExt = "gres"
- ,compute = \_ r e -> sread (show $ runInterference r) @?= sread e
+ ,compute = \(_,r) (_,e) -> sread (show $ runInterference r) @?= sread e
 }
 -- TODO: most spill tests are not currently running :(
 -- robby's tests make cabal never return.
@@ -82,27 +88,25 @@ spillTests = TestDef {
  ,dir  = testDir ++ "spill-test/cough"
  ,inputFileExt  = "L2f"
  ,outputFileExt = "sres"
- ,compute = \_ r e -> sread (spillTest r) @?= sread e
+ ,compute = \(_,r) (_,e) -> sread (spillTest r) @?= sread e
 }
 l2Tests = TestDef {
   name = "L2"
  ,dir  = testDir ++ "2-test"
- ,inputFileExt = "L2"
+ ,inputFileExt  = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
- ,compute = \l2f l2 _ ->
-   let l1 = compileL2OrDie l2
-       interpRes = interpL1OrDie l1
-   in do
-    _      <- writeFile (changeExtension l2f "L1") (show l1)
-    x86res <- compileL1AndRunNative l1 (Just l2f) "tmp"
-    strip x86res @?= strip interpRes
+ ,compute = \(l2f,l2) _ -> do
+    nativeRes <- runVal <$> compileAndRunNativeFile l2Language "tmp" l2f
+    interpRes <- runInterp l2Language l2f
+    strip nativeRes @?= strip interpRes
 }
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   testFiles = getRecursiveContentsByExt (dir def) (inputFileExt def)
-  mkTest file = testCase file $ do
-    res <- readFile file
-    exp <- readFile (changeExtension file $ outputFileExt def)
-    compute def file res exp
+  mkTest inputFile = testCase inputFile $ do
+    inputContents  <- readFile inputFile
+    outputContents <- readFile outputFile
+    compute def (inputFile,inputContents) (outputFile,outputContents) where
+    outputFile = changeExtension inputFile $ outputFileExt def
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)
