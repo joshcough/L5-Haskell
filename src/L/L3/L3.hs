@@ -1,4 +1,4 @@
-module L.L3.L3 (l3Language) where
+module L.L3.L3 (l3Language, interpL3) where
 
 import L.Compiler
 import L.L1L2AST
@@ -11,9 +11,11 @@ l3Language :: Language L3 L2
 l3Language  = Language
   parseL3
   (Right . compileL3ToL2)
-  (interpL2 . compileL3ToL2)
+  interpL3
   "L3"
   (Just l2Language)
 
 compileL3ToL2 :: L3 -> L2
 compileL3ToL2 = linearize
+
+interpL3 = interpL2 . compileL3ToL2

@@ -30,7 +30,7 @@ num = NumberL2S
 newTemp :: State Int L2X
 newTemp = VarL2X <$> newLabel
 newLabel :: State Int Label
-newLabel = do { n <- get; _ <- put (n + 1); return $ "__tempL3" ++ show n }
+newLabel = do { n <- get; put (n + 1); return $ "__tempL3" ++ show n }
 
 linearize :: L3 -> L2
 linearize l3 = fst $ runState (linearizeS l3) 0

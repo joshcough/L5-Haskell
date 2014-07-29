@@ -1,12 +1,14 @@
 module L.L3.L3AST where
 
+
+
 import Data.Int
 import L.L1L2AST (Variable, Label)
 import L.Read (showAsList)
 
 data L3   = L3 E [Func]
-data V    = VarV Variable | NumV Int64 | LabelV Label
 data Func = Func { name :: Label, args :: [Variable], body :: E }
+data V    = VarV Variable | NumV Int64 | LabelV Label
 data E    = Let Variable D E | IfStatement V E E | DE D
 data Biop = Add V V | Sub V V | Mult V V | LessThan V V | LTorEq V V | Eq V V
 data Pred = IsNum V | IsArray V
@@ -65,7 +67,3 @@ instance Show E where
 instance Show Func where show (Func n a l) = showAsList [n, showAsList a, show l]
 instance Show L3 where show (L3 e fs) = showAsList (show e : fmap show fs)
 
-{-
-  case class Num(n: Int) extends V { def *(i:Int) = Num(n*i); def +(i:Int) = Num(n+i) }
-  case class Label(name: String) extends V { override def toString = "Label(\"" + name + "\")" }
--}

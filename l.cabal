@@ -51,6 +51,11 @@ library
     L.L3.L3AST
     L.L3.L3Parser
     L.L3.Linearize
+    -- L4
+    L.L4.ANormalize
+    L.L4.L4
+    L.L4.L4AST
+    L.L4.L4Parser
     -- L5
     L.L5.L5AST
     L.L5.L5Core

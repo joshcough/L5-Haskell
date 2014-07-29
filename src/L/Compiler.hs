@@ -25,11 +25,11 @@ import L.Read
 import L.NativeRunner
 import Debug.Trace
 
-type Val a               = Either String a
-type Parser            i = SExpr -> Val i
-type Compiler        i o = i -> Val o
-type Interpreter       i = i -> Computer
-type Extension           = String
+type Val a            = Either String a
+type Parser         i = SExpr -> Val i
+type Compiler     i o = i -> Val o
+type Interpreter    i = i -> Computer
+type Extension        = String
 
 data Language i o where
   Language :: (Show i, Show o) =>
@@ -117,4 +117,3 @@ compileAndRunNativeFile :: Language i o -> FilePath -> FilePath -> IO (Val Strin
 compileAndRunNativeFile lang outputDir inputFile = do
   code <- readFile inputFile
   compileAndRunNativeString lang (getFileName inputFile) outputDir code
-
