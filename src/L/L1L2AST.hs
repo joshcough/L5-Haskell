@@ -103,7 +103,7 @@ instance (Show x, Show s) => Show (Program x s) where
   show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
 
 instance (Show x, Show s) => Show (Func x s) where
-  show (Func is) = "(" ++ (is >>= (\i -> ((show i) ++ "\n\t"))) ++ ")"
+  show (Func is) = "(" ++ (is >>= (\i -> (show i ++ "\n\t"))) ++ ")"
 
 instance (Show x, Show s) => Show (Instruction x s) where
   show (Assign x rhs)       = showAsList [show x, "<-", show rhs]

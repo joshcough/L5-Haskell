@@ -57,13 +57,14 @@ allocate f = Func finalL1Body where
   incEsp = MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))
 
   {-
-    whenever we return, we must make sure to put the stack pointer back.
+    whenever we return or make a tailcall, we must make sure to put the stack pointer back.
     (by incrementing it by the amount we decremented it by.)
-    rewriteReturns puts that increment in front of all returns in the function.
+    resetStackPointer puts that increment in front of all returns in the function.
    -}
-  rewriteReturns insts = insts >>= f where
-    f r@Return = [incEsp, r]
-    f i        = [i]
+  resetStackPointer insts = insts >>= f where
+    f r@Return      = [incEsp, r]
+    f t@(TailCall l) = [incEsp, t]
+    f i             = [i]
 
   {-
     Here, we put all the parts together into one function
@@ -71,7 +72,7 @@ allocate f = Func finalL1Body where
       the stack decremented
       then the rest of the instructions (with stack increments put before all the returns)
    -}
-  finalL2Body = concat [[label], [decEsp], rewriteReturns $ tail allocatedBody]
+  finalL2Body = concat [[label], [decEsp], resetStackPointer $ tail allocatedBody]
 
   {- Finally, we replace all the variables with the registers they will live in. -}
   finalL1Body = replaceVarsWithRegisters allocs finalL2Body

@@ -1,0 +1,4 @@
+((:print10 1)
+ (:print10 (x)
+  (print x)))
+

@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 
 module L.Compiler (
    Val 
@@ -18,12 +19,14 @@ module L.Compiler (
 ) where
 
 import Control.Applicative
+import Control.Category
 import Data.Maybe
 import L.L1.L1Interp (Computer, showComputerOutput)
 import L.IOHelpers
 import L.Read
 import L.NativeRunner
 import Debug.Trace
+import Prelude hiding ((.),id)
 
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
@@ -56,11 +59,9 @@ outputExtension (Language _ _ _ _ subLang) = maybe "S" extension subLang
 
 tracer s = trace s (show s)
 
--- todo: why is this Show o needed here? 
--- it should be available from the definition of Language...
-showOutput :: Show o => Language i o -> o -> String
+showOutput :: Language i o -> o -> String
 showOutput (Language _ _ _ _ (Just l)) = show
-showOutput _ = read . show
+showOutput Language{} = read . show
 
 -- parsing
 parseString :: Language i o -> String -> Val i

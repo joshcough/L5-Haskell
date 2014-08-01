@@ -12,8 +12,6 @@ writeMe = error "todo"
 todo = error
 trav = Data.Traversable.traverse
 -- TODO: some of these are also in other code.
-mainLabel = "__main__"
-
 argRegisters :: [Register]
 argRegisters = [rdi, rsi, rdx, rcx, r8, r9]
 l2True = NumberL2S 1
@@ -38,9 +36,10 @@ linearize l3 = fst $ runState (linearizeS l3) 0
 linearizeS :: L3 -> State Int L2
 linearizeS (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
   callMain :: L2.L2Func
-  callMain = L2.Func [L2.Call $ LabelL2S mainLabel]
+  callMain = L2.Func [LabelDeclaration "main", L2.Call $ LabelL2S "__L3main__"]
+  l2MainInsts = (LabelDeclaration "__L3main__" :) <$> compileE e
   l2Funcs :: State Int [L2.L2Func]
-  l2Funcs  = liftM2 (:) (L2.Func <$> compileE e) (trav compileFunction funcs)
+  l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (trav compileFunction funcs)
 
 -- (l (x ...) e)
 -- there is an implicit assertion here that L3 functions

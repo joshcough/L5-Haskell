@@ -20,6 +20,7 @@ import L.L2.L2
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
+import L.L3.L3
 import L.Read
 import L.Utils
 
@@ -31,7 +32,8 @@ tests_ = [
   spillTests
  ,l1InterpreterTests
  ,l164Tests
- ,l2Tests ]
+ ,l2Tests
+ ,l3Tests ]
 
 testDir = "./test/test-fest/"
 
@@ -98,6 +100,17 @@ l2Tests = TestDef {
  ,compute = \(l2f,l2) _ -> do
     nativeRes <- runVal <$> compileAndRunNativeFile l2Language "tmp" l2f
     interpRes <- runInterp l2Language l2f
+    strip nativeRes @?= strip interpRes
+}
+l3Tests = TestDef {
+  name = "L3"
+ --,dir  = testDir ++ "3-test/cough"
+ ,dir  = testDir ++ "3-test"
+ ,inputFileExt  = "L3"
+ ,outputFileExt = "L3" -- this isn't actually used
+ ,compute = \(l3f,l3) _ -> do
+    nativeRes <- runVal <$> compileAndRunNativeFile l3Language "tmp" l3f
+    interpRes <- runInterp l3Language l3f
     strip nativeRes @?= strip interpRes
 }
 
