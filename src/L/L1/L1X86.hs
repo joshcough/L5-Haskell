@@ -65,8 +65,9 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS s)      = Right [triple "movq" (genS s) (genReg r)]
-  genAssignInst r (MemRead loc) = Right [triple "movq" (genLoc loc) (genReg r)]
+  genAssignInst r (SRHS (LabelL1S l)) = Right [triple "lea" ("L1_" ++ l ++ "(%rip)") (genReg r)]
+  genAssignInst r (SRHS s)            = Right [triple "movq" (genS s) (genReg r)]
+  genAssignInst r (MemRead loc)       = Right [triple "movq" (genLoc loc) (genReg r)]
   {-
   cmp assignments have to be with CXRegisters on LHS
   (eax <- ebx < ecx)
@@ -123,6 +124,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
 
   call :: L1S -> String
   call (LabelL1S name) = "call L1_" ++ name
+  call (RegL1S reg)    = "call " ++ genReg reg
   call x = error $ "bad call: " ++ show x
   
   setInstruction = foldOp "setl" "setle" "sete"
