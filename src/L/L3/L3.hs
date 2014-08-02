@@ -10,7 +10,7 @@ import L.L3.L3Parser
 l3Language :: Language L3 L2
 l3Language  = Language
   parseL3
-  (Right . compileL3ToL2)
+  (\_ -> Right . compileL3ToL2)
   interpL3
   "L3"
   (Just l2Language)

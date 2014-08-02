@@ -1,0 +1,6 @@
+(
+ (:f :print1)
+ (:f (x) (x 1))
+ (:print1 (x) (print x))
+)
+

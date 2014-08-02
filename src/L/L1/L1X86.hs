@@ -15,9 +15,10 @@ import System.IO
 
 -- X86 Generation code
 type X86Inst = String
+type ProgramName = String
 
-genX86Code :: L1-> Either String String
-genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
+genX86Code :: ProgramName -> L1 -> Either String String
+genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
   genCodeS (Program main funcs) = do
     x86Funcs <- compiledFunctions
@@ -30,7 +31,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     dump insts = mkString "\n" $ map indent insts
     indent i = if (last i == ':' || take 6 i == ".globl") then i else '\t' : i
     mainHeader = [
-      ".file\t\"prog.c\"",
+      ".file\t\""++ name ++"\"",
       ".text",
       ".globl _go",
       "_go:" ]
@@ -43,31 +44,31 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInstS i = either throwError return $ genInst i
 
   genInst :: L1Instruction -> Either String [X86Inst]
-  genInst (LabelDeclaration label) = Right [declare label]
+  genInst (LabelDeclaration label) = return [declare label]
   genInst (Assign l r)       = genAssignInst l r
-  genInst (MemWrite loc  s)  = Right [triple "movq"  (genS s) (genLoc loc)]
-  genInst (MathInst r op s)  = Right [triple (x86OpName op) (genS s) (genReg r)]
-  genInst (Goto s)           = Right [jump (LabelL1S s)]
-  genInst (TailCall s)       = Right [jump s]
+  genInst (MemWrite loc  s)  = return [triple "movq"  (genS s) (genLoc loc)]
+  genInst (MathInst r op s)  = return [triple (x86OpName op) (genS s) (genReg r)]
+  genInst (Goto s)           = return [jump (LabelL1S s)]
+  genInst (TailCall s)       = return [jump s]
   -- special case for two numbers
   genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
-    Right $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
+    return $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
-  genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = Right [
+  genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = return [
     triple "cmpq" (genS l) (genS r),
     foldOp (jumpIfGreater l1) (jumpIfGreaterOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
-  genInst (CJump (Comp s1 op s2) l1 l2) = Right [
+  genInst (CJump (Comp s1 op s2) l1 l2) = return [
     triple "cmpq" (genS s2) (genS s1),
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jump (LabelL1S l2) ]
-  genInst Return = Right ["ret"]
+  genInst Return = return ["ret"]
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S l)) = Right [triple "lea" ("L1_" ++ l ++ "(%rip)") (genReg r)]
-  genAssignInst r (SRHS s)            = Right [triple "movq" (genS s) (genReg r)]
-  genAssignInst r (MemRead loc)       = Right [triple "movq" (genLoc loc) (genReg r)]
+  genAssignInst r (SRHS (LabelL1S l)) = return [triple "lea" ("L1_" ++ l ++ "(%rip)") (genReg r)]
+  genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
+  genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
   {-
   cmp assignments have to be with CXRegisters on LHS
   (eax <- ebx < ecx)
@@ -81,22 +82,22 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     movzbl %al, %eax
   -}
   genAssignInst cx (CompRHS (Comp l@(RegL1S _)    op r@(RegL1S _))) =
-    Right $ genCompInst cx r l (setInstruction op)
+    return $ genCompInst cx r l (setInstruction op)
   genAssignInst cx (CompRHS (Comp l@(NumberL1S _) op r@(RegL1S _))) =
     -- magic reverse happens here!
-    Right $ genCompInst cx l r (foldOp "setg" "setge" "sete" op)
+    return $ genCompInst cx l r (foldOp "setg" "setge" "sete" op)
   genAssignInst cx (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
-    Right $ genCompInst cx r l (setInstruction op)
+    return $ genCompInst cx r l (setInstruction op)
   genAssignInst cx (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
-    Right [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
-  genAssignInst rax (Print s) = Right [
+    return [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
+  genAssignInst rax (Print s) = return [
     triple "movq" (genS s) (genReg rdi),
     "call _print" ]
-  genAssignInst rax (Allocate s n) = Right [
+  genAssignInst rax (Allocate s n) = return [
     triple "movq" (genS s) (genReg rdi),
     triple "movq" (genS n) (genReg rsi),
     "call _allocate" ]
-  genAssignInst rax (ArrayError s n) = Right [
+  genAssignInst rax (ArrayError s n) = return [
     triple "movq" (genS s) (genReg rdi),
     triple "movq" (genS n) (genReg rsi),
     "call _print_error" ]
@@ -124,7 +125,7 @@ genX86Code l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
 
   call :: L1S -> String
   call (LabelL1S name) = "call L1_" ++ name
-  call (RegL1S reg)    = "call " ++ genReg reg
+  call (RegL1S reg)    = "call *" ++ genReg reg
   call x = error $ "bad call: " ++ show x
   
   setInstruction = foldOp "setl" "setle" "sete"

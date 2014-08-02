@@ -104,7 +104,6 @@ l2Tests = TestDef {
 }
 l3Tests = TestDef {
   name = "L3"
- --,dir  = testDir ++ "3-test/cough"
  ,dir  = testDir ++ "3-test"
  ,inputFileExt  = "L3"
  ,outputFileExt = "L3" -- this isn't actually used

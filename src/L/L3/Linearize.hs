@@ -25,8 +25,9 @@ toLHS = RegL2X
 (<<) x s = MathInst x LeftShift  s
 (&)  x s = MathInst x BitwiseAnd s
 num = NumberL2S
-newTemp :: State Int L2X
-newTemp = VarL2X <$> newLabel
+newTemp  :: State Int L2X
+newTemp  = VarL2X <$> newLabel
+newTempV = VarV <$> newLabel
 newLabel :: State Int Label
 newLabel = do { n <- get; put (n + 1); return $ "__tempL3" ++ show n }
 
@@ -168,10 +169,12 @@ compileD (ASet (VarV v) loc newVal) dest = do
     dest  <~ SRHS (num 1)]
 compileD (NewTuple vs) dest = return $ 
   concat [[arr], sets, [dest <~ regRHS rax]] where
-    arr  = rax <~ Allocate (num . fromIntegral $ length vs) (num 1)
+    arr  = rax <~ Allocate (encodeV . NumV $ fromIntegral $ length vs) (num 1)
     sets = fmap f (zip vs [0..]) 
     f (v, i) = MemWrite (MemLoc rax ((i+1)*8)) (encodeV v)
-compileD (MakeClosure l v) dest = compileD (NewTuple [LabelV l, v]) dest
+compileD (MakeClosure l v) dest = do
+  temp <- newTempV
+  compileD (NewTuple [temp, v]) dest
 compileD (ClosureProc v)   dest = compileD (ARef v (NumV 0)) dest
 compileD (ClosureVars v)   dest = compileD (ARef v (NumV 1)) dest
 compileD (VD v)            dest = return $ [dest <~ encodeVRHS v]

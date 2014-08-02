@@ -1,0 +1,6 @@
+(
+ (:f :print1)
+ (:f (x) (let ([y x]) (y 1)))
+ (:print1 (x) (print x))
+)
+

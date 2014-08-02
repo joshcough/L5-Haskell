@@ -1,0 +1,6 @@
+((let ([y (new-tuple 10)])
+   (let ([z (make-closure :funclabel y)])
+     (let ([x (closure-vars z)])
+       (print x))))
+ (:funclabel (a b) (+ a b))
+)
