@@ -216,6 +216,7 @@ showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
   (size, arr) = getArrayPure mem i 
   body = join $ intersperse "," (show <$> arr)
 
+-- Examples:
 zero = LitInt 0
 one = LitInt 1
 f = Var "f"
@@ -226,3 +227,6 @@ lambdaExample rec = Lambda ["x"] ifExample where
   ifExample = IfStatement (PrimFunE $ EqualTo x zero) x beginExample
 letrecExample = LetRec [("f", lambdaExample g), ("g", lambdaExample f)] $ App f [LitInt 15]
 
+k = Lambda ["x"] (Lambda ["y"] (Var "x"))
+capturing = Let [("y", LitInt 100)] $ App (App k [(Var "y")]) [(LitInt 10)]
+noncapturing = App (App (Lambda ["a"] (Lambda ["b"] (Var "a"))) [(Var "y")]) [(LitInt 10)]

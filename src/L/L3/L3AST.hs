@@ -13,9 +13,9 @@ data E    = Let Variable D E | IfStatement V E E | DE D
 data Biop = Add V V | Sub V V | Mult V V | LessThan V V | LTorEq V V | Eq V V
 data Pred = IsNum V | IsArray V
 data D    =
-    BiopD Biop
+    FunCall V [V]
+  | BiopD Biop
   | PredD Pred
-  | FunCall V [V]
   | NewArray V V
   | NewTuple [V]
   | ARef V V
