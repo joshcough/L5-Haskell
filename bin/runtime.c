@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//TODO: write a garbage collector
+// investigate: http://en.wikipedia.org/wiki/Boehm_garbage_collector
 void print_content(void** in, int depth) {
   if (depth >= 4) {
     printf("...");
