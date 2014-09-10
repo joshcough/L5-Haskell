@@ -25,10 +25,10 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree tests_
+  ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
-tests_ = [
+allTests = [
   spillTests
  ,l1InterpreterTests
  ,l164Tests
