@@ -76,47 +76,41 @@ library
     vector                    >= 0.10.0.1,
     void                      >= 0.6.1
 
--- executable for the 64 bit L1 Compiler
---executable L164Main
---  hs-source-dirs: mains/l164
---  main-is: Main.hs
---  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+-- compile any .Ln file (where n is a number).
+executable lc
+  hs-source-dirs: executables
+  main-is: LC.hs
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
--- compile and run an L1 program in 64 bit mode
---executable L1
---  hs-source-dirs: mains/l1
---  main-is: Main.hs
---  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+-- interpreter for any .Ln file (where n is a number).
+executable linterp
+  hs-source-dirs: executables
+  main-is: LInterp.hs
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
--- compile and run an L2 program in 64 bit mode
---executable L2
---  hs-source-dirs: mains/l2
---  main-is: Main.hs
---  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+-- native runner for any .Ln file (where n is a number).
+executable lexec
+  hs-source-dirs: executables
+  main-is: LExecNative.hs
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
--- executable for the L1 Interpreter
---executable L1Interp
---  hs-source-dirs: mains/l1Interp
---  main-is: Main.hs
---  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
-
--- executable for the L2-L1 Interpreter
---executable L2Interp
---  hs-source-dirs: mains/l2Interp
---  main-is: Main.hs
---  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+-- executable for .S files
+executable x64
+  hs-source-dirs: executables
+  main-is: X64.hs
+  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
 -- executable for Liveness
---executable LivenessMain
--- hs-source-dirs: mains/liveness
--- main-is: Main.hs
--- build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+executable LivenessMain
+ hs-source-dirs: executables/other/liveness
+ main-is: Main.hs
+ build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
 -- executable for Interference
---executable InterferenceMain
--- hs-source-dirs: mains/interference
--- main-is: Main.hs
--- build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
+executable InterferenceMain
+ hs-source-dirs: executables/other/interference
+ main-is: Main.hs
+ build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2 && < 2.2
 
 test-suite tests
   type:           exitcode-stdio-1.0

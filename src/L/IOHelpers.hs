@@ -14,6 +14,7 @@ module L.IOHelpers
    ,putFileNames
    ,putList
    ,readMapAndWriteFileArg
+   ,readMapAndWriteFileArgAndPath
    ,touch
    ,withFileArg
    ,withFileArgT
@@ -177,6 +178,9 @@ mapFileContents f inputFile =
 -- write the results to a new file with the same name as the original file
 -- but with a different extension (the given one)
 readMapAndWriteFileArg :: (String -> String) -> String -> IO ()
-readMapAndWriteFileArg f newExt = do
-  (file, s) <- withFileArgT $ \_ -> f
+readMapAndWriteFileArg f newExt = readMapAndWriteFileArgAndPath (\_ -> f) newExt
+
+readMapAndWriteFileArgAndPath :: (FilePath -> String -> String) -> String -> IO ()
+readMapAndWriteFileArgAndPath f newExt = do
+  (file, s) <- withFileArgT f
   writeFile (changeExtension file newExt) s

@@ -22,11 +22,11 @@ module L.Compiler (
 import Control.Applicative
 import Control.Category
 import Data.Maybe
+import Debug.Trace
 import L.L1.L1Interp (Computer, showComputerOutput)
 import L.IOHelpers
 import L.Read
 import L.NativeRunner
-import Debug.Trace
 import Prelude hiding ((.),id)
 
 type ProgramName      = String
