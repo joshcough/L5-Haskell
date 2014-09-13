@@ -48,31 +48,31 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (Assign l r)       = genAssignInst l r
 
   genInst (MemWrite loc  (LabelL1S l)) = return [
-       triple "movq" ("L1_" ++ l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
+       triple "movq" ("_L1_" ++ l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
       ,triple "movq"  (genS $ RegL1S r15) (genLoc loc)
     ]
   genInst (MemWrite loc  s)  = return [triple "movq"  (genS s) (genLoc loc)]
 
   genInst (MathInst r op s)  = return [triple (x86OpName op) (genS s) (genReg r)]
-  genInst (Goto s)           = return [jump (LabelL1S s)]
+  genInst (Goto s)           = return [jumpToLabel s]
   genInst (TailCall s)       = return [jump s]
   -- special case for two numbers
   genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
-    return $ if (cmp op n1 n2) then [jump $ LabelL1S l1] else [jump $ LabelL1S l2]
+    return $ if (cmp op n1 n2) then [jumpToLabel l1] else [jumpToLabel l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
   genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = return [
     triple "cmpq" (genS l) (genS r),
     foldOp (jumpIfGreater l1) (jumpIfGreaterOrEqual l1) (jumpIfEqual l1) op,
-    jump (LabelL1S l2) ]
+    jumpToLabel l2 ]
   genInst (CJump (Comp s1 op s2) l1 l2) = return [
     triple "cmpq" (genS s2) (genS s1),
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
-    jump (LabelL1S l2) ]
+    jumpToLabel l2 ]
   genInst Return = return ["ret"]
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" ("L1_" ++ l ++ "@GOTPCREL(%rip)") (genReg r)]
+  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" ("_L1_" ++ l ++ "@GOTPCREL(%rip)") (genReg r)]
   genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
   genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
   {-
@@ -115,29 +115,35 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "movzbq" (low8 cx) (genReg cx) ]
     where low8 cx = "%" ++ [show cx !! 1] ++ "l"
   
-  declare label = "L1_" ++ label ++ ":"
+  declare label = "_L1_" ++ label ++ ":"
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
   genReg r = "%" ++ (show r)
   genS :: L1S -> String
   genS (NumberL1S i) = "$" ++ show i
-  genS (LabelL1S  l) = "$L1_" ++ l
+  genS (LabelL1S  l) = "$_L1_" ++ l
   genS (RegL1S    r) = genReg r
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
-  jump :: L1S -> String
-  jump (LabelL1S name) = "jmp L1_" ++ name
-  jump l               = "jmp *" ++ (genS l)
+  jump r@(RegL1S _)  = "jmp *" ++ (genS r)
+  jump (LabelL1S l)  = jumpToLabel l
+  jump (NumberL1S n) = error $ "bad jump to literal number: " ++ show n
+
+  jumpToLabel :: Label -> String
+  jumpToLabel l = "jmp _L1_" ++ l
 
   call :: L1S -> String
-  call (LabelL1S name) = "call L1_" ++ name
-  call (RegL1S reg)    = "call *" ++ genReg reg
+  call (RegL1S reg) = "call *" ++ genReg reg
+  call (LabelL1S l) = callLabel l
   call x = error $ "bad call: " ++ show x
-  
+
+  callLabel :: Label -> String
+  callLabel name = "call _L1_" ++ name
+
   setInstruction = foldOp "setl" "setle" "sete"
   
-  jumpIfLess            l = "jl L1_"  ++ l
-  jumpIfLessThanOrEqual l = "jle L1_" ++ l
-  jumpIfGreater         l = "jg L1_"  ++ l
-  jumpIfGreaterOrEqual  l = "jge L1_" ++ l
-  jumpIfEqual           l = "je L1_"  ++ l
+  jumpIfLess            l = "jl  _L1_"  ++ l
+  jumpIfLessThanOrEqual l = "jle _L1_" ++ l
+  jumpIfGreater         l = "jg  _L1_"  ++ l
+  jumpIfGreaterOrEqual  l = "jge _L1_" ++ l
+  jumpIfEqual           l = "je  _L1_"  ++ l

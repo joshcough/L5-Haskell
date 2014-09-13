@@ -25,7 +25,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree [l3Tests] --allTests
+  ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
 allTests = [
@@ -104,7 +104,7 @@ l2Tests = TestDef {
 }
 l3Tests = TestDef {
   name = "L3"
- ,dir  = testDir ++ "3-test/cough"
+ ,dir  = testDir ++ "3-test"
  ,inputFileExt  = "L3"
  ,outputFileExt = "L3" -- this isn't actually used
  ,compute = \(l3f,l3) _ -> do
