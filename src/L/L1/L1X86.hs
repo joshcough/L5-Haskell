@@ -46,7 +46,13 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst :: L1Instruction -> Either String [X86Inst]
   genInst (LabelDeclaration label) = return [declare label]
   genInst (Assign l r)       = genAssignInst l r
+
+  genInst (MemWrite loc  (LabelL1S l)) = return [
+       triple "movq" ("L1_" ++ l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
+      ,triple "movq"  (genS $ RegL1S r15) (genLoc loc)
+    ]
   genInst (MemWrite loc  s)  = return [triple "movq"  (genS s) (genLoc loc)]
+
   genInst (MathInst r op s)  = return [triple (x86OpName op) (genS s) (genReg r)]
   genInst (Goto s)           = return [jump (LabelL1S s)]
   genInst (TailCall s)       = return [jump s]
@@ -66,7 +72,7 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S l)) = return [triple "lea" ("L1_" ++ l ++ "(%rip)") (genReg r)]
+  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" ("L1_" ++ l ++ "@GOTPCREL(%rip)") (genReg r)]
   genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
   genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
   {-

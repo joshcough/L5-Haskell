@@ -40,7 +40,7 @@ showLiveness is =
       go f = mkString " " $ fmap (showAsList . fmap show) (fmap (S.toList . f) is) 
   in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
-calleeSave      = S.fromList [rbx, rbp, r12, r13, r14, r15]
+calleeSave      = S.fromList [rbx, rbp, r12, r13, r14]
 callerSave      = S.fromList [rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11]
 arguments       = S.fromList [rdi, rsi, rdx, rcx, r8, r9]
 returnRegisters = S.fromList [rax]

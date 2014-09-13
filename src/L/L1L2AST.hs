@@ -150,7 +150,8 @@ instance (Show s) => Show (Comp s) where
 
 registers :: [Register]
 registers      = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
-allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14, r15]
+-- saving r15 for storing labels into memory
+allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14]
 registerNames :: [String]
 registerNames  = fmap show registers
 registerNamesMap :: Map String Register

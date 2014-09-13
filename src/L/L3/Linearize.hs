@@ -167,17 +167,25 @@ compileD (ASet (VarV v) loc newVal) dest = do
     index += (XL2S $ VarL2X v),
     MemWrite (MemLoc index 0) (encodeV newVal),
     dest  <~ SRHS (num 1)]
-compileD (NewTuple vs) dest = return $ 
-  concat [[arr], sets, [dest <~ regRHS rax]] where
-    arr  = rax <~ Allocate (encodeV . NumV $ fromIntegral $ length vs) (num 1)
-    sets = fmap f (zip vs [0..]) 
-    f (v, i) = MemWrite (MemLoc rax ((i+1)*8)) (encodeV v)
+compileD (NewTuple vs) dest = newTupleFromVs vs dest
 compileD (MakeClosure l v) dest = do
-  temp <- newTempV
-  compileD (NewTuple [temp, v]) dest
+  temp <- newTemp
+  let assignment = temp <~ SRHS (LabelL2S l)
+  return $ assignment : newTuple [XL2S temp, encodeV v] dest
+
 compileD (ClosureProc v)   dest = compileD (ARef v (NumV 0)) dest
 compileD (ClosureVars v)   dest = compileD (ARef v (NumV 1)) dest
 compileD (VD v)            dest = return $ [dest <~ encodeVRHS v]
+
+newTupleFromVs :: [V] -> L2X -> State Int [L2Instruction]
+newTupleFromVs vs dest = return $ newTuple (fmap encodeV vs) dest
+
+newTuple :: [L2S] -> L2X -> [L2Instruction]
+newTuple as dest =
+  concat [[arr], sets, [dest <~ regRHS rax]] where
+    arr  = rax <~ Allocate (encodeV . NumV $ fromIntegral $ length as) (num 1)
+    sets = fmap f (zip as [0..])
+    f (a, i) = MemWrite (MemLoc rax ((i+1)*8)) a
 
 compileComp l r dest op = return $
   [dest <~ encodeVRHS l,
