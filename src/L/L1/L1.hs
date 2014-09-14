@@ -10,5 +10,5 @@ import L.L1.L1X86
 l1Language :: Language L1 String
 l1Language  = Language parseL1 compileL1 interpL1 "L1" Nothing
 
-compileL1 :: ProgramName -> L1 -> Either String String
-compileL1 name = genX86Code name . adjustMain
+compileL1 :: CompilationOptions -> ProgramName -> L1 -> Either String String
+compileL1 opts name = genX86Code name (os opts) . adjustMain

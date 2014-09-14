@@ -14,11 +14,12 @@ import System.Environment
 import System.IO
 
 -- X86 Generation code
-type X86Inst = String
+type X86Inst     = String
 type ProgramName = String
+type OS          = String
 
-genX86Code :: ProgramName -> L1 -> Either String String
-genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
+genX86Code :: ProgramName -> OS -> L1 -> Either String String
+genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
   genCodeS (Program main funcs) = do
     x86Funcs <- compiledFunctions
@@ -48,7 +49,7 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (Assign l r)       = genAssignInst l r
 
   genInst (MemWrite loc  (LabelL1S l)) = return [
-       triple "movq" ("_L1_" ++ l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
+       triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
       ,triple "movq"  (genS $ RegL1S r15) (genLoc loc)
     ]
   genInst (MemWrite loc  s)  = return [triple "movq"  (genS s) (genLoc loc)]
@@ -72,7 +73,7 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" ("_L1_" ++ l ++ "@GOTPCREL(%rip)") (genReg r)]
+  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genReg r)]
   genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
   genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
   {-
@@ -115,22 +116,22 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "movzbq" (low8 cx) (genReg cx) ]
     where low8 cx = "%" ++ [show cx !! 1] ++ "l"
   
-  declare label = "_L1_" ++ label ++ ":"
+  declare label = showLabel label ++ ":"
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
-  genReg r = "%" ++ (show r)
+  genReg r = "%" ++ show r
   genS :: L1S -> String
   genS (NumberL1S i) = "$" ++ show i
-  genS (LabelL1S  l) = "$_L1_" ++ l
+  genS (LabelL1S  l) = "$" ++ showLabel l
   genS (RegL1S    r) = genReg r
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
-  jump r@(RegL1S _)  = "jmp *" ++ (genS r)
+  jump r@(RegL1S _)  = "jmp *" ++ genS r
   jump (LabelL1S l)  = jumpToLabel l
   jump (NumberL1S n) = error $ "bad jump to literal number: " ++ show n
 
   jumpToLabel :: Label -> String
-  jumpToLabel l = "jmp _L1_" ++ l
+  jumpToLabel l = "jmp " ++ showLabel l
 
   call :: L1S -> String
   call (RegL1S reg) = "call *" ++ genReg reg
@@ -138,12 +139,14 @@ genX86Code name l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   call x = error $ "bad call: " ++ show x
 
   callLabel :: Label -> String
-  callLabel name = "call _L1_" ++ name
+  callLabel l = "call " ++ showLabel l
 
   setInstruction = foldOp "setl" "setle" "sete"
   
-  jumpIfLess            l = "jl  _L1_"  ++ l
-  jumpIfLessThanOrEqual l = "jle _L1_" ++ l
-  jumpIfGreater         l = "jg  _L1_"  ++ l
-  jumpIfGreaterOrEqual  l = "jge _L1_" ++ l
-  jumpIfEqual           l = "je  _L1_"  ++ l
+  jumpIfLess            l = "jl "  ++ showLabel l
+  jumpIfLessThanOrEqual l = "jle " ++ showLabel l
+  jumpIfGreater         l = "jg "  ++ showLabel l
+  jumpIfGreaterOrEqual  l = "jge " ++ showLabel l
+  jumpIfEqual           l = "je "  ++ showLabel l
+
+  showLabel l = (if os == "darwin" then "_" else "") ++ "L1_" ++ l 

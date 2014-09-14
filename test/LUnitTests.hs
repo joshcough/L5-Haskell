@@ -11,6 +11,7 @@ import Data.List
 import Data.Traversable
 import Debug.Trace
 import System.IO.Unsafe
+import System.Info as Info
 
 import L.Compiler
 import L.IOHelpers
@@ -34,6 +35,8 @@ allTests = [
  ,l164Tests
  ,l2Tests
  ,l3Tests ]
+
+opts = CompilationOptions { L.Compiler.os = Info.os }
 
 testDir = "./test/test-fest/"
 
@@ -62,7 +65,7 @@ l164Tests = TestDef {
  ,inputFileExt  = "L1"
  ,outputFileExt = "res"
  ,compute = \(r,_) (_,e) -> do 
-   res <- runVal <$> compileAndRunNativeFile l1Language "tmp" r
+   res <- runVal <$> compileAndRunNativeFile l1Language opts "tmp" r
    strip res @?= strip e
 }
 -- Liveness tests are somewhat useless after moving to x86-64
@@ -98,7 +101,7 @@ l2Tests = TestDef {
  ,inputFileExt  = "L2"
  ,outputFileExt = "L2" -- this isn't actually used
  ,compute = \(l2f,l2) _ -> do
-    nativeRes <- runVal <$> compileAndRunNativeFile l2Language "tmp" l2f
+    nativeRes <- runVal <$> compileAndRunNativeFile l2Language opts "tmp" l2f
     interpRes <- runInterp l2Language l2f
     strip nativeRes @?= strip interpRes
 }
@@ -108,7 +111,7 @@ l3Tests = TestDef {
  ,inputFileExt  = "L3"
  ,outputFileExt = "L3" -- this isn't actually used
  ,compute = \(l3f,l3) _ -> do
-    nativeRes <- runVal <$> compileAndRunNativeFile l3Language "tmp" l3f
+    nativeRes <- runVal <$> compileAndRunNativeFile l3Language opts "tmp" l3f
     interpRes <- runInterp l3Language l3f
     strip nativeRes @?= strip interpRes
 }

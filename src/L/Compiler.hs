@@ -4,6 +4,7 @@
 module L.Compiler (
    Val 
   ,ProgramName
+  ,CompilationOptions(..)
   ,Language(..)
   ,compile
   ,compileString
@@ -29,10 +30,14 @@ import L.Read
 import L.NativeRunner
 import Prelude hiding ((.),id)
 
+data CompilationOptions = CompilationOptions {
+  os :: String
+}
+
 type ProgramName      = String
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
-type Compiler     i o = ProgramName -> i -> Val o
+type Compiler     i o = CompilationOptions -> ProgramName -> i -> Val o
 type Interpreter    i = i -> Computer
 type Extension        = String
 
@@ -75,25 +80,50 @@ parseFile l file = parseString l <$> readFile file
 -- compilation
 compile = compiler
 
-compileString :: Language i o -> ProgramName -> String -> Val o
-compileString l name s = parseString l s >>= compile l name
+compileString :: 
+  Language i o       -> 
+  ProgramName        -> 
+  CompilationOptions -> 
+  String             -> 
+  Val o
+compileString l name opts s = parseString l s >>= compile l opts name
 
-compileFile :: Language i o -> FilePath -> IO (Val o)
-compileFile l file = readFile file >>= return . compileString l file
+compileFile :: 
+  Language i o       -> 
+  CompilationOptions -> 
+  FilePath           -> 
+  IO (Val o)
+compileFile l opts file = readFile file >>= return . compileString l file opts
 
-compileAndWriteResult :: Show o => Language i o -> ProgramName -> FilePath -> i -> IO (Val o)
-compileAndWriteResult l name outputDir input = f $ compile l name input where
+compileAndWriteResult :: Show o => 
+  Language i o       -> 
+  CompilationOptions -> 
+  ProgramName        -> 
+  FilePath           -> 
+  i                  -> 
+  IO (Val o)
+compileAndWriteResult l opts name outputDir input = f $ compile l opts name input where
   f = munge $ \i -> writeOutput l name outputDir i >> return (Right i)
 
-writeOutput :: Show o => Language i o -> ProgramName -> FilePath -> o -> IO ()
+writeOutput :: Show o =>
+  Language i o -> 
+  ProgramName  -> 
+  FilePath     -> 
+  o            -> 
+  IO ()
 writeOutput l name outputDir code = 
   let codeFile = changeDir (name ++ "." ++ outputExtension l) outputDir
   in writeFile codeFile $ showOutput l code
 
-compileFileAndWriteResult :: Show o => Language i o -> FilePath -> FilePath -> IO (Val o)
-compileFileAndWriteResult l outputDir inputFile = do
+compileFileAndWriteResult :: Show o => 
+  Language i o       -> 
+  CompilationOptions -> 
+  FilePath           -> 
+  FilePath           -> 
+  IO (Val o)
+compileFileAndWriteResult l opts outputDir inputFile = do
   i <- parseFile l inputFile
-  munge (compileAndWriteResult l (getFileName inputFile) outputDir) i
+  munge (compileAndWriteResult l opts (getFileName inputFile) outputDir) i
 
 -- interpretation
 interpret = interpreter
@@ -105,18 +135,35 @@ interpretFile :: Language i o -> FilePath -> IO (Val Computer)
 interpretFile l file = readFile file >>= return . interpretString l
 
 -- native execution
-compileAndRunNative :: Language i o -> ProgramName -> FilePath -> i -> IO (Val String)
-compileAndRunNative l@(Language _ _ _ _ subLang) name outputDir input = do
-  code <- compileAndWriteResult l name outputDir input
+compileAndRunNative :: 
+  Language i o       -> 
+  CompilationOptions -> 
+  ProgramName        -> 
+  FilePath           -> 
+  i                  -> 
+  IO (Val String)
+compileAndRunNative l@(Language _ _ _ _ subLang) opts name outputDir input = do
+  code <- compileAndWriteResult l opts name outputDir input
   munge (recur subLang) code where
   recur Nothing code    = Right <$> runSCodeNative name outputDir (showOutput l code)
-  recur (Just sub) code = compileAndRunNative  sub name outputDir code
+  recur (Just sub) code = compileAndRunNative sub opts name outputDir code
 
-compileAndRunNativeString :: Language i o -> ProgramName -> FilePath -> String -> IO (Val String)
-compileAndRunNativeString lang name outputDir input =
-  munge (compileAndRunNative lang name outputDir) (parseString lang input)
+compileAndRunNativeString ::
+  Language i o       -> 
+  CompilationOptions ->
+  ProgramName        -> 
+  FilePath           -> 
+  String             -> 
+  IO (Val String)
+compileAndRunNativeString lang opts name outputDir input =
+  munge (compileAndRunNative lang opts name outputDir) (parseString lang input)
 
-compileAndRunNativeFile :: Language i o -> FilePath -> FilePath -> IO (Val String)
-compileAndRunNativeFile lang outputDir inputFile = do
+compileAndRunNativeFile ::
+  Language i o       -> 
+  CompilationOptions ->
+  FilePath           -> 
+  FilePath           -> 
+  IO (Val String)
+compileAndRunNativeFile lang opts outputDir inputFile = do
   code <- readFile inputFile
-  compileAndRunNativeString lang (getFileName inputFile) outputDir code
+  compileAndRunNativeString lang opts (getFileName inputFile) outputDir code

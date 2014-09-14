@@ -20,7 +20,7 @@ import L.L2.Allocation
 l2Language :: Language L2 L1
 l2Language  = Language
   parseL2
-  (\_ -> Right . compileL2ToL1)
+  (\_ _ -> Right . compileL2ToL1)
   interpL2
   "L2"
   (Just l1Language)
