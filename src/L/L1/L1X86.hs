@@ -8,6 +8,7 @@ import Data.Traversable
 import L.L1L2AST
 import L.L1L2Parser
 import L.IOHelpers
+import L.OS
 import L.Read
 import L.Utils
 import System.Environment 
@@ -16,7 +17,6 @@ import System.IO
 -- X86 Generation code
 type X86Inst     = String
 type ProgramName = String
-type OS          = String
 
 genX86Code :: ProgramName -> OS -> L1 -> Either String String
 genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
@@ -149,4 +149,4 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   jumpIfGreaterOrEqual  l = "jge " ++ showLabel l
   jumpIfEqual           l = "je "  ++ showLabel l
 
-  showLabel l = (if os == "darwin" then "_" else "") ++ "L1_" ++ l 
+  showLabel l = (if os == Darwin then "_" else "") ++ "L1_" ++ l 

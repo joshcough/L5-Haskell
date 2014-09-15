@@ -13,4 +13,4 @@ main = withFileArg $ \file -> g (getExtension file) (getDir file) file where
   g "L1" = go l1Language
   g "L2" = go l2Language
   g "L3" = go l3Language
-  opts = CompilationOptions { L.Compiler.os = Info.os }
+  opts = CompilationOptions { L.Compiler.os = error "todo" }

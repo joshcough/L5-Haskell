@@ -6,6 +6,7 @@ module L.Compiler (
   ,ProgramName
   ,CompilationOptions(..)
   ,Language(..)
+  ,OS(..)
   ,compile
   ,compileString
   ,compileFile
@@ -14,9 +15,11 @@ module L.Compiler (
   ,compileAndRunNativeFile
   ,compileAndWriteResult
   ,compileFileAndWriteResult
+  ,compOpts
   ,interpret
   ,interpretString
   ,interpretFile
+  ,osFromString
   ,runVal
 ) where
 
@@ -26,13 +29,16 @@ import Data.Maybe
 import Debug.Trace
 import L.L1.L1Interp (Computer, showComputerOutput)
 import L.IOHelpers
+import L.OS
 import L.Read
 import L.NativeRunner
 import Prelude hiding ((.),id)
 
 data CompilationOptions = CompilationOptions {
-  os :: String
+  os :: OS
 }
+compOpts :: Maybe String -> CompilationOptions
+compOpts = CompilationOptions . osFromMaybeString
 
 type ProgramName      = String
 type Val a            = Either String a
