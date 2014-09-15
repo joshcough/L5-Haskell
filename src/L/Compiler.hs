@@ -36,7 +36,7 @@ import Prelude hiding ((.),id)
 
 data CompilationOptions = CompilationOptions {
   os :: OS
-}
+} deriving (Show, Eq)
 compOpts :: Maybe String -> CompilationOptions
 compOpts = CompilationOptions . osFromMaybeString
 
