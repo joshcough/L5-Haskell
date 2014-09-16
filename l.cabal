@@ -105,7 +105,12 @@ executable linterp
 executable lexec
   hs-source-dirs: executables
   main-is: LExecNative.hs
-  build-depends: base < 5, directory >= 1.2.0.1, l, mtl >= 2
+  build-depends:
+    base < 5,
+    directory >= 1.2.0.1,
+    l,
+    mtl >= 2,
+    optparse-applicative >= 0.10.0
 
 -- executable for .S files
 executable x64
