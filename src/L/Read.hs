@@ -4,13 +4,34 @@ module L.Read
    ,SExpr(..)
    ,flatten
    ,liftParser
+   ,runParser
+   ,runParserOrDie
+   ,intParser
+   ,sexprParser
    ,showAsList
    ,sreadWithRest
    ,sread
+   ,trim
   ) where
 
+import Control.Applicative
+import Control.Monad
+import Data.ByteString.UTF8 as UTF8 hiding (lines)
+import Data.Char (isDigit, isSpace)
+import qualified Data.HashSet as HashSet
+import Data.HashSet (HashSet)
 import Data.List
-import Data.Char (isSpace)
+import Data.Semigroup
+import Text.Parser.Combinators
+import Text.Parser.LookAhead
+import Text.Parser.Token
+import qualified Text.Parser.Token.Highlight as Highlight
+import Text.Read (readMaybe)
+import Text.Trifecta hiding (semi)
+import qualified Text.Trifecta as Trifecta (semi)
+import Text.Trifecta.Parser
+import Text.Trifecta.Result
+
 import L.Utils
 
 type ParseResult a = Either String a
@@ -29,56 +50,63 @@ showAsList :: [String] -> String
 showAsList as = "(" ++ (mkString " " as) ++ ")"
 
 sread :: String -> SExpr
-sread s = let (sexpr, _) = readWithRest (preprocess s) in sexpr
+sread = runParserOrDie sexprParser . preprocess
 
 sreadWithRest :: String -> (SExpr, String)
-sreadWithRest s = readWithRest (preprocess s)
+sreadWithRest = runParserOrDie ((,) <$> sexprParser <*> many anyChar) . preprocess
 
 preprocess :: String -> String
-preprocess s = concat $ map ((++ " ") . trim . removeComments) (lines s)
-removeComments :: String -> String
-removeComments s = takeWhile (not . (==';')) s
-
-readL :: Char -> String -> SExpr -> (SExpr,String)
-readL ')' (')' : tail) (List acc) = (List acc, tail)
-readL ']' (']' : tail) (List acc) = (List acc, tail)
-readL end (' ' : tail) acc = readL end tail acc
-readL end (x : xs) (List acc) = let (next, rest) = readWithRest(x : xs) in readL end rest (List (acc ++ [next]))
-readL _ _ _ = error "unterminated list"
-
-ends = [' ', ')', ']']
-readChars :: String -> String -> (SExpr, String)
-readChars (c : tail) acc
-  | elem c ends = (symOrNum acc, c : tail)
-  | otherwise   = readChars tail (acc ++ [c])
-readChars [] acc = (symOrNum acc, [])
-
-symOrNum :: String -> SExpr
-symOrNum s = if isInt s then AtomNum (read s :: Int) else AtomSym s
-
-readWithRest :: String -> (SExpr,String)
-readWithRest (' ' : tail) = readWithRest tail
-readWithRest ('(' : tail) = readL ')' tail (List [])
-readWithRest ('[' : tail) = readL ']' tail (List [])
---readWithRest ('"' : tail) = readStringLit tail ['"']
-readWithRest (c : tail) = readChars (c : tail) []
-
---readStringLit :: String -> String -> (SExpr, String)
---readStringLit ('"' : tail) acc = (StringLit (acc ++ ['"']), tail)
---readStringLit (c : tail) acc = readStringLit tail (acc ++ [c])
-
-isInt :: String -> Bool
-isInt s = case reads s :: [(Int, String)] of
-  [(_, "")] -> True
-  _         -> False
+preprocess = trim . concat . map f . lines where
+  f = (++ " ") . trim . removeComments
+  removeComments = takeWhile $ not . (==';')
 
 flatten :: SExpr -> [String]
 flatten (AtomSym s) = [s]
 flatten (AtomNum n) = [show n]
-flatten (List ss) = ss >>= flatten
+flatten (List ss)   = ss >>= flatten
 
 liftParser :: (SExpr -> ParseResult p) -> String -> ParseResult p
 liftParser f = f . sread
+
+sexprParser :: Parser SExpr
+sexprParser = choice [intParser, symParser, listParser] 
+
+variable :: TokenParsing m => IdentifierStyle m
+variable = IdentifierStyle
+  { _styleName = "token"
+  , _styleStart = varInit
+  , _styleLetter = varSubsequent
+  , _styleReserved = HashSet.empty
+  , _styleHighlight = Highlight.Identifier
+  , _styleReservedHighlight = Highlight.ReservedIdentifier
+} where
+  varInit = digit <|> letter <|> oneOf "!$%&*/:<=>?~_^-+"
+  varSubsequent = varInit <|> oneOf ".+="
+
+tokenParser :: (String -> Maybe r) -> Parser r
+tokenParser f = try $ do 
+  x <- ident variable
+  maybe mzero return $ f x
+
+intParser :: Parser SExpr
+intParser = tokenParser (fmap AtomNum . readMaybe) <?> "int"
+
+symParser :: Parser SExpr
+symParser = tokenParser symbol <?> "symbol" where
+  symbol (x:xs) | not (isDigit x) = Just $ AtomSym (x:xs)
+  symbol _ = Nothing
+
+listParser :: Parser SExpr
+listParser = List <$> (parens recur <|> brackets recur) where
+  recur = many sexprParser
+
+runParser :: Parser a -> String -> ParseResult a
+runParser p s = case parseByteString p mempty (UTF8.fromString s) of
+  Failure xs -> error (show xs) -- Left $ show xs
+  Success a -> Right a
+
+runParserOrDie :: Parser a -> String -> a
+runParserOrDie p s = either error id (runParser p s)
 
 --------------------
 ------ tests -------
