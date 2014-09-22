@@ -5,12 +5,10 @@ import Data.Int
 import Data.List (intersperse)
 import L.Read (showAsList)
 import L.L1L2AST (Variable, Label)
+import L.L3.L3AST (Biop, Pred, V)
 
 data L4   = L4 E [Func]
 data Func = Func { name :: Label, args :: [Variable], body :: E }
-data V    = VarV Variable | NumV Int64 | LabelV Label
-data Biop = Add E E | Sub E E | Mult E E | LessThan E E | LTorEq E E | Eq E E
-data Pred = IsNum E | IsArray E
 data E    =
     Let Variable E E 
   | IfStatement E E E
@@ -25,26 +23,9 @@ data E    =
   | MakeClosure Label E
   | ClosureProc E
   | ClosureVars E
-  | BiopE Biop
-  | PredE Pred
+  | BiopE Biop E E
+  | PredE Pred E
   | VE V
-
-instance Show V where
-  show (VarV v)   = v
-  show (NumV n)   = show n
-  show (LabelV l) = l
-
-instance Show Biop where
-  show (Add      l r) = showAsList ["+",  show l, show r]
-  show (Sub      l r) = showAsList ["-",  show l, show r]
-  show (Mult     l r) = showAsList ["*",  show l, show r]
-  show (LessThan l r) = showAsList ["<",  show l, show r]
-  show (LTorEq   l r) = showAsList ["<=", show l, show r]
-  show (Eq       l r) = showAsList ["=",  show l, show r]
-
-instance Show Pred where
-  show (IsNum   e) = showAsList ["number?", show e]
-  show (IsArray e) = showAsList ["a?",      show e]
 
 instance Show E where
   show (Let v e b)           = showAsList ["let", concat ["[", v, " ", show e, "]"], show b]
@@ -59,9 +40,10 @@ instance Show E where
   show (MakeClosure l e)     = showAsList ["make-closure", l, show e]
   show (ClosureProc e)       = showAsList ["closure-proc", show e]
   show (ClosureVars e)       = showAsList ["closure-ears", show e]
-  show (BiopE b)             = show b
-  show (PredE p)             = show p
+  show (BiopE b l r)         = showAsList [show b,  show l, show r]
+  show (PredE p e)           = showAsList [show p,  show e]
   show (VE v)                = show v
 
 instance Show Func where show (Func n a l) = showAsList [n, showAsList a, show l]
 instance Show L4 where show (L4 e fs) = showAsList (show e : fmap show fs)
+

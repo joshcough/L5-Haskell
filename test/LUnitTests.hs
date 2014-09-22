@@ -22,6 +22,7 @@ import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
 import L.L3.L3
+import L.OS as OS
 import L.Read
 import L.Utils
 
@@ -36,7 +37,7 @@ allTests = [
  ,l2Tests
  ,l3Tests ]
 
-opts = CompilationOptions { L.Compiler.os = Info.os }
+opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 
 testDir = "./test/test-fest/"
 

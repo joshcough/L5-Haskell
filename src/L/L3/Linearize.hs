@@ -81,15 +81,15 @@ compileD (L3.Print v) dest =
 -- TODO...tail-call if last d in the tree??
 compileD (FunCall v vs) dest = return $ compileFunCall v vs (Just dest)
 -- biop ::= + | - | * | < | <= | =
-compileD (BiopD (Add l r)) dest = return $ 
+compileD (BiopD Add l r) dest = return $ 
   [dest <~ encodeVRHS l,
    dest += encodeV r,
    dest -= num 1]
-compileD (BiopD (Sub l r)) dest = return $ 
+compileD (BiopD Sub l r) dest = return $ 
   [dest <~ encodeVRHS l,
    dest -= encodeV r,
    dest -= num 1]
-compileD (BiopD (Mult l r)) dest = do { tmp <- newTemp; return
+compileD (BiopD Mult l r) dest = do { tmp <- newTemp; return
   [tmp  <~ encodeVRHS l,
    tmp >> num 1,
    dest <~ encodeVRHS r,
@@ -97,15 +97,15 @@ compileD (BiopD (Mult l r)) dest = do { tmp <- newTemp; return
    dest *= XL2S tmp,
    dest << num 1,
    dest += num 1]}
-compileD (BiopD (LessThan l r)) dest = compileComp l r dest LT 
-compileD (BiopD (LTorEq l r))   dest = compileComp l r dest LTEQ
-compileD (BiopD (Eq l r))       dest = compileComp l r dest EQ
-compileD (PredD (IsNum   v)) dest = return $
+compileD (BiopD LessThan l r) dest = compileComp l r dest LT 
+compileD (BiopD LTorEq l r)   dest = compileComp l r dest LTEQ
+compileD (BiopD Eq l r)       dest = compileComp l r dest EQ
+compileD (PredD IsNum   v) dest = return $
   [dest <~ encodeVRHS v,
    dest &  num 1,
    dest << num 1,
    dest += num 1]
-compileD (PredD (IsArray v)) dest = return $
+compileD (PredD IsArray v) dest = return $
   [dest <~ encodeVRHS v,
    dest &  num 1,
    dest << num (-2),

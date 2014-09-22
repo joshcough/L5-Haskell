@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Traversable hiding (sequence)
 import L.L1L2AST (Variable, Label)
 import L.Read
+import L.L3.L3AST (Biop(..), Pred(..), V(..))
 import L.L4.L4AST
 
 l4ParseError :: String -> SExpr -> Either String a
@@ -61,8 +62,8 @@ parseE (List [AtomSym "a?",      e])         = parsePred IsArray e
 parseE (List (e : es)) = liftM2 FunCall (parseE e) (traverse parseE es)
 parseE v = VE <$> parseV v
 
-parseBiop :: (E -> E -> Biop) -> SExpr -> SExpr -> ParseResult E
-parseBiop c l r = BiopE <$> liftM2 c (parseE l) (parseE r)
+parseBiop :: Biop -> SExpr -> SExpr -> ParseResult E
+parseBiop b l r = liftM2 (BiopE b) (parseE l) (parseE r)
 
-parsePred :: (E -> Pred) -> SExpr -> ParseResult E
-parsePred c e = PredE <$> liftM c (parseE e)
+parsePred :: Pred -> SExpr -> ParseResult E
+parsePred p e = liftM (PredE p) (parseE e)

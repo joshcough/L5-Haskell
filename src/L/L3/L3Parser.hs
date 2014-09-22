@@ -72,8 +72,8 @@ parseD (List [AtomSym "closure-vars", v])    = liftM  ClosureVars (parseV v)
 parseD (List (v : vs)) = liftM2 FunCall (parseV v) (traverse parseV vs)
 parseD v = VD <$> parseV v
 
-parseBiop :: (V -> V -> Biop) -> SExpr -> SExpr -> ParseResult D
-parseBiop c l r = BiopD <$> liftM2 c (parseV l) (parseV r)
+parseBiop :: Biop -> SExpr -> SExpr -> ParseResult D
+parseBiop b l r = liftM2 (BiopD b) (parseV l) (parseV r)
 
-parsePred :: (V -> Pred) -> SExpr -> ParseResult D
-parsePred c v = PredD <$> liftM c (parseV v)
+parsePred :: Pred -> SExpr -> ParseResult D
+parsePred p v = liftM (PredD p) (parseV v)
