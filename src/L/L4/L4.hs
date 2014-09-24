@@ -3,6 +3,7 @@ module L.L4.L4 (l4Language) where
 import L.Compiler
 import L.L3.L3AST
 import L.L3.L3 
+import L.L4.ANormalize
 import L.L4.L4AST
 import L.L4.L4Parser
 
@@ -15,4 +16,4 @@ l4Language  = Language
   (Just l3Language)
 
 compileL4ToL3 :: L4 -> L3
-compileL4ToL3 = undefined --aNormalize
+compileL4ToL3 = aNormalize

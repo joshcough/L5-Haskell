@@ -1,6 +1,5 @@
 module L.L4.ANormalize (aNormalize) where
 
---https://github.com/joshcough/Compilers/blob/spill-all/scala/src/main/scala/L4Compiler/L4Compiler.scala#L1
 import Control.Applicative
 import Control.Monad.State
 import Data.List
@@ -9,7 +8,6 @@ import L.L1L2AST (Variable, Label)
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
 
-writeMe = error "todo"
 newVar :: State Int Variable
 newVar = incState "__tempL4V"
 newLabel :: State Int Label
@@ -73,72 +71,50 @@ l4Find e c = go e c where
   wrangle3 f (a1:a2:a3:[]) = f a1 a2 a3
   wrangle3 _ as = error $ "expected 3 args, but got: " ++ show as
 
+-- TODO: doing some bad appending onto back of lists here...
+-- should probably reverse the vs.
 fill :: L3.D -> Context -> State Int (L3.E, [L3.Func]) 
 fill d = fill' where
   fill' :: Context -> State Int (L3.E, [L3.Func])
+  fill' NoContext = return (DE d, [])
   fill' (LetContext v b k) = do
     (letBody, extraFuncs) <- l4Find b k
     return (L3.Let v d letBody, extraFuncs)
-  fill' fcc@(FunCallContext (e:es) makeD vs k) = writeMe
-  
-maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.Func])) -> State Int (L3.E, [L3.Func])
-maybeLet (VD v) f = f v
-maybeLet d      f = do
-  x <- newVar
-  (letBody, extraFuns) <- f $ VarV x
-  return (L3.Let x d letBody, extraFuns) 
-    
-{-
- // fill: L3-d context -> L3-e
-case fcc@FunCallContext(remainingEs, kw, vs, k) => remainingEs match {
-  case (e::es) => maybeLet(d, v => find(e, fcc.copy(remainingEs=es, vs=vs:+v)))
-  case Nil => kw match {
-    case Some(kw) => maybeLet(d, v => fill(kw.toD(vs:+v), k))
-    case None => maybeLet(d, v => {
-      val vvs = vs :+ v
-      fill(L3.FunCall(vvs.head, vvs.tail), k)
-})
-}
-}
-/**
-* (+ (if v e_1 e_2) e_big) =>
-* (let ((ctxt
-* (lambda (ret-val) (+ ret-val e_big))))
-* (if v (ctxt e_1) (ctxt e_2)))
-**/
-case IfContext(t, e, k) => {
-val dup = java.lang.Boolean.getBoolean("L4.useIfDuplication")
-if(dup) maybeLet(d, v => (L3.IfStatement(v, find(t, k)._1, find(e, k)._1), Nil))
-else maybeLet(d, v => {
-val fLabel = newLabel()
-val fArg = newVar()
-val (fBody, extraFuncsFromFBody) = fill(fArg, k)
-val freeVariables = freeVars(fBody).filterNot(_==convertVar(fArg))
-val freesTup = L3.Variable("frees")
-val fbodyWithFrees = freeVariables.zipWithIndex.foldRight(fBody){
-case ((v,i), b) => L3.Let(v, L3.ARef(freesTup, L3.Num(i)), b)
-}
-val func = L3.Func(fLabel, List(fArg, freesTup), fbodyWithFrees)
-val tup = NewTuple(freeVariables.map(l3Var2L4Var))
-val (tt, tef) = find(FunCall(fLabel, List(t, tup)), NoContext)
-val (ee, eef) = find(FunCall(fLabel, List(e, tup)), NoContext)
-(L3.IfStatement(v, tt, ee), func :: (extraFuncsFromFBody ::: tef ::: eef))
-})
-}
-}
-def maybeLet(d:L3.D, f: L3.V => (L3.E, List[L3.Func])): (L3.E, List[L3.Func]) =
-  if(d.isInstanceOf[L3.V]) 
-    f(d.asInstanceOf[L3.V]) 
-  else {
-    val x = newVar()
-    val (letBody, extraFuns) = f(x)
-    (L3.Let(x, d, letBody), extraFuns)
-  }
--}
+  fill' (FunCallContext (e:es) makeD vs k) = 
+    maybeLet d $ \v -> l4Find e $ FunCallContext es makeD (vs++[v]) k 
+  fill' (FunCallContext [] (Just makeD) vs k) = 
+    maybeLet d $ \v -> fill (makeD $ vs++[v]) k
+  fill' (FunCallContext [] Nothing vs k) = maybeLet d $ \v -> 
+    let vsv = vs ++ [v]
+    in fill (L3.FunCall (head vsv) (tail vsv)) k
+  {-
+   - (+ (if v e_1 e_2) e_big) =>
+   -   (let ((ctxt (lambda (ret-val) (+ ret-val e_big))))
+   -     (if v (ctxt e_1) (ctxt e_2)))
+   -}
+  fill' (IfContext t e k) = maybeLet d $ \v -> do
+    fLabel <- newLabel
+    fArg   <- newVar
+    (fBody, extraFuncsFromFBody) <- fill (VD $ VarV fArg) k
+    let frees = filter (/=fArg) (freeVars fBody)
+        freesTup = "frees"
+        fBodyWithFrees = foldr f fBody (zip frees [0..]) where
+          f (v,i) b = L3.Let v (L3.ARef (VarV freesTup) (NumV i)) b
+        func = L3.Func fLabel [fArg, freesTup] fBodyWithFrees
+        tup  = L4.NewTuple (VE . VarV <$> frees)
+    (tt, tef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [t, tup]) NoContext
+    (ee, eef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [e, tup]) NoContext
+    return (L3.IfStatement v tt ee, concat [[func], extraFuncsFromFBody, tef, eef])
 
+  maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.Func])) -> State Int (L3.E, [L3.Func])
+  maybeLet (VD v) f = f v
+  maybeLet d      f = do
+    x                    <- newVar
+    (letBody, extraFuns) <- f $ VarV x
+    return (L3.Let x d letBody, extraFuns) 
 
-freeVars :: L3.E -> [Variable] -> [Variable]
-freeVars e boundVars = nub $ f e boundVars where
+freeVars :: L3.E -> [Variable]
+freeVars e = nub $ f e [] where
   ve = DE . VD
   f :: L3.E -> [Variable] -> [Variable]
   f (L3.Let x r body)            bv = f (DE r) bv ++ f body (x : bv)

@@ -22,6 +22,7 @@ import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
 import L.L3.L3
+import L.L4.L4
 import L.OS as OS
 import L.Read
 import L.Utils
@@ -35,7 +36,8 @@ allTests = [
  ,l1InterpreterTests
  ,l164Tests
  ,l2Tests
- ,l3Tests ]
+ ,l3Tests
+ ,l4Tests ]
 
 opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 
@@ -114,6 +116,16 @@ l3Tests = TestDef {
  ,compute = \(l3f,l3) _ -> do
     nativeRes <- runVal <$> compileAndRunNativeFile l3Language opts "tmp" l3f
     interpRes <- runInterp l3Language l3f
+    strip nativeRes @?= strip interpRes
+}
+l4Tests = TestDef {
+  name = "L4"
+ ,dir  = testDir ++ "L4-tests-from-2010"
+ ,inputFileExt  = "L4"
+ ,outputFileExt = "L4" -- this isn't actually used
+ ,compute = \(l4f,l4) _ -> do
+    nativeRes <- runVal <$> compileAndRunNativeFile l4Language opts "tmp" l4f
+    interpRes <- runInterp l4Language l4f
     strip nativeRes @?= strip interpRes
 }
 
