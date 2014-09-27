@@ -58,7 +58,7 @@ instance Show D where
   show (VD v)            = show v
 
 instance Show E where
-  show (Let v d e)           = showAsList ["let", concat ["[", v, " ", show d, "]"], show e]
+  show (Let v d e)           = showAsList ["let", concat ["([", v, " ", show d, "])"], show e]
   show (IfStatement v te fe) = showAsList ["if", show v, show te, show fe]
   show (DE d)                = show d
 
