@@ -108,8 +108,11 @@ compileAndWriteResult :: Show o =>
   FilePath           -> 
   i                  -> 
   IO (Val o)
-compileAndWriteResult l opts name outputDir input = f $ compile l opts name input where
-  f = munge $ \i -> writeOutput l name outputDir i >> return (Right i)
+compileAndWriteResult l opts inputFile outputDir input = 
+  f $ compile l opts inputFile input where
+    f = munge $ \o -> do
+      _ <- writeOutput l inputFile outputDir o
+      return (Right o)
 
 writeOutput :: Show o =>
   Language i o -> 
@@ -117,9 +120,10 @@ writeOutput :: Show o =>
   FilePath     -> 
   o            -> 
   IO ()
-writeOutput l name outputDir code = 
-  let codeFile = changeDir (name ++ "." ++ outputExtension l) outputDir
-  in writeFile codeFile $ showOutput l code
+writeOutput l inputFile outputDir code = do
+  --_ <- putStrLn $ "outputDir: '" ++ outputDir ++ "' outputFile: '" ++ outputFile ++ "'"
+  writeFile outputFile $ showOutput l code where
+    outputFile = changeDir (changeExt inputFile (outputExtension l)) outputDir
 
 compileFileAndWriteResult :: Show o => 
   Language i o       -> 
