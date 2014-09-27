@@ -120,7 +120,8 @@ l3Tests = TestDef {
 }
 l4Tests = TestDef {
   name = "L4"
- ,dir  = testDir ++ "L4-tests-from-2010"
+ --,dir  = testDir ++ "L4-tests-from-2010/kleinfindler"
+ ,dir  = testDir ++ "4-test"
  ,inputFileExt  = "L4"
  ,outputFileExt = "L4" -- this isn't actually used
  ,compute = \(l4f,l4) _ -> do
@@ -135,6 +136,6 @@ tree def = testGroup (name def) . fmap mkTest <$> testFiles where
     inputContents  <- readFile inputFile
     outputContents <- readFile outputFile
     compute def (inputFile,inputContents) (outputFile,outputContents) where
-    outputFile = changeExtension inputFile $ outputFileExt def
+    outputFile = changeExt inputFile $ outputFileExt def
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)

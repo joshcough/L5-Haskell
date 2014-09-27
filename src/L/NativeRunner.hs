@@ -14,7 +14,7 @@ runSCodeNative name outputDir sCode = do
 
 runSFileNative :: FilePath -> FilePath -> IO String
 runSFileNative sFile outputDir = 
-  let f newExt = changeDir (changeExtension sFile newExt) outputDir
+  let f newExt = changeDir (changeExt sFile newExt) outputDir
       oFile   = f "S.o"
       outFile = f "S.out"
       resFile = f "S.res"
