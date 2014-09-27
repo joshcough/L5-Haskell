@@ -1,7 +1,7 @@
 module L.IOHelpers
   (
     changeDir
-   ,changeExtension
+   ,changeExt
    ,fileArgMain
    ,getExtension
    ,getDir
@@ -126,13 +126,14 @@ getExtension = takeRightWhile notDot
 getFileName = takeRightWhile ('/' /=)
 
 getDir :: FilePath -> FilePath
-getDir file = dropRight (length $ getFileName file) file
+getDir file = if null d then "." else d where
+  d = dropRight (length $ getFileName file) file
 
 changeDir :: FilePath -> FilePath -> FilePath
 changeDir file newDir = newDir ++ "/" ++ getFileName file
 
-changeExtension :: FilePath -> String -> String
-changeExtension file newExt = (dropRightWhile notDot file) ++ newExt
+changeExt :: FilePath -> String -> String
+changeExt file newExt = (dropRightWhile notDot file) ++ newExt
 
 getRecursiveContents :: FilePath -> IO [FilePath]
 getRecursiveContents topdir = do
@@ -183,4 +184,4 @@ readMapAndWriteFileArg f newExt = readMapAndWriteFileArgAndPath (\_ -> f) newExt
 readMapAndWriteFileArgAndPath :: (FilePath -> String -> String) -> String -> IO ()
 readMapAndWriteFileArgAndPath f newExt = do
   (file, s) <- withFileArgT f
-  writeFile (changeExtension file newExt) s
+  writeFile (changeExt file newExt) s
