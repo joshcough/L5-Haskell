@@ -26,6 +26,7 @@ import qualified Data.Map as Map
 import Data.Tuple
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
+import Debug.Trace
 import L.IOHelpers
 import L.L1L2AST hiding (registers)
 import L.L1L2Parser
@@ -72,7 +73,7 @@ showComputerOutput c = mkString "" $ reverse (c^.output)
 oneMeg = 1048576
 twoMeg = oneMeg * 2
 memSize = 2048 :: Int -- twoMeg
-rspStart = ((fromIntegral memSize) * 8)
+rspStart = fromIntegral memSize * 8
 zero = 0 :: Int64
 registerStartState = Map.fromList [
  (rax, zero),
@@ -115,18 +116,26 @@ readReg r c =
   maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ c^.registers)
 
 -- write an int into memory at the given address
-writeMem :: Int64 -> Int64 -> Computer -> Computer
-writeMem addr value c = newMem ((c^.memory) Vector.// [(fromIntegral addr `div` 8, value)]) c
+writeMem :: String -> Int64 -> Int64 -> Computer -> Computer
+writeMem caller addr value c = go where
+  index = fromIntegral addr `div` 8
+  go | index < memSize = newMem ((c^.memory) Vector.// [(index, value)]) c
+     | otherwise = error $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: Int64 -> Computer -> Int64
-readMem addr c = (c^.memory) Vector.! (fromIntegral addr `div` 8)
+readMem :: String -> Int64 -> Computer -> Int64
+readMem caller addr c = go where
+  index = fromIntegral addr `div` 8
+  go | index < memSize = (c^.memory) Vector.! index
+     | otherwise       = error $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
 readArray :: Int64 -> Computer -> Vector Int64
-readArray addr c = 
-  let size = readMem addr c
-  in Vector.slice (fromIntegral addr `div` 8 + 1) (fromIntegral size) (c^.memory)
+readArray addr c = go where
+  size       = fromIntegral $ readMem "readArray" addr c
+  startIndex = fromIntegral addr `div` 8 + 1
+  go | startIndex + size < memSize = Vector.slice startIndex size (c^.memory)
+     | otherwise = error $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
 -- push the given int argument onto the top of the stack
 -- adjust rsp accordingly
@@ -137,14 +146,14 @@ push :: Int64 -> Computer -> Computer
 push value c =
   let rspVal = readReg rsp c - 8
       c'     = writeReg rsp rspVal c
-  in  writeMem rspVal value c'
+  in  writeMem "push" rspVal value c'
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
 pop :: Register -> Computer -> Computer
 pop r c =
   let rspVal = readReg rsp c
-      c'     = writeReg r (readMem rspVal c) c
+      c'     = writeReg r (readMem "pop" rspVal c) c
   in writeReg rsp (rspVal + 8) c'
 
 adjustNum :: Int64 -> Int64
@@ -157,8 +166,8 @@ allocate size n c =
       ns      = Prelude.replicate (fromIntegral size') n
       indices :: [Int]
       indices = [(fromIntegral $ c^.heapP `div` 8)..]
-      heap    = newMem ((c^.memory) Vector.// (zip indices $ size' : ns))
-                       (c & heapP +~ ((size'+1)*8))
+      nsWithIndices = zip indices $ size' : ns
+      heap    = newMem ((c^.memory) Vector.// nsWithIndices) (c & heapP +~ ((size'+1)*8))
   in (c^.heapP, heap)
 
 -- print a number or an array
@@ -170,7 +179,7 @@ l1print n c = addOutput (printContent n 0 ++ "\n") c where
     | depth >= 4   = "..."
     | n .&. 1 == 1 = show $ shiftR n 1
     | otherwise    =
-      let size  = readMem n c
+      let size  = readMem "l1print" n c
           arr   = readArray n c
           contentsV = Vector.map (\n -> printContent n $ depth + 1) arr
           contents  = mkString ", " $ show size : Vector.toList contentsV
@@ -180,7 +189,7 @@ l1print n c = addOutput (printContent n 0 ++ "\n") c where
 arrayError :: Int64 -> Int64 -> Computer -> Computer
 arrayError a x c = haltWith msg c where
   pos  = show $ adjustNum x
-  size = show $ readMem a c
+  size = show $ readMem "arrayError" a c
   msg  = "attempted to use position " ++ pos ++ 
          " in an array that only has "++ size ++" positions"
 
@@ -203,7 +212,12 @@ addOutput :: String -> Computer -> Computer
 addOutput s c = c & output %~ (s:)
 haltWith msg c = c & addOutput msg & halted .~ True
 halt c = c & halted .~ True
-currentInst c = (c^.program) Vector.! (fromIntegral $ c^.ip)
+currentInst c = go where
+  ip' :: Int
+  ip' = fromIntegral $ c^.ip
+  go | ip' < memSize = (c^.program) Vector.! ip'
+     | otherwise     = error $ "instruction out of bounds: " ++ show ip'
+
 hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
 -- advance the computer to the next instruction
 nextInst :: Computer -> Computer
@@ -217,13 +231,14 @@ nextInstWR r i c = nextInst $ writeReg r i c
 interpL1 :: L1 -> Computer
 interpL1 p = let
   c = newComputer $ adjustMain p
-  in go c --(traceSA (show $ c^.program) c)
+  in go c --(traceSA (unlines . map show . zip [0..] . Vector.toList $ c^.program) c)
 
 -- the main loop, runs a computer until completion
 go :: Computer -> Computer
 go c 
   | c^.halted || not (hasNextInst c) = c
-  | otherwise = go $ step (currentInst c) c
+  | otherwise = go $ newC where --trace (show newC) newC
+      newC = step (currentInst c) c
 
 step :: L1Instruction -> Computer -> Computer
 -- Assignment statements
@@ -231,7 +246,7 @@ step (Assign r (CompRHS (Comp s1 op s2))) c  = nextInstWR r
   (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
 step (Assign r (MemRead (MemLoc x offset))) c =
   let index = readReg x c + fromIntegral offset
-  in nextInstWR r (readMem index c) c
+  in nextInstWR r (readMem "step MemRead" index c) c
 step (Assign r (Allocate size datum)) c   = 
   let (h, c') = allocate (readS size c) (readS datum c) c
   in nextInstWR r h c'
@@ -249,7 +264,7 @@ step (CJump (Comp s1 op s2) l1 l2) c =
 -- MemWrite
 step (MemWrite (MemLoc x offset) s) c =
   let index = readReg x c + fromIntegral offset
-  in nextInst $ writeMem index (readS s c) c
+  in nextInst $ writeMem "step MemWrite" index (readS s c) c
 -- Goto
 step (Goto l) c = goto (findLabelIndex l c) c
 -- LabelDec, just advance
@@ -266,6 +281,6 @@ step Return c =
   let rspVal = readReg rsp c
       done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 8)
       c'     = writeReg rsp (rspVal + 8) c
-      c''    = goto (readMem rspVal c') c'
+      c''    = goto (readMem "step Return" rspVal c') c'
   in if done then halt c else c''
 
