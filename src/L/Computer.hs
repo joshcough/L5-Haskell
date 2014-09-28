@@ -208,9 +208,6 @@ hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
 -- advance the computer to the next instruction
 nextInst :: Computer a -> Computer a
 nextInst c = goto (c^.ip + 1) c
--- goto the next instruction after writing a register
-nextInstWR :: Register -> Int64 -> Computer a -> Computer a
-nextInstWR r i c = nextInst $ writeReg r i c
 
 -- the main loop, runs a computer until completion
 runComputer :: (a -> Computer a -> Computer a) -> Computer a -> Computer a

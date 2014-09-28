@@ -64,3 +64,7 @@ readS :: L1S -> Computer L1Instruction -> Int64
 readS (NumberL1S n) = \_ -> n
 readS (RegL1S r)    = readReg r
 readS (LabelL1S l)  = findLabelIndex l
+
+-- goto the next instruction after writing a register
+nextInstWR :: Register -> Int64 -> Computer a -> Computer a
+nextInstWR r i c = nextInst $ writeReg r i c
