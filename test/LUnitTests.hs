@@ -28,7 +28,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree allTests
+  ts <- traverse tree [l3Tests]--allTests
   return $ testGroup "Main" ts
 
 allTests = [
@@ -43,7 +43,7 @@ opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 
 testDir = "./test/test-fest/"
 
-runInterp lang file = showComputerOutput . runVal <$> interpretFile lang file
+runInterp lang file = runVal <$> interpretFile lang file
 
 data TestDef = TestDef 
   { name :: String

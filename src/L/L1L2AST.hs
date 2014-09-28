@@ -2,15 +2,18 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
 
 module L.L1L2AST where
 
+import Control.Applicative
 import Control.Lens
 import Data.Bits
 import Data.Int
 import Data.Map (Map)
-import Data.Map as M
+import Data.Map as Map
+import Data.Tuple
 import L.Read (showAsList)
 import Prelude hiding (LT, EQ)
 
@@ -67,8 +70,21 @@ data Instruction x s =
   TailCall s                 |
   Return deriving (Eq, Ord)
 
+makePrisms ''Instruction
+
 data Func x s = Func { body :: [Instruction x s]}
 data Program x s = Program (Func x s) [Func x s]
+
+getLabels :: [Instruction x s] -> [Label]
+getLabels is = is^..traverse._LabelDeclaration
+
+labelIndices :: [Instruction x s] -> Map Label Int
+labelIndices is = m where
+  l = swap <$> (zip is [0..])^@..folded.swapped.ifolded._LabelDeclaration
+  m = Map.fromList $ l
+
+programToList :: (Program x s) -> [Instruction x s]
+programToList (Program main fs) = Prelude.concat $ fmap body $ main : fs
 
 increment  = Increment
 decrement  = Decrement
@@ -109,9 +125,9 @@ instance (Show x, Show s) => Show (Instruction x s) where
   show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
   show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
   show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
-  show (Goto l)             = showAsList ["goto", ":" ++ l]
-  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, ":" ++ l1, ":" ++ l2]
-  show (LabelDeclaration l) = ":" ++ l
+  show (Goto l)             = showAsList ["goto", l]
+  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, l1, l2]
+  show (LabelDeclaration l) = l
   show (Call s)             = showAsList ["call", show s]
   show (TailCall s)         = showAsList ["tail-call", show s]
   show Return               = "(return)"
@@ -155,10 +171,11 @@ allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13
 registerNames :: [String]
 registerNames  = fmap show registers
 registerNamesMap :: Map String Register
-registerNamesMap = M.fromList (zip registerNames registers)
+registerNamesMap = Map.fromList (zip registerNames registers)
 
-registerFromName :: String -> Maybe Register
-registerFromName s = M.lookup s registerNamesMap
+registerFromName :: String -> Either String Register
+registerFromName s = maybe 
+  (Left $ "invalid register: " ++ s) Right (Map.lookup s registerNamesMap)
 
 instance Show CompOp where
   show LT   = "<"
@@ -190,7 +207,7 @@ type L1 = Program L1X L1S
 
 instance Show L1S where
   show (NumberL1S n) = show n
-  show (LabelL1S l)  = ":" ++ l
+  show (LabelL1S l)  = l
   show (RegL1S r)    = show r
 
 -- L2 AST (uses shared L1/L2 AST)
@@ -223,7 +240,7 @@ instance Show L2X where
 
 instance Show L2S where
   show (NumberL2S n)   = show n
-  show (LabelL2S l)    = ":" ++ l
+  show (LabelL2S l)    = l
   show (XL2S x)        = show x
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2

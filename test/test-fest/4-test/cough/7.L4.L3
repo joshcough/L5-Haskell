@@ -1,0 +1,8 @@
+((let ([__tempL4V0 (:f1 1)]) (print __tempL4V0)) 
+  (:f1 (a) 
+    (if a 
+        (let ([__tempL4V3 (new-tuple)]) (:__tempL4L1 2 __tempL4V3)) 
+        (let ([__tempL4V4 (new-tuple)]) (:__tempL4L1 3 __tempL4V4)))) 
+  
+  (:__tempL4L1 (__tempL4V2 frees) __tempL4V2)
+)

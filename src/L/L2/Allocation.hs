@@ -40,7 +40,7 @@ allocate f = Func finalL1Body where
    -}
   label = case allocatedBody !! 0 of
     l@(LabelDeclaration x) -> l
-    _ -> LabelDeclaration "main"
+    _ -> LabelDeclaration ":main"
 
   {-
     Make sure the stack is always aligned to 16 bytes, which is an x86-64 requirement.

@@ -15,8 +15,7 @@ main = execParser commandLineParser >>= main'
 
 main' :: (CompilationOptions, FilePath) -> IO ()
 main' (opts, file) = g (getExtension file) (getDir file) where
-  go lang dir = 
-    interpretFile lang file >>= putStrLn . showComputerOutput . runVal
+  go lang dir = interpretFile lang file >>= putStrLn . runVal
   g "L1" = go l1Language
   g "L2" = go l2Language
   g "L3" = go l3Language

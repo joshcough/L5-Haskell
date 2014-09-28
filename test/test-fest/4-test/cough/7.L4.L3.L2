@@ -1,0 +1,36 @@
+(
+(:main
+	(call :__L3main__)
+	)
+(:__L3main__
+	(rdi <- 3)
+	(call ::f1)
+	(__tempL4V0 <- rax)
+	(rax <- (print __tempL4V0))
+	(rax <- rax)
+	(return)
+	)(::f1
+	(a <- rdi)
+	(__tempL30 <- a)
+	(cjump a = 1 :__tempL31 :__tempL32)
+	:__tempL31
+	(rax <- (allocate 1 1))
+	(__tempL4V3 <- rax)
+	(rdi <- 5)
+	(rsi <- __tempL4V3)
+	(tail-call ::__tempL4L1)
+	:__tempL32
+	(rax <- (allocate 1 1))
+	(__tempL4V4 <- rax)
+	(rdi <- 7)
+	(rsi <- __tempL4V4)
+	(tail-call ::__tempL4L1)
+	(return)
+	)(::__tempL4L1
+	(__tempL4V2 <- rdi)
+	(frees <- rsi)
+	(rax <- __tempL4V2)
+	(return)
+	(return)
+	)
+)

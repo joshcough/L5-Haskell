@@ -8,13 +8,11 @@ import L.L3.L3AST as L3
 import L.L3.L3Parser
 import Prelude hiding (EQ, LT, sequence, (>>), (<<))
 
-writeMe = error "todo"
-todo = error
 trav = Data.Traversable.traverse
 -- TODO: some of these are also in other code.
 argRegisters :: [Register]
 argRegisters = [rdi, rsi, rdx, rcx, r8, r9]
-l2True = NumberL2S 1
+l2True = NumberL2S 3
 regRHS = SRHS . XL2S . RegL2X
 toLHS = RegL2X
 (<~) = Assign
@@ -26,10 +24,11 @@ toLHS = RegL2X
 (&)  x s = MathInst x BitwiseAnd s
 num = NumberL2S
 newTemp  :: State Int L2X
-newTemp  = VarL2X <$> newLabel
-newTempV = VarV <$> newLabel
-newLabel :: State Int Label
-newLabel = do { n <- get; put (n + 1); return $ "__tempL3" ++ show n }
+newTemp  = VarL2X <$> newId
+newTempV = VarV <$> newId
+newLabel = (':':) <$> newId
+newId :: State Int String
+newId = do { n <- get; put (n + 1); return $ "_tempL3_" ++ show n }
 
 linearize :: L3 -> L2
 linearize l3 = fst $ runState (linearizeS l3) 0
@@ -37,8 +36,8 @@ linearize l3 = fst $ runState (linearizeS l3) 0
 linearizeS :: L3 -> State Int L2
 linearizeS (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
   callMain :: L2.L2Func
-  callMain = L2.Func [LabelDeclaration "main", L2.Call $ LabelL2S "__L3main__"]
-  l2MainInsts = (LabelDeclaration "__L3main__" :) <$> compileE e
+  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__"]
+  l2MainInsts = (LabelDeclaration ":__L3main__" :) <$> compileE e
   l2Funcs :: State Int [L2.L2Func]
   l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (trav compileFunction funcs)
 

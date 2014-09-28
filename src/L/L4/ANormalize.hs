@@ -11,7 +11,7 @@ import L.L4.L4AST as L4
 newVar :: State Int Variable
 newVar = incState "__tempL4V"
 newLabel :: State Int Label
-newLabel = incState "__tempL4L"
+newLabel = incState ":__tempL4L"
 incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }
 

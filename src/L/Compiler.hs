@@ -27,7 +27,7 @@ import Control.Applicative
 import Control.Category
 import Data.Maybe
 import Debug.Trace
-import L.L1.L1Interp (Computer, showComputerOutput)
+import L.Computer (Computer, showComputerOutput)
 import L.IOHelpers
 import L.OS
 import L.Read
@@ -40,11 +40,12 @@ data CompilationOptions = CompilationOptions {
 compOpts :: Maybe String -> CompilationOptions
 compOpts = CompilationOptions . osFromMaybeString
 
+type Output           = String
 type ProgramName      = String
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
 type Compiler     i o = CompilationOptions -> ProgramName -> i -> Val o
-type Interpreter    i = i -> Computer
+type Interpreter    i = i -> Output
 type Extension        = String
 
 data Language i o where
@@ -138,10 +139,10 @@ compileFileAndWriteResult l opts outputDir inputFile = do
 -- interpretation
 interpret = interpreter
 
-interpretString :: Language i o -> String -> Val Computer
+interpretString :: Language i o -> String -> Val Output
 interpretString l s = interpret l <$> parseString l s
 
-interpretFile :: Language i o -> FilePath -> IO (Val Computer)
+interpretFile :: Language i o -> FilePath -> IO (Val Output)
 interpretFile l file = readFile file >>= return . interpretString l
 
 -- native execution
@@ -151,7 +152,7 @@ compileAndRunNative ::
   ProgramName        -> 
   FilePath           -> 
   i                  -> 
-  IO (Val String)
+  IO (Val Output)
 compileAndRunNative l@(Language _ _ _ _ subLang) opts name outputDir input = do
   code <- compileAndWriteResult l opts name outputDir input
   munge (recur subLang) code where
@@ -164,7 +165,7 @@ compileAndRunNativeString ::
   ProgramName        -> 
   FilePath           -> 
   String             -> 
-  IO (Val String)
+  IO (Val Output)
 compileAndRunNativeString lang opts name outputDir input =
   munge (compileAndRunNative lang opts name outputDir) (parseString lang input)
 
@@ -173,7 +174,7 @@ compileAndRunNativeFile ::
   CompilationOptions ->
   FilePath           -> 
   FilePath           -> 
-  IO (Val String)
+  IO (Val Output)
 compileAndRunNativeFile lang opts outputDir inputFile = do
   code <- readFile inputFile
   compileAndRunNativeString lang opts (getFileName inputFile) outputDir code

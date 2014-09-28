@@ -11,7 +11,6 @@ module L.L1L2Parser
 
 import Control.Applicative
 import Control.Monad
-import Data.Maybe
 import Data.Traversable
 import L.Read
 import L.L1L2AST
@@ -36,26 +35,21 @@ parse p bad = parseError_ "bad program" p bad
 parseMain :: Parser x s -> [SExpr] -> ParseResult (Func x s)
 parseMain p exps = do
   body <- traverse (parseI p) exps
-  return $ Func $ (LabelDeclaration "main") : body
+  return $ Func $ (LabelDeclaration ":main") : body
 
 parseFunction :: Parser x s -> SExpr -> ParseResult (Func x s)
 parseFunction p (List ((AtomSym name) : exps)) = do
   body <- traverse (parseI p) exps
-  return $ Func $ LabelDeclaration (parseLabel name) : body
+  label <- parseLabel name
+  return $ Func $ LabelDeclaration name : body
 
 parseInstructionList :: Parser x s -> SExpr -> ParseResult [(Instruction x s)]
 parseInstructionList p (List exps) = traverse (parseI p) exps
 parseInstructionList p bad = parseError_ "not an instruction list" p bad
 
 parseI :: Parser x s -> SExpr -> ParseResult (Instruction x s)
-parseI p a@(AtomSym s) = maybe
-  (parseError_ "not an instruction " p a)
-  id
-  (parseLabelOrRegister
-    (Right . LabelDeclaration)
-    (const $ parseError_ "expected a label " p a)
-    s
-  )
+parseI p a@(AtomSym s) = LabelDeclaration <$> parseLabel s
+  
 parseI p a@(AtomNum n) = parseError_ "bad instruction" p a
 parseI p l@(List ss) = case (flatten l) of
   [x, "<-", "print", s] -> liftM2 Assign (parseX p x) (Print <$> parseS p s)
@@ -72,9 +66,9 @@ parseI p l@(List ss) = case (flatten l) of
     liftM3 MathInst (parseX p x) (parseX86Operator op) (parseS p s)
   [cx, "<-", s1, cmp, s2] -> 
     liftM2 Assign (parseX p cx) (CompRHS <$> parseComp s1 cmp s2)
-  ["goto", l] -> Right $ Goto (parseLabel l)
+  ["goto", l] -> Goto <$> parseLabel l
   ["cjump", s1, cmp, s2, l1, l2] ->
-    liftM3 CJump (parseComp s1 cmp s2) (parseLabelM l1) (parseLabelM l2)
+    liftM3 CJump (parseComp s1 cmp s2) (parseLabel l1) (parseLabel l2)
   ["call", s] -> Call <$> parseS p s
   ["tail-call", s] -> TailCall <$> parseS p s
   ["return"]       -> Right Return
@@ -102,24 +96,20 @@ parseI p l@(List ss) = case (flatten l) of
       f (AtomNum n) = Right n
       f bad = parseError_ "not a number" p bad
 
-parseLabelM = return . parseLabel
+parseLabel :: String -> ParseResult Label
+parseLabel l@(':' : ':' : _) = Left $ "invalid label: " ++ l
+parseLabel l@(':' : _) = Right l
+parseLabel l = Left $ "invalid label: " ++ l
 
-parseLabel :: String -> Label
-parseLabel s = drop 1 s
-
-parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> Maybe a
-parseLabelOrRegister f _ l@(':' : _) = Just $ f $ parseLabel l
-parseLabelOrRegister _ f r           = fmap f $ parseRegister r
-
-parseRegister :: String -> Maybe Register
-parseRegister = registerFromName
+parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> ParseResult a
+parseLabelOrRegister f _ l@(':' : _) = f <$> parseLabel l
+parseLabelOrRegister _ f r           = f <$> registerFromName r
 
 -- L1 Parser (uses shared L1/L2 Parser)
 l1Parser :: Parser L1X L1S
-l1Parser = Parser "L1" parseL1Reg (liftParser parseL1S) where
-  parseL1Reg s = maybe (parseError "invalid register" l1Parser s) Right (parseRegister s)
+l1Parser = Parser "L1" registerFromName (liftParser parseL1S) where
   parseL1S (AtomNum n) = Right $ NumberL1S (fromIntegral n)
-  parseL1S (AtomSym s) = maybe (parseError "invalid s" l1Parser s) Right $ parseLabelOrRegister LabelL1S RegL1S s
+  parseL1S (AtomSym s) = parseLabelOrRegister LabelL1S RegL1S s
 
 parseL1 = parseProgram l1Parser
 parseL1OrDie = (either error id) . parseL1
@@ -128,10 +118,12 @@ parseL1InstList = parseInstructionList l1Parser
 -- L2 Parser (uses shared L1/L2 Parser)
 l2Parser :: Parser L2X L2S
 l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftParser parseL2S) where
-  parseX v r  s = Right $ maybe (v s) r (parseRegister s)
+  parseX v r s = Right $ either (\_ -> v s) r (registerFromName s)
   parseL2S (AtomNum n) = Right $ NumberL2S (fromIntegral n)
-  parseL2S (AtomSym s) = maybe (parseX (XL2S . VarL2X) (XL2S . RegL2X) s) Right $
-                           parseLabelOrRegister LabelL2S (XL2S . RegL2X) s
+  parseL2S (AtomSym s) = either 
+    (\_-> parseX (XL2S . VarL2X) (XL2S . RegL2X) s)
+    Right
+    (parseLabelOrRegister LabelL2S (XL2S . RegL2X) s)
 
 parseL2 = parseProgram l2Parser
 parseL2OrDie = (either error id) . parseL2

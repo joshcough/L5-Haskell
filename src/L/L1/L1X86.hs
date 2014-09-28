@@ -48,7 +48,7 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (LabelDeclaration label) = return [declare label]
   genInst (Assign l r)       = genAssignInst l r
 
-  genInst (MemWrite loc  (LabelL1S l)) = return [
+  genInst (MemWrite loc  (LabelL1S (':':l))) = return [
        triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
       ,triple "movq"  (genS $ RegL1S r15) (genLoc loc)
     ]
@@ -73,7 +73,8 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S l)) = return [triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genReg r)]
+  genAssignInst r (SRHS (LabelL1S (':':l))) = 
+    return [triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genReg r)]
   genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
   genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
   {-
@@ -116,14 +117,15 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "movzbq" (low8 cx) (genReg cx) ]
     where low8 cx = "%" ++ [show cx !! 1] ++ "l"
   
-  declare label = showLabel label ++ ":"
+  declare l@(':' : label) = showLabel label ++ ":"
+  declare x = error $ "bad label: " ++ x
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
   genReg r = "%" ++ show r
   genS :: L1S -> String
-  genS (NumberL1S i) = "$" ++ show i
-  genS (LabelL1S  l) = "$" ++ showLabel l
-  genS (RegL1S    r) = genReg r
+  genS (NumberL1S i)         = "$" ++ show i
+  genS (LabelL1S  (':' : l)) = "$" ++ showLabel l
+  genS (RegL1S    r)         = genReg r
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
   jump r@(RegL1S _)  = "jmp *" ++ genS r
@@ -131,7 +133,7 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   jump (NumberL1S n) = error $ "bad jump to literal number: " ++ show n
 
   jumpToLabel :: Label -> String
-  jumpToLabel l = "jmp " ++ showLabel l
+  jumpToLabel l@(':' : label) = "jmp " ++ showLabel label
 
   call :: L1S -> String
   call (RegL1S reg) = "call *" ++ genReg reg
@@ -139,14 +141,14 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   call x = error $ "bad call: " ++ show x
 
   callLabel :: Label -> String
-  callLabel l = "call " ++ showLabel l
+  callLabel l@(':' : label) = "call " ++ showLabel label
 
   setInstruction = foldOp "setl" "setle" "sete"
   
-  jumpIfLess            l = "jl "  ++ showLabel l
-  jumpIfLessThanOrEqual l = "jle " ++ showLabel l
-  jumpIfGreater         l = "jg "  ++ showLabel l
-  jumpIfGreaterOrEqual  l = "jge " ++ showLabel l
-  jumpIfEqual           l = "je "  ++ showLabel l
+  jumpIfLess            l@(':' : label) = "jl "  ++ showLabel label
+  jumpIfLessThanOrEqual l@(':' : label) = "jle " ++ showLabel label
+  jumpIfGreater         l@(':' : label) = "jg "  ++ showLabel label
+  jumpIfGreaterOrEqual  l@(':' : label) = "jge " ++ showLabel label
+  jumpIfEqual           l@(':' : label) = "je "  ++ showLabel label
 
   showLabel l = (if os == Darwin then "_" else "") ++ "L1_" ++ l 

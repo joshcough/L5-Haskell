@@ -16,7 +16,7 @@ parseL3 (List (main : funcs)) = liftM2 L3 (parseE main) (traverse parseFunction 
 parse bad = l3ParseError "bad L3-program" bad
 
 parseLabel :: SExpr -> ParseResult Label
-parseLabel (AtomSym (':' : name)) = Right $ name
+parseLabel (AtomSym l@(':' : name)) = Right $ l
 parseLabel bad = l3ParseError "bad L3-label" bad
 
 -- (l (x ...) e)
@@ -32,7 +32,7 @@ parseArg bad = l3ParseError "bad L3-variable" bad
 
 -- v :: = x | l | num
 parseV :: SExpr -> ParseResult V
-parseV (AtomSym (':' : rest)) = Right $ LabelV rest
+parseV (AtomSym l@(':' : name)) = Right $ LabelV l
 parseV (AtomSym v) = Right $ VarV v
 parseV (AtomNum n) = Right $ NumV (fromIntegral n)
 parseV bad         = l3ParseError "bad L3-V" bad

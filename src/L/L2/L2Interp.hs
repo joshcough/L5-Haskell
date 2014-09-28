@@ -1,23 +1,22 @@
-module L.L1.L1Interp (interpL1) where
+module L.L2.L2Interp (interpL2) where
 
 import Control.Lens hiding (set)
 import Data.Int
 import qualified Data.Vector as Vector
 import L.Computer
 import L.L1L2AST 
-import L.L1.MainAdjuster (adjustMain)
 import Prelude hiding (print)
 
-interpL1 :: L1 -> String
-interpL1 p = showComputerOutput $ interpL1' p
+interpL2 :: L2 -> String
+interpL2 p = showComputerOutput $ interpL2' p
 
--- run the given L1 program to completion on a new computer
+-- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
-interpL1' :: L1 -> Computer L1Instruction
-interpL1' p = runComputer step (newComputer $ adjustMain p) 
+interpL2' :: L2 -> Computer L2Instruction
+interpL2' p = runComputer step (newComputer $ adjustMain p) 
   --(traceSA (unlines . map show . zip [0..] . Vector.toList $ c^.program) c)
 
-step :: L1Instruction -> Computer L1Instruction -> Computer L1Instruction
+step :: L2Instruction -> Computer L2Instruction -> Computer L2Instruction
 -- Assignment statements
 step (Assign r (CompRHS (Comp s1 op s2))) c  = nextInstWR r 
   (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
@@ -60,7 +59,7 @@ step Return c =
       c''    = goto (readMem "step Return" rspVal c') c'
   in if done then halt c else c''
 
-readS :: L1S -> Computer L1Instruction -> Int64
-readS (NumberL1S n) = \_ -> n
-readS (RegL1S r)    = readReg r
-readS (LabelL1S l)  = findLabelIndex l
+readS :: L2S -> Computer L2Instruction -> Int64
+readS (NumberL2S n) = \_ -> n
+readS (RegL2S r)    = readReg r
+readS (LabelL2S l)  = findLabelIndex l
