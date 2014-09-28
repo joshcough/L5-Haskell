@@ -67,6 +67,7 @@ runVal :: Val a -> a
 runVal = either error id
 
 munge = either (return . Left)
+mungeList = either (\msg -> [Left msg]) 
 
 outputExtension :: Language i o -> String
 outputExtension (Language _ _ _ _ subLang) = maybe "S" extension subLang
@@ -144,6 +145,39 @@ interpretString l s = interpret l <$> parseString l s
 
 interpretFile :: Language i o -> FilePath -> IO (Val Output)
 interpretFile l file = readFile file >>= return . interpretString l
+
+-- interpret all levels.
+-- TODO: gives the answers back in reverse order
+interpretTurtles :: 
+  Language i o       -> 
+  CompilationOptions -> 
+  ProgramName        -> 
+  i                  ->
+  [Val Output]
+interpretTurtles l@(Language _ _ _ _ subLang) opts name input = 
+  (Right $ interpret l input) : (maybe [] f subLang) where
+    f sub = mungeList id $ do
+      i' <- compile l opts name input
+      return $ interpretTurtles sub opts name i'
+
+interpretTurtlesString ::
+  Language i o       ->
+  CompilationOptions ->
+  ProgramName        ->
+  String             ->
+  [Val Output]
+interpretTurtlesString l opts name s =
+  mungeList (interpretTurtles l opts name) (parseString l s)
+
+interpretTurtlesFile ::
+  Language i o       ->
+  CompilationOptions ->
+  ProgramName        ->
+  String             ->
+  IO ([Val Output])
+interpretTurtlesFile l opts name file = do
+  code <- readFile file
+  return $ interpretTurtlesString l opts name code
 
 -- native execution
 compileAndRunNative :: 
