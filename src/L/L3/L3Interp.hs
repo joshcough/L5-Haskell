@@ -1,45 +1,46 @@
-module L.L5.L5Interp
-  (
-    interp
-   ,runInterp
-   ,locally
-   ,letrecExample
-   ,getMem
-  )
-where
+module L.L3.L3Interp (runInterpL3) where
 
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Trans
-import Data.Foldable
+import Data.Foldable hiding (concat)
+import Data.Int
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Sequence as Seq
 import Data.Traversable
-import L.L5.L5AST
+import Data.Tuple.HT
+import L.L1L2AST hiding (Func)
+import L.L3.L3AST
 import Data.Array.IO (IOArray)
 import qualified Data.Array.IO as IOArray
 
-data Runtime = Num Int | Pointer Int | Closure [Variable] E Env
-  deriving Eq
-instance Show Runtime where
-  show (Num i) = show i
-  show (Pointer _) = "pointer"
-  show (Closure _ _ _) = "<function>"
-type Mem = (IOArray Int Runtime, Int) -- heap, and heap pointer
+data Runtime = 
+    Number Int64
+  | Pointer Int64
+  | FunctionPointer Label deriving (Show, Eq)
+type Output = [String]
+type Mem = (IOArray Int64 Runtime, Int64) -- heap, and heap pointer
 type Env = Map Variable Runtime
-type M x = StateT (Env, Mem) IO x
+type Lib = Map Label Func
+type M x = StateT ((Env, Mem, Output), Lib) IO x
 
 -- state functions
+-- | get the env out of the state
+getEnv :: M Env
+getEnv = fst3 . fst <$> get
+-- | get the library out of the state
+getLib :: M Lib
+getLib = snd <$> get
 -- | get the memory out of the state
 getMem :: M Mem
-getMem = snd <$> get
--- | get the env out of the state
-getEnv = fst <$> get
+getMem = snd3 . fst <$> get
 -- | write the memory back to the state
-putMem m = do (e, _) <- get; put (e, m)
+putMem m = do ((e, _, o), l) <- get; put ((e, m, o), l)
+-- | add some output
+addOutput s = do ((e, m, o), l) <- get; put ((e, m, s:o), l)
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
 locally :: (Env -> Env) -> M a -> M a
@@ -49,34 +50,131 @@ locally modifyEnv action = do
   res <- action
   putEnv e
   return res where
-  putEnv e = do (_, m) <- get; put (e, m)
+  putEnv e = do ((_, m, o), l) <- get; put ((e, m, o), l)
 
+lTrue  = Number 1
+lFalse = Number 0
+defaultHeapSize :: Int64
 defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
-emptyMem :: Int -> IO Mem
+emptyMem :: Int64 -> IO Mem
 emptyMem heapSize = do
-  mem <- IOArray.newArray (0, heapSize - 1) (Num 0)
-  return (mem, 0)
+  mem <- IOArray.newArray (0, heapSize - 1) (Number $ fromIntegral 0)
+  return (mem, fromIntegral 0)
 
 -- | top level entry point (interprets e, and runs the monadic action)
-runInterp = runInterpH defaultHeapSize 
+runInterpL3 :: L3 -> IO Runtime
+runInterpL3 = runInterpL3' defaultHeapSize 
 
-runInterpH :: Int -> E -> IO Runtime
-runInterpH heapSize e = do
+runInterpL3' :: Int64 -> L3 -> IO Runtime
+runInterpL3' heapSize p@(L3 e fs) = do
   mem <- emptyMem heapSize
-  evalStateT (interp e) (Map.empty, mem)
+  let lib = Map.fromList $ fmap (\f -> (name f, f)) fs--(zip fs $ fmap (*2) [0..])
+  evalStateT (interpE e) ((Map.empty, mem, []),lib)
 
 -- | interpret an E, building a monadic operation to be run.
-interp :: E -> M Runtime
+interpE :: E -> M Runtime
+interpE (Let v d e) = do
+  d' <- interpD d
+  locally (Map.insert v d') (interpE e)
+interpE (IfStatement v te fe) = do
+  v' <- interpV v
+  interpE $ if v' == lTrue then te else fe
+interpE (DE d) = interpD d
+
+{-
+data D    =
+    FunCall V [V]
+  | NewTuple [V]
+  | ARef V V
+  | ASet V V V
+  | ALen V
+  | Print V
+  | MakeClosure Label V
+  | ClosureProc V
+  | ClosureVar
+-}
+interpD :: D -> M Runtime
+interpD (BiopD b l r) = 
+  do l' <- interpV l; r' <- interpV r; return $ mathOp l' b r'
+interpD (PredD IsNum   (NumV _)) = return $ lTrue
+-- labels act like arrays, it's weird, but true.
+interpD (PredD IsNum   _       ) = return $ lFalse
+interpD (PredD IsArray (NumV _)) = return $ lFalse
+interpD (PredD IsArray _       ) = return $ lTrue
+interpD (NewArray s d) = newArray s d
+  
+
+newArray :: V -> V -> M Runtime
+newArray s v = do
+  size <- evalNumber s 
+  val  <- interpV v
+  makeHeapArray size $ replicate (fromIntegral size) val
+
+-- makes a new array from the given Runtime objects and puts it on the heap
+makeHeapArray :: Int64 -> [Runtime] -> M Runtime
+makeHeapArray size rs = do
+  (mem, hp) <- getMem
+  _         <- lift $ writeArrayIntoHeap mem hp (Pointer hp : rs)
+  _         <- putMem (mem, hp + size)
+  return $ Pointer hp where
+  writeArrayIntoHeap :: IOArray Int64 Runtime -> Int64 -> [Runtime] -> IO [()]
+  writeArrayIntoHeap mem hp rs =
+    Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs
+
+evalNumber, evalPointer  :: V -> M Int64
+evalNumber  v = foldRuntime (\(Number i) -> i) evalErrN evalErrN <$> interpV v
+  where evalErrN = evalErr "Number"
+evalPointer v = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interpV v
+  where evalErrP = evalErr "Pointer"
+--evalClosure :: E -> M Runtime
+--evalClosure e = foldRuntime evalErrC evalErrC id <$> interp e
+--  where evalErrC = evalErr "<function>"
+
+evalErr :: String -> Runtime -> a -- hmm...
+evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ (show r)
+
+runtimeError :: String -> a
+runtimeError msg = error $ "Runtime error: " ++ msg
+
+foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
+foldRuntime fn fp fc r = f r where
+  f n@(Number _)          = fn n
+  f p@(Pointer _)         = fp p
+  f c@(FunctionPointer _) = fc c
+
+mathOp :: Runtime -> Biop -> Runtime -> Runtime  
+mathOp (Number l) Add      (Number r) = Number    $ l +  r
+mathOp (Number l) Sub      (Number r) = Number    $ l -  r
+mathOp (Number l) Mult     (Number r) = Number    $ l *  r
+mathOp (Number l) LessThan (Number r) = boolToNum $ l <  r
+mathOp (Number l) LTorEq   (Number r) = boolToNum $ l <= r
+mathOp (Number l) Eq       (Number r) = boolToNum $ l == r
+mathOp l b r = 
+  error $ concat ["invalid arguments to ", show b, " :", show l, ", " , show r]
+
+boolToNum :: Bool -> Runtime
+boolToNum True  = Number 1
+boolToNum False = Number 0
+
+interpV :: V -> M Runtime
+interpV (VarV v) = do
+  env <- getEnv
+  return $ fromMaybe (error $ "unbound variable: " ++ v) (Map.lookup v env)
+interpV (NumV i) = return $ Number i
+interpV (LabelV l) = error "todo" -- uh oh
+
+  {-
 interp (Lambda vs e)       = Closure vs e <$> getEnv
 interp (Var v)             = envLookup  v <$> getEnv
 interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
+
 interp (LetRec ves body)   = locally newEnv (interp body) where
   newEnv old = new where new = Map.union (Map.fromList (toClosure <$> ves)) old 
                          toClosure (v, Lambda vs e) = (v, Closure vs e new)
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
-interp (LitInt i)          = return $ Num i
+interp (LitInt i)          = return $ Number i
 interp (PrimFunE p)        = interpPrim p
 interp (App f es)          = interpApp f es
 
@@ -151,7 +249,7 @@ newArray e1 e2 = do
   makeHeapArray size $ replicate size val
 
 evalNumber, evalPointer  :: E -> M Int
-evalNumber  e = foldRuntime (\(Num i) -> i) evalErrN evalErrN <$> interp e 
+evalNumber  e = foldRuntime (\(Number i) -> i) evalErrN evalErrN <$> interp e 
   where evalErrN = evalErr "Number"
 evalPointer e = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interp e
   where evalErrP = evalErr "Pointer"
@@ -191,14 +289,14 @@ envLookup v env =
 getArrayPure :: [Runtime] -> Int -> (Int, [Runtime])
 getArrayPure mem i = (size, arr) where
   view       = drop i mem
-  (Num size) = foldRuntime id err err $ head view
+  (Number size) = foldRuntime id err err $ head view
   err r      = runtimeError $ "bug, bad array index: " ++ show r
   arr        = take size $ drop 1 view
 
 -- | True for the L5 programming language
-lTrue  = Num 0
+lTrue  = Number 0
 -- | False for L5, this cant be tested for equality, because everything other than 0 is false.
-lFalse = Num 1 
+lFalse = Number 1 
 
 isNumber, isArray :: Runtime -> Runtime
 isNumber = foldRuntime (const lTrue) (const lFalse) (const lFalse)
@@ -206,7 +304,7 @@ isArray  = foldRuntime (const lFalse) (const lTrue) (const lFalse)
 
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc r = f r where
-  f n@(Num _)         = fn n
+  f n@(Number _)         = fn n
   f p@(Pointer _)     = fp p
   f c@(Closure _ _ _) = fc c
 
@@ -217,18 +315,4 @@ showArrayPure :: [Runtime] -> Runtime -> String
 showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
   (size, arr) = getArrayPure mem i 
   body = join $ intersperse "," (show <$> arr)
-
--- Examples:
-zero = LitInt 0
-one = LitInt 1
-f = Var "f"
-g = Var "g"
-x = Var "x"
-lambdaExample rec = Lambda ["x"] ifExample where
-  beginExample = Begin (PrimFunE $ Print x) (App rec [PrimFunE $ Sub x one])
-  ifExample = IfStatement (PrimFunE $ EqualTo x zero) x beginExample
-letrecExample = LetRec [("f", lambdaExample g), ("g", lambdaExample f)] $ App f [LitInt 15]
-
-k = Lambda ["x"] (Lambda ["y"] (Var "x"))
-capturing = Let [("y", LitInt 100)] $ App (App k [(Var "y")]) [(LitInt 10)]
-noncapturing = App (App (Lambda ["a"] (Lambda ["b"] (Var "a"))) [(Var "y")]) [(LitInt 10)]
+-}

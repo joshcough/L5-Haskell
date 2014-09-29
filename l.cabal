@@ -53,6 +53,7 @@ library
     -- L3
     L.L3.L3
     L.L3.L3AST
+    L.L3.L3Interp
     L.L3.L3Parser
     L.L3.Linearize
     -- L4
@@ -86,6 +87,7 @@ library
     semigroups                >= 0.8.3.1 && < 1,
     unordered-containers      >= 0.2.5.0,
     utf8-string               >= 0.3.6   && < 0.4,
+    utility-ht                >= 0.0.10,
     vector                    >= 0.10.0.1,
     void                      >= 0.6.1
 
