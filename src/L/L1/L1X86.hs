@@ -1,18 +1,11 @@
 module L.L1.L1X86 (genX86Code) where
 
-import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Error
-import Data.List
 import Data.Traversable
 import L.L1L2AST
-import L.L1L2Parser
-import L.IOHelpers
 import L.OS
-import L.Read
 import L.Utils
-import System.Environment 
-import System.IO
 
 -- X86 Generation code
 type X86Inst     = String
@@ -58,10 +51,10 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst (Goto s)           = return [jumpToLabel s]
   genInst (TailCall s)       = return [jump s]
   -- special case for two numbers
-  genInst (CJump (Comp l@(NumberL1S n1) op r@(NumberL1S n2)) l1 l2) =
+  genInst (CJump (Comp (NumberL1S n1) op (NumberL1S n2)) l1 l2) =
     return $ if (cmp op n1 n2) then [jumpToLabel l1] else [jumpToLabel l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
-  genInst (CJump (Comp l@(NumberL1S n) op r@(RegL1S _)) l1 l2) = return [
+  genInst (CJump (Comp l@(NumberL1S _) op r@(RegL1S _)) l1 l2) = return [
     triple "cmpq" (genS l) (genS r),
     foldOp (jumpIfGreater l1) (jumpIfGreaterOrEqual l1) (jumpIfEqual l1) op,
     jumpToLabel l2 ]
@@ -96,16 +89,16 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     return $ genCompInst cx l r (foldOp "setg" "setge" "sete" op)
   genAssignInst cx (CompRHS (Comp l@(RegL1S _)    op r@(NumberL1S _))) =
     return $ genCompInst cx r l (setInstruction op)
-  genAssignInst cx (CompRHS (Comp l@(NumberL1S n1) op r@(NumberL1S n2))) =
+  genAssignInst cx (CompRHS (Comp (NumberL1S n1) op (NumberL1S n2))) =
     return [triple "movq" ("$" ++ (if (cmp op n1 n2) then "1" else "0")) (genReg cx)]
-  genAssignInst rax (Print s) = return [
+  genAssignInst Rax (Print s) = return [
     triple "movq" (genS s) (genReg rdi),
     "call _print" ]
-  genAssignInst rax (Allocate s n) = return [
+  genAssignInst Rax (Allocate s n) = return [
     triple "movq" (genS s) (genReg rdi),
     triple "movq" (genS n) (genReg rsi),
     "call _allocate" ]
-  genAssignInst rax (ArrayError s n) = return [
+  genAssignInst Rax (ArrayError s n) = return [
     triple "movq" (genS s) (genReg rdi),
     triple "movq" (genS n) (genReg rsi),
     "call _print_error" ]
@@ -117,14 +110,15 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "movzbq" (low8 cx) (genReg cx) ]
     where low8 cx = "%" ++ [show cx !! 1] ++ "l"
   
-  declare l@(':' : label) = showLabel label ++ ":"
-  declare x = error $ "bad label: " ++ x
+  declare (':' : label) = showLabel label ++ ":"
+  declare l = badLabel l
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2
   genReg :: Register -> String
   genReg r = "%" ++ show r
   genS :: L1S -> String
   genS (NumberL1S i)         = "$" ++ show i
   genS (LabelL1S  (':' : l)) = "$" ++ showLabel l
+  genS (LabelL1S  l        ) = badLabel l
   genS (RegL1S    r)         = genReg r
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
@@ -133,7 +127,8 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   jump (NumberL1S n) = error $ "bad jump to literal number: " ++ show n
 
   jumpToLabel :: Label -> String
-  jumpToLabel l@(':' : label) = "jmp " ++ showLabel label
+  jumpToLabel (':' : label) = "jmp " ++ showLabel label
+  jumpToLabel l = badLabel l
 
   call :: L1S -> String
   call (RegL1S reg) = "call *" ++ genReg reg
@@ -141,14 +136,23 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   call x = error $ "bad call: " ++ show x
 
   callLabel :: Label -> String
-  callLabel l@(':' : label) = "call " ++ showLabel label
+  callLabel (':' : label) = "call " ++ showLabel label
+  callLabel l = badLabel l
 
   setInstruction = foldOp "setl" "setle" "sete"
+
+  badLabel :: String -> a
+  badLabel l = error $ "bad label: " ++ l
   
-  jumpIfLess            l@(':' : label) = "jl "  ++ showLabel label
-  jumpIfLessThanOrEqual l@(':' : label) = "jle " ++ showLabel label
-  jumpIfGreater         l@(':' : label) = "jg "  ++ showLabel label
-  jumpIfGreaterOrEqual  l@(':' : label) = "jge " ++ showLabel label
-  jumpIfEqual           l@(':' : label) = "je "  ++ showLabel label
+  jumpIfLess            (':' : label) = "jl "  ++ showLabel label
+  jumpIfLess l = badLabel l
+  jumpIfLessThanOrEqual (':' : label) = "jle " ++ showLabel label
+  jumpIfLessThanOrEqual l = badLabel l
+  jumpIfGreater         (':' : label) = "jg "  ++ showLabel label
+  jumpIfGreater l = badLabel l
+  jumpIfGreaterOrEqual  (':' : label) = "jge " ++ showLabel label
+  jumpIfGreaterOrEqual l = badLabel l
+  jumpIfEqual           (':' : label) = "je "  ++ showLabel label
+  jumpIfEqual l = badLabel l
 
   showLabel l = (if os == Darwin then "_" else "") ++ "L1_" ++ l 

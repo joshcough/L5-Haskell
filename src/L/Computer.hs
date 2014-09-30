@@ -7,17 +7,14 @@
 
 module L.Computer where
 
-import Control.Applicative
 import Control.Lens hiding (set)
 import Data.Bits
 import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe
-import Data.Tuple
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import Debug.Trace
+--import Debug.Trace
 import L.L1L2AST hiding (registers)
 import L.Utils
 
@@ -58,11 +55,15 @@ instance Show a => Show (Computer a) where
 showComputerOutput :: Computer a -> String
 showComputerOutput c = mkString "" $ reverse (c^.output)
 
+oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
 twoMeg = oneMeg * 2
-memSize = 2048 :: Int -- twoMeg
+memSize = 2048  -- twoMeg
+rspStart :: Int64
 rspStart = fromIntegral memSize * 8
-zero = 0 :: Int64
+zero :: Int64
+zero = 0
+registerStartState :: Map Register Int64
 registerStartState = Map.fromList [
  (rax, zero),
  (rbx, zero),
@@ -80,10 +81,11 @@ registerStartState = Map.fromList [
  (rsi, zero),
  (rbp, zero),
  (rsp, rspStart) ]
+emptyMem :: Vector Int64
 emptyMem = Vector.replicate memSize zero
 
 newComputer :: Program x s -> Computer (Instruction x s)
-newComputer p@(Program main fs) = Computer { 
+newComputer p = Computer { 
   _registers = registerStartState,
   _memory    = emptyMem,
   _program   = Vector.fromList insts,
@@ -92,7 +94,7 @@ newComputer p@(Program main fs) = Computer {
   _ip        = 0,
   _heapP     = 0,
   _halted    = False 
-} where insts  = programToList p
+} where insts = programToList p
 
 -- set the value of a register to an int value
 writeReg :: Register -> Int64 -> Computer a -> Computer a
@@ -167,6 +169,7 @@ allocate size n c =
 --   else it's an array, print the contents of the array (and recur)
 print :: Int64 -> Computer a -> Computer a
 print n c = addOutput (printContent n 0 ++ "\n") c where
+  printContent :: Int64 -> Int -> String
   printContent n depth
     | depth >= 4   = "..."
     | n .&. 1 == 1 = show $ shiftR n 1
@@ -196,14 +199,18 @@ goto :: Ip -> Computer a -> Computer a
 goto m c = c & ip .~ m
 addOutput :: String -> Computer a -> Computer a
 addOutput s c = c & output %~ (s:)
+haltWith :: String -> Computer a -> Computer a
 haltWith msg c = c & addOutput msg & halted .~ True
+halt :: HasComputer b a => b -> b
 halt c = c & halted .~ True
+currentInst :: HasComputer s a => s -> a
 currentInst c = go where
   ip' :: Int
   ip' = fromIntegral $ c^.ip
   go | ip' < memSize = (c^.program) Vector.! ip'
      | otherwise     = error $ "instruction out of bounds: " ++ show ip'
 
+hasNextInst :: HasComputer s a => s -> Bool
 hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
 -- advance the computer to the next instruction
 nextInst :: Computer a -> Computer a

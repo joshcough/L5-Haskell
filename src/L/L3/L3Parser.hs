@@ -13,10 +13,10 @@ l3ParseError msg exp = Left $ concat ["L3 Parse Error: '", msg, "' in: ", show e
 -- p ::= (e (l (x ...) e) ...)
 parseL3 :: SExpr -> ParseResult L3
 parseL3 (List (main : funcs)) = liftM2 L3 (parseE main) (traverse parseFunction funcs)
-parse bad = l3ParseError "bad L3-program" bad
+parseL3 bad = l3ParseError "bad L3-program" bad
 
 parseLabel :: SExpr -> ParseResult Label
-parseLabel (AtomSym l@(':' : name)) = Right $ l
+parseLabel (AtomSym l@(':' : _)) = Right $ l
 parseLabel bad = l3ParseError "bad L3-label" bad
 
 -- (l (x ...) e)
@@ -27,12 +27,13 @@ parseFunction (List [l, args, e]) = liftM3 Func (parseLabel l) (parseArgs args) 
   parseArgs bad = l3ParseError "bad L3 argument list" bad
 parseFunction bad = l3ParseError "bad L3-function" bad
 
+parseArg :: SExpr -> Either String String
 parseArg (AtomSym s) = Right s
 parseArg bad = l3ParseError "bad L3-variable" bad
 
 -- v :: = x | l | num
 parseV :: SExpr -> ParseResult V
-parseV (AtomSym l@(':' : name)) = Right $ LabelV l
+parseV (AtomSym l@(':' : _)) = Right $ LabelV l
 parseV (AtomSym v) = Right $ VarV v
 parseV (AtomNum n) = Right $ NumV (fromIntegral n)
 parseV bad         = l3ParseError "bad L3-V" bad

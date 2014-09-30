@@ -2,14 +2,10 @@ module L.L3.L3Interp (runInterpL3) where
 
 import Control.Applicative
 import Control.Monad.State
-import Control.Monad.Trans
-import Data.Foldable hiding (concat)
 import Data.Int
-import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import qualified Data.Sequence as Seq
 import Data.Traversable
 import Data.Tuple.HT
 import L.L1L2AST hiding (Func)
@@ -38,8 +34,10 @@ getLib = snd <$> get
 getMem :: M Mem
 getMem = snd3 . fst <$> get
 -- | write the memory back to the state
+putMem :: Mem -> M ()
 putMem m = do ((e, _, o), l) <- get; put ((e, m, o), l)
 -- | add some output
+addOutput :: String -> M ()
 addOutput s = do ((e, m, o), l) <- get; put ((e, m, s:o), l)
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
@@ -52,21 +50,22 @@ locally modifyEnv action = do
   return res where
   putEnv e = do ((_, m, o), l) <- get; put ((e, m, o), l)
 
+lTrue, lFalse :: Runtime
 lTrue  = Number 1
 lFalse = Number 0
 defaultHeapSize :: Int64
 defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
 emptyMem :: Int64 -> IO Mem
 emptyMem heapSize = do
-  mem <- IOArray.newArray (0, heapSize - 1) (Number $ fromIntegral 0)
-  return (mem, fromIntegral 0)
+  mem <- IOArray.newArray (0 :: Int64, heapSize - 1) (Number (0 :: Int64))
+  return (mem, 0 :: Int64)
 
 -- | top level entry point (interprets e, and runs the monadic action)
 runInterpL3 :: L3 -> IO Runtime
 runInterpL3 = runInterpL3' defaultHeapSize 
 
 runInterpL3' :: Int64 -> L3 -> IO Runtime
-runInterpL3' heapSize p@(L3 e fs) = do
+runInterpL3' heapSize (L3 e fs) = do
   mem <- emptyMem heapSize
   let lib = Map.fromList $ fmap (\f -> (name f, f)) fs--(zip fs $ fmap (*2) [0..])
   evalStateT (interpE e) ((Map.empty, mem, []),lib)

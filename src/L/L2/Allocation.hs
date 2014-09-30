@@ -1,7 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 module L.L2.Allocation (allocate) where
 
-import Control.Applicative
 import Control.Lens
 import Control.Monad.State
 import Data.List
@@ -10,7 +9,6 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Debug.Trace
 import L.L1L2AST
 import L.L2.Interference
 import L.L2.Liveness
@@ -39,7 +37,7 @@ allocate f = Func finalL1Body where
     really necessary.
    -}
   label = case allocatedBody !! 0 of
-    l@(LabelDeclaration x) -> l
+    l@(LabelDeclaration _) -> l
     _ -> LabelDeclaration ":main"
 
   {-
@@ -62,9 +60,9 @@ allocate f = Func finalL1Body where
     resetStackPointer puts that increment in front of all returns in the function.
    -}
   resetStackPointer insts = insts >>= f where
-    f r@Return      = [incEsp, r]
-    f t@(TailCall l) = [incEsp, t]
-    f i             = [i]
+    f r@Return       = [incEsp, r]
+    f t@(TailCall _) = [incEsp, t]
+    f i              = [i]
 
   {-
     Here, we put all the parts together into one function
@@ -114,11 +112,13 @@ allocateCompletely body = let
  -}
 
 -- TODO: this stuff should be someplace better than this
+regSet :: Set Register
 regSet = Set.fromList allocatableRegisters
+getRegisters :: Set L2X -> Set Register
 getRegisters s = Set.fromList [ r | RegL2X r <- Set.toList s ]
 
 attemptAllocation :: Interference -> Maybe (Map Variable Register)
-attemptAllocation i@(Interference g) = let
+attemptAllocation (Interference g) = let
     vs = vars g
     pairings :: Map Variable Register
     pairings = foldl (findMatch g) Map.empty (Set.toList vs) -- TODO: sort list here

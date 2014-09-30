@@ -1,10 +1,7 @@
 module L.NativeRunner where
 
 import L.IOHelpers
-import L.Utils
 import System.Cmd
-import System.Environment 
-import System.IO
 
 runSCodeNative :: String -> FilePath -> String -> IO String
 runSCodeNative name outputDir sCode = do

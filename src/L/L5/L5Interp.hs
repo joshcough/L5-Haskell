@@ -3,20 +3,16 @@ module L.L5.L5Interp
     interp
    ,runInterp
    ,locally
-   ,letrecExample
    ,getMem
   )
 where
 
 import Control.Applicative
 import Control.Monad.State
-import Control.Monad.Trans
-import Data.Foldable
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import qualified Data.Sequence as Seq
 import Data.Traversable
 import L.L5.L5AST
 import Data.Array.IO (IOArray)
@@ -37,8 +33,10 @@ type M x = StateT (Env, Mem) IO x
 getMem :: M Mem
 getMem = snd <$> get
 -- | get the env out of the state
+getEnv :: M Env
 getEnv = fst <$> get
 -- | write the memory back to the state
+putMem :: Mem -> M ()
 putMem m = do (e, _) <- get; put (e, m)
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
@@ -51,6 +49,7 @@ locally modifyEnv action = do
   return res where
   putEnv e = do (_, m) <- get; put (e, m)
 
+defaultHeapSize :: Int
 defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
 emptyMem :: Int -> IO Mem
 emptyMem heapSize = do
@@ -58,6 +57,7 @@ emptyMem heapSize = do
   return (mem, 0)
 
 -- | top level entry point (interprets e, and runs the monadic action)
+runInterp :: E -> IO Runtime
 runInterp = runInterpH defaultHeapSize 
 
 runInterpH :: Int -> E -> IO Runtime
@@ -73,6 +73,7 @@ interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> v
 interp (LetRec ves body)   = locally newEnv (interp body) where
   newEnv old = new where new = Map.union (Map.fromList (toClosure <$> ves)) old 
                          toClosure (v, Lambda vs e) = (v, Closure vs e new)
+                         toClosure (v, e) = error $ "non-lambda in letrec: " ++ show (v, e)
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
@@ -138,10 +139,11 @@ makeHeapArray size rs = do
   (mem, hp) <- getMem
   _         <- lift $ writeArrayIntoHeap mem hp (Pointer hp : rs)
   _         <- putMem (mem, hp + size)
-  return $ Pointer hp where
-  writeArrayIntoHeap :: IOArray Int Runtime -> Int -> [Runtime] -> IO [()]
-  writeArrayIntoHeap mem hp rs = 
-    Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs 
+  return $ Pointer hp
+
+writeArrayIntoHeap :: IOArray Int Runtime -> Int -> [Runtime] -> IO [()]
+writeArrayIntoHeap mem hp rs = 
+  Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs 
 
 -- makes an array of size e1 with each slot filled with e2
 newArray :: E -> E -> M Runtime
@@ -179,8 +181,9 @@ getHeapList = fst <$> getMem >>= lift . IOArray.getElems
 showRuntime :: Runtime -> M String
 showRuntime r = showRuntimePure <$> getHeapList <*> return r
 
-showArray :: Int -> M String
-showArray i = showArrayPure <$> getHeapList <*> return (Pointer i)
+--TODO: this isn't used, so why is it here? should it be removed?
+--showArray :: Int -> M String
+--showArray i = showArrayPure <$> getHeapList <*> return (Pointer i)
 
 -- Pure Code
 
@@ -196,9 +199,11 @@ getArrayPure mem i = (size, arr) where
   arr        = take size $ drop 1 view
 
 -- | True for the L5 programming language
-lTrue  = Num 0
--- | False for L5, this cant be tested for equality, because everything other than 0 is false.
-lFalse = Num 1 
+lTrue :: Runtime
+lTrue  = Num 1
+-- | False for L5, this cant be tested for equality, because everything other than 1 is false.
+lFalse :: Runtime
+lFalse = Num 0 
 
 isNumber, isArray :: Runtime -> Runtime
 isNumber = foldRuntime (const lTrue) (const lFalse) (const lFalse)
@@ -217,8 +222,10 @@ showArrayPure :: [Runtime] -> Runtime -> String
 showArrayPure mem (Pointer i) = "{s:" ++ show size ++ "," ++ body ++ "}" where
   (size, arr) = getArrayPure mem i 
   body = join $ intersperse "," (show <$> arr)
+showArrayPure _ e = error $ "impossible (showArrayPure called with: " ++ show e ++ ")" 
 
 -- Examples:
+{-
 zero = LitInt 0
 one = LitInt 1
 f = Var "f"
@@ -232,3 +239,4 @@ letrecExample = LetRec [("f", lambdaExample g), ("g", lambdaExample f)] $ App f 
 k = Lambda ["x"] (Lambda ["y"] (Var "x"))
 capturing = Let [("y", LitInt 100)] $ App (App k [(Var "y")]) [(LitInt 10)]
 noncapturing = App (App (Lambda ["a"] (Lambda ["b"] (Var "a"))) [(Var "y")]) [(LitInt 10)]
+-}

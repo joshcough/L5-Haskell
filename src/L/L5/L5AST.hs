@@ -30,3 +30,6 @@ data E =
   | LitInt Int
   | PrimFunE PrimFun
   deriving Eq
+
+instance Show E where
+  show e = "todo"

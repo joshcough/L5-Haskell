@@ -13,13 +13,10 @@ module L.L2.Liveness
    ,showLiveness
   ) where
 
-import Control.Lens hiding (index)
-import Control.Monad
-import Data.Int
 import Data.List
-import Data.Maybe
-import qualified Data.Map as M
-import qualified Data.Set as S
+import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import L.L1L2AST
 import L.L1L2Parser
 import L.IOHelpers (mapFileContents, withFileArg)
@@ -27,66 +24,67 @@ import L.Read
 import L.Utils
 
 data InstructionInOutSet = InstructionInOutSet {
-  index  :: Int,       inst    :: L2Instruction,
-  genSet :: S.Set L2X, killSet :: S.Set L2X,
-  inSet  :: S.Set L2X, outSet  :: S.Set L2X
+  index  :: Int,     inst    :: L2Instruction,
+  genSet :: Set L2X, killSet :: Set L2X,
+  inSet  :: Set L2X, outSet  :: Set L2X
 } deriving (Eq)
 
 type IIOS = InstructionInOutSet
 
 showLiveness :: [IIOS] -> String
 showLiveness is = 
-  let go :: (IIOS -> S.Set L2X) -> String
-      go f = mkString " " $ fmap (showAsList . fmap show) (fmap (S.toList . f) is) 
+  let go :: (IIOS -> Set L2X) -> String
+      go f = mkString " " $ fmap (showAsList . fmap show) (fmap (Set.toList . f) is) 
   in "((in " ++ go inSet ++ ") (out " ++ go outSet ++ "))" 
 
-calleeSave      = S.fromList [rbx, rbp, r12, r13, r14]
-callerSave      = S.fromList [rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11]
-arguments       = S.fromList [rdi, rsi, rdx, rcx, r8, r9]
-returnRegisters = S.fromList [rax]
+calleeSave, callerSave, arguments, returnRegisters :: (AsRegister a, Ord a) => Set a
+calleeSave      = Set.fromList [rbx, rbp, r12, r13, r14]
+callerSave      = Set.fromList [rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11]
+arguments       = Set.fromList [rdi, rsi, rdx, rcx, r8, r9]
+returnRegisters = Set.fromList [rax]
 
 -- generate the gen set for an instruction
 -- (what things are alive during that instruction)
-gen :: L2Instruction -> S.Set L2X
+gen :: L2Instruction -> Set L2X
 gen i = genI i where
 
-  genI :: L2Instruction -> S.Set L2X
-  genI (Assign x rhs)             = genRHS rhs
-  genI (MathInst x _ s)           = S.unions [genX x,  genS s]
-  genI (MemWrite (MemLoc bp _) s) = S.unions [genX bp, genS s]
-  genI (Goto s)                   = S.empty
-  genI (CJump (Comp s1 _ s2) _ _) = S.unions [genS s1, genS s2]
-  genI (LabelDeclaration _)       = S.empty
-  genI (Call s)                   = S.unions [genS s,  arguments]
-  genI (TailCall s)               = S.unions [genS s,  arguments, calleeSave]
-  genI Return                     = S.unions [returnRegisters, calleeSave]
+  genI :: L2Instruction -> Set L2X
+  genI (Assign _ rhs)             = genRHS rhs
+  genI (MathInst x _ s)           = Set.unions [genX x,  genS s]
+  genI (MemWrite (MemLoc bp _) s) = Set.unions [genX bp, genS s]
+  genI (Goto _)                   = Set.empty
+  genI (CJump (Comp s1 _ s2) _ _) = Set.unions [genS s1, genS s2]
+  genI (LabelDeclaration _)       = Set.empty
+  genI (Call s)                   = Set.unions [genS s,  arguments]
+  genI (TailCall s)               = Set.unions [genS s,  arguments, calleeSave]
+  genI Return                     = Set.unions [returnRegisters, calleeSave]
 
-  genX :: L2X -> S.Set L2X
-  genX r = S.fromList [r]
+  genX :: L2X -> Set L2X
+  genX r = Set.fromList [r]
 
-  genS :: L2S -> S.Set L2X
+  genS :: L2S -> Set L2X
   genS (XL2S x)        = genX x
-  genS (NumberL2S n)   = S.empty
-  genS (LabelL2S l)    = S.empty
+  genS (NumberL2S _)   = Set.empty
+  genS (LabelL2S _)    = Set.empty
   
-  genRHS :: AssignRHS L2X L2S -> S.Set L2X
-  genRHS (CompRHS (Comp s1 _ s2)) = S.unions [genS s1, genS s2]
-  genRHS (Allocate n init)        = S.unions [genS n,  genS init]
+  genRHS :: AssignRHS L2X L2S -> Set L2X
+  genRHS (CompRHS (Comp s1 _ s2)) = Set.unions [genS s1, genS s2]
+  genRHS (Allocate n init)        = Set.unions [genS n,  genS init]
   genRHS (Print s)                = genS s
-  genRHS (ArrayError a n)         = S.unions [genS a,  genS n]
+  genRHS (ArrayError a n)         = Set.unions [genS a,  genS n]
   genRHS (MemRead (MemLoc bp _))  = genX bp
   genRHS (SRHS s)                 = genS s
 
 -- generate the kill set for an instruction
--- (everthing that is overwritten during that instruction)
-kill :: L2Instruction -> S.Set L2X
-kill (Assign x (Print s))         = S.insert x callerSave
-kill (Assign x (Allocate a init)) = S.insert x callerSave
-kill (Assign x (ArrayError a n))  = S.insert x callerSave
-kill (Assign x _)                 = S.fromList [x]
-kill (MathInst x _ _)             = S.fromList [x]
-kill (Call s)                     = S.unions [callerSave, returnRegisters]
-kill _                            = S.empty
+-- (everything that is overwritten during that instruction)
+kill :: L2Instruction -> Set L2X
+kill (Assign x (Print _))         = Set.insert x callerSave
+kill (Assign x (Allocate _ _))    = Set.insert x callerSave
+kill (Assign x (ArrayError _ _))  = Set.insert x callerSave
+kill (Assign x _)                 = Set.fromList [x]
+kill (MathInst x _ _)             = Set.fromList [x]
+kill (Call _)                     = Set.unions [callerSave, returnRegisters]
+kill _                            = Set.empty
 
 -- calculate the liveness for a list of instructions
 liveness :: [L2Instruction] -> [IIOS]
@@ -123,33 +121,34 @@ inout is =
       instructionsWithIndex = zipWithIndex is
       -- TODO: i think this map is busted because there could be two equal instructions
       -- it's only used to find label declarations too... this should be easier.
-      indeces = M.fromList instructionsWithIndex
+      indeces = Map.fromList instructionsWithIndex
       findLabelDecIndex :: Label -> Int
       findLabelDecIndex l = 
-        maybe (error $ "no such label: " ++ l) id (M.lookup (LabelDeclaration l) indeces) 
-      succIndeces :: [S.Set Int]
+        maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) indeces) 
+      succIndeces :: [Set Int]
       succIndeces = fmap succIndeces_ instructionsWithIndex where
-        succIndeces_ :: (L2Instruction, Int) -> S.Set Int
+        succIndeces_ :: (L2Instruction, Int) -> Set Int
         succIndeces_ (i, n) = case i of
-          Return                    -> S.empty
-          TailCall _                -> S.empty
-          Assign _ (ArrayError _ _) -> S.empty
-          Goto label                -> S.singleton $ findLabelDecIndex label
-          CJump _ l1 l2             -> S.fromList [findLabelDecIndex l1, findLabelDecIndex l2]
+          Return                    -> Set.empty
+          TailCall _                -> Set.empty
+          Assign _ (ArrayError _ _) -> Set.empty
+          Goto label                -> Set.singleton $ findLabelDecIndex label
+          CJump _ l1 l2             -> Set.fromList [findLabelDecIndex l1, findLabelDecIndex l2]
           -- we have to test that there is something after this instruction
           -- in case the last instruction is something other than return or cjump
           -- i think that in normal functions this doesn't happen but the hw allows it.
-          _ -> if (nrInstructions > (n + 1)) then  S.singleton (n+1) else S.empty
+          _ -> if (nrInstructions > (n + 1)) then  Set.singleton (n+1) else Set.empty
       step :: [IIOS] -> [IIOS]
       step current = fmap step_ current where
         step_ :: IIOS -> IIOS
         step_ i =
               -- in(n) = gen(n-th-inst) ∪ (out (n) - kill(n-th-inst))
-          let newIn :: S.Set L2X
-              newIn = S.union (genSet i) ((outSet i) S.\\ (killSet i))
+          let newIn :: Set L2X
+              newIn = Set.union (genSet i) ((outSet i) Set.\\ (killSet i))
               -- out(n) = ∪{in(m) | m ∈ succ(n)}
-              newOut :: S.Set L2X
-              newOut = S.fromList $ (fmap (current !!) $ S.toList (succIndeces !! (index i))) >>= S.toList . inSet
+              newOut :: Set L2X
+              newOut = Set.fromList $ (fmap (current !!) $ 
+                         Set.toList (succIndeces !! (index i))) >>= Set.toList . inSet
           in InstructionInOutSet (index i) (inst i) (genSet i) (killSet i) newIn newOut
       -- does the next round of moving things up the in/out chains.
       -- recurs until the result is the same as what we've got so far.
@@ -162,12 +161,13 @@ inout is =
       -- start out with empty in and out sets for all instructions
       --emptyStartSet :: (Eq a, Ord a) => [IIOS]
       emptyStartSet = fmap f instructionsWithIndex where
-        f (inst, index) = InstructionInOutSet index inst (gen inst) (kill inst) S.empty S.empty
+        f (inst, index) = InstructionInOutSet index inst (gen inst) (kill inst) Set.empty Set.empty
   -- then fill them in until we reach the fixed point.
   in inout_ [emptyStartSet]
 
 -- TODO: not using usages just yet, but it should be used in ties.
 data LiveRange = LiveRange { x :: L2X, range :: Int, usages :: Int }
+lr :: L2X -> Int -> LiveRange
 lr x r = LiveRange x r 0
 instance Eq LiveRange where
   (==) (LiveRange _ r1 _) (LiveRange _ r2 _) = r1 == r2
@@ -176,19 +176,19 @@ instance Ord LiveRange where
 
 liveRanges :: [IIOS] -> [[LiveRange]]
 liveRanges iioss =
-  let inSets :: [S.Set L2X]
+  let inSets :: [Set L2X]
       inSets = fmap inSet iioss
       varsAndRegisters :: [L2X]
-      varsAndRegisters = sort . S.toList $ foldl f S.empty inSets where
+      varsAndRegisters = sort . Set.toList $ foldl f Set.empty inSets where
         f acc s = error "todo"
 -- val variablesAndRegisters = inSets.foldLeft(Set[X]()){
 --   -      case (acc, s) => acc union s
 --   -      -    }.filterNot(x => x == ebp || x == esp)
 --   -
-      liveRanges1 :: L2X -> [S.Set L2X] -> [LiveRange]
+      liveRanges1 :: L2X -> [Set L2X] -> [LiveRange]
       liveRanges1 _ [] = []
       liveRanges1 x sets@(s:_)
-        | S.member x s = case span (S.member x) sets
+        | Set.member x s = case span (Set.member x) sets
           of (h, t) -> (lr x $ length h) : liveRanges1 x t
-        | otherwise    = liveRanges1 x $ dropWhile (not . S.member x) sets 
+        | otherwise    = liveRanges1 x $ dropWhile (not . Set.member x) sets 
   in fmap (flip liveRanges1 inSets) varsAndRegisters

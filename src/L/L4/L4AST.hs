@@ -1,8 +1,5 @@
 module L.L4.L4AST where
 
-import Control.Applicative
-import Data.Int
-import Data.List (intersperse)
 import L.Read (showAsList)
 import L.L1L2AST (Variable, Label)
 import L.L3.L3AST (Biop, Pred, V)
@@ -36,6 +33,7 @@ instance Show E where
   show (ARef a loc)          = showAsList ["aref",  show a, show loc]
   show (ASet a loc e)        = showAsList ["aset",  show a, show loc, show e]
   show (ALen a)              = showAsList ["aref",  show a]
+  show (Begin e1 e2)         = showAsList ["begin", show e1, show e2]
   show (Print e)             = showAsList ["print", show e]
   show (MakeClosure l e)     = showAsList ["make-closure", l, show e]
   show (ClosureProc e)       = showAsList ["closure-proc", show e]

@@ -18,4 +18,5 @@ l3Language  = Language
 compileL3ToL2 :: L3 -> L2
 compileL3ToL2 = linearize
 
+interpL3 :: L3 -> String
 interpL3 = interpL2 . compileL3ToL2

@@ -14,7 +14,6 @@ import Control.Monad
 import Data.Traversable
 import L.Read
 import L.L1L2AST
-import L.Utils
 
 data Parser x s = Parser {
   level  :: String,
@@ -23,35 +22,36 @@ data Parser x s = Parser {
 }
 
 parseError :: String -> Parser x s -> String -> Either String a
-parseError  msg p exp = Left $ concat [level p, " Parse Error: '", msg, "' in: ", show exp]
+parseError  msg p expr = Left $ concat [level p, " Parse Error: '", msg, "' in: ", show expr]
 parseError_ :: String -> Parser x s -> SExpr -> Either String a
-parseError_ msg p exp = parseError msg p (show exp)
+parseError_ msg p expr = parseError msg p (show expr)
 
 parseProgram :: Parser x s -> SExpr -> ParseResult (Program x s)
 parseProgram p (List ((List main) : funcs)) =
   liftM2 Program (parseMain p main) (traverse (parseFunction p) funcs)
-parse p bad = parseError_ "bad program" p bad
+parseProgram p bad = parseError_ "bad program" p bad
 
 parseMain :: Parser x s -> [SExpr] -> ParseResult (Func x s)
 parseMain p exps = do
-  body <- traverse (parseI p) exps
-  return $ Func $ (LabelDeclaration ":main") : body
+  bdy <- traverse (parseI p) exps
+  return $ Func $ (LabelDeclaration ":main") : bdy
 
 parseFunction :: Parser x s -> SExpr -> ParseResult (Func x s)
 parseFunction p (List ((AtomSym name) : exps)) = do
-  body <- traverse (parseI p) exps
+  bdy   <- traverse (parseI p) exps
   label <- parseLabel name
-  return $ Func $ LabelDeclaration name : body
+  return $ Func $ LabelDeclaration label : bdy
+parseFunction p bad = parseError_ "bad function" p bad
 
 parseInstructionList :: Parser x s -> SExpr -> ParseResult [(Instruction x s)]
 parseInstructionList p (List exps) = traverse (parseI p) exps
 parseInstructionList p bad = parseError_ "not an instruction list" p bad
 
 parseI :: Parser x s -> SExpr -> ParseResult (Instruction x s)
-parseI p a@(AtomSym s) = LabelDeclaration <$> parseLabel s
+parseI _   (AtomSym s) = LabelDeclaration <$> parseLabel s
   
-parseI p a@(AtomNum n) = parseError_ "bad instruction" p a
-parseI p l@(List ss) = case (flatten l) of
+parseI p a@(AtomNum _) = parseError_ "bad instruction" p a
+parseI p list@(List _) = case flatten list of
   [x, "<-", "print", s] -> liftM2 Assign (parseX p x) (Print <$> parseS p s)
   [x, "<-", "allocate", s1, s2] ->
     liftM2 Assign (parseX p x) (liftM2 Allocate (parseS p s1) (parseS p s2))
@@ -72,7 +72,7 @@ parseI p l@(List ss) = case (flatten l) of
   ["call", s] -> Call <$> parseS p s
   ["tail-call", s] -> TailCall <$> parseS p s
   ["return"]       -> Right Return
-  _ -> parseError_ "bad instruction" p l
+  _ -> parseError_ "bad instruction" p list
   {-
   I wanted these at the bottom, but had to move them to the top
   because of some weird compiler error.
@@ -110,22 +110,30 @@ l1Parser :: Parser L1X L1S
 l1Parser = Parser "L1" registerFromName (liftParser parseL1S) where
   parseL1S (AtomNum n) = Right $ NumberL1S (fromIntegral n)
   parseL1S (AtomSym s) = parseLabelOrRegister LabelL1S RegL1S s
+  parseL1S bad         = parseError_ "bad L1 S" l1Parser bad
 
+parseL1 :: SExpr -> ParseResult L1
 parseL1 = parseProgram l1Parser
+parseL1OrDie :: SExpr -> L1
 parseL1OrDie = (either error id) . parseL1
+parseL1InstList :: SExpr -> ParseResult [L1Instruction]
 parseL1InstList = parseInstructionList l1Parser
 
 -- L2 Parser (uses shared L1/L2 Parser)
 l2Parser :: Parser L2X L2S
-l2Parser = Parser "L2" (parseX VarL2X RegL2X) (liftParser parseL2S) where
-  parseX v r s = Right $ either (\_ -> v s) r (registerFromName s)
+l2Parser = Parser "L2" (parseL2X VarL2X RegL2X) (liftParser parseL2S) where
+  parseL2X v r s       = Right $ either (\_ -> v s) r (registerFromName s)
   parseL2S (AtomNum n) = Right $ NumberL2S (fromIntegral n)
   parseL2S (AtomSym s) = either 
-    (\_-> parseX (XL2S . VarL2X) (XL2S . RegL2X) s)
+    (\_-> parseL2X (XL2S . VarL2X) (XL2S . RegL2X) s)
     Right
     (parseLabelOrRegister LabelL2S (XL2S . RegL2X) s)
+  parseL2S bad         = parseError_ "bad L2 S" l2Parser bad
 
+parseL2 :: SExpr -> ParseResult L2
 parseL2 = parseProgram l2Parser
+parseL2OrDie :: SExpr -> L2
 parseL2OrDie = (either error id) . parseL2
+parseL2InstList :: SExpr -> ParseResult [L2Instruction]
 parseL2InstList = parseInstructionList l2Parser
 

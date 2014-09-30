@@ -15,8 +15,8 @@ import L.L1L2AST
 import L.L1L2Parser
 import L.Read
 import L.Utils
-import Debug.Trace
 
+defaultSpillPrefix :: String
 defaultSpillPrefix = "spilled_var_"
 
 -- example input: ((x <- x)) x -4 s_
@@ -38,6 +38,10 @@ spillTest input = case (sreadWithRest input) of
 runSpillMain_ :: FilePath -> IO String
 runSpillMain_ = mapFileContents spillTest
 
+spillDef :: 
+  (Variable, Int) -> 
+  [L2Instruction] -> 
+  State Int [L2Instruction]
 spillDef (v,i) = spill defaultSpillPrefix (v, i)
 
 spill :: String -> (Variable, Int) -> [L2Instruction] -> State Int [L2Instruction]
@@ -69,10 +73,10 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
   withNewVarRW :: (L2X -> [L2Instruction]) -> State Int [L2Instruction]
   withNewVarRW f = fmap (\v -> readSpillVarInto v : (f v ++ [writeSpillVar v])) newVar
 
-  spillI (Assign x rhs)                 = spillAssignment x rhs
-  spillI (CJump c@(Comp s1 _ s2) l1 l2) = spillCJump c l1 l2 
-  spillI (MathInst x op s)              = spillMathInst x op s
-  spillI (MemWrite loc s)               = spillMemWrite loc s
+  spillI (Assign x rhs)               = spillAssignment x rhs
+  spillI (CJump c@(Comp _ _ _) l1 l2) = spillCJump c l1 l2 
+  spillI (MathInst x op s)            = spillMathInst x op s
+  spillI (MemWrite loc s)             = spillMemWrite loc s
   spillI (Call s)
     | s == spillVarS = withNewVarR $ \v -> [Call (XL2S v)]
     | otherwise = return [Call s]
@@ -103,7 +107,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
     | v == spillVarX = return [MemWrite memLoc s]
     | otherwise      = return [Assign v rhs]
   -- assignment to register from variable
-  spillAssignment r@(RegL2X _) rhs@(SRHS s@(XL2S v@(VarL2X _)))
+  spillAssignment r@(RegL2X _) rhs@(SRHS (XL2S v@(VarL2X _)))
     | v == spillVarX = return [Assign r $ MemRead memLoc]
     | otherwise      = return [Assign r rhs]
   -- assignment to register from register or number
@@ -125,7 +129,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
     -- (y <- (mem s_0 n)
     | v2 == spillVarX = withNewVarR $ \v -> [Assign v1 (MemRead (MemLoc v off))]
     | otherwise = return [Assign v1 read]
-  spillAssignment v1 c@(CompRHS comp@(Comp s1 op s2))
+  spillAssignment v1 c@(CompRHS (Comp s1 op s2))
     -- (x <- x < x) ... wtf
     -- (s_0 <- (mem ebp stackOffset))
     -- (s_1 <- s_0 < s_0)

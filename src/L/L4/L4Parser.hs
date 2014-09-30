@@ -14,10 +14,10 @@ l4ParseError msg exp = Left $ concat ["L4 Parse Error: '", msg, "' in: ", show e
 -- p ::= (e (l (x ...) e) ...)
 parseL4 :: SExpr -> ParseResult L4
 parseL4 (List (main : funcs)) = liftM2 L4 (parseE main) (traverse parseFunction funcs)
-parse bad = l4ParseError "bad L4-program" bad
+parseL4 bad = l4ParseError "bad L4-program" bad
 
 parseLabel :: SExpr -> ParseResult Label
-parseLabel (AtomSym l@(':' : name)) = Right $ l
+parseLabel (AtomSym l@(':' : _)) = Right $ l
 parseLabel bad = l4ParseError "bad L4-label" bad
 
 -- (l (x ...) e)
@@ -28,12 +28,13 @@ parseFunction (List [l, args, e]) = liftM3 Func (parseLabel l) (parseArgs args) 
   parseArgs bad = l4ParseError "bad L4 argument list" bad
 parseFunction bad = l4ParseError "bad L4-function" bad
 
+parseArg :: SExpr -> ParseResult String
 parseArg (AtomSym s) = Right s
 parseArg bad = l4ParseError "bad L4-variable" bad
 
 -- v :: = x | l | num
 parseV :: SExpr -> ParseResult V
-parseV (AtomSym l@(':' : rest)) = Right $ LabelV l
+parseV (AtomSym l@(':' : _)) = Right $ LabelV l
 parseV (AtomSym v) = Right $ VarV v
 parseV (AtomNum n) = Right $ NumV (fromIntegral n)
 parseV bad         = l4ParseError "bad L4-V" bad

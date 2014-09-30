@@ -11,7 +11,6 @@ import Control.Applicative
 import Control.Lens
 import Data.Bits
 import Data.Int
-import Data.Map (Map)
 import Data.Map as Map
 import Data.Tuple
 import L.Read (showAsList)
@@ -31,6 +30,7 @@ class AsRegister t where
 instance AsRegister Register where
   _Register = id
 
+rsi, rdi, rbp, rsp, rax, rbx, rcx, rdx, r8, r9, r10, r11, r12, r13, r14, r15 :: AsRegister t => t
 rsi = _Register # Rsi
 rdi = _Register # Rdi
 rbp = _Register # Rbp
@@ -86,6 +86,7 @@ labelIndices is = m where
 programToList :: (Program x s) -> [Instruction x s]
 programToList (Program main fs) = Prelude.concat $ fmap body $ main : fs
 
+increment, decrement, multiply, leftShift, rightShift, bitwiseAnd :: X86Op 
 increment  = Increment
 decrement  = Decrement
 multiply   = Multiply
@@ -93,6 +94,7 @@ leftShift  = LeftShift
 rightShift = RightShift
 bitwiseAnd = BitwiseAnd
 
+x86OpSymbol :: X86Op -> String
 x86OpSymbol Increment  = "+="
 x86OpSymbol Decrement  = "-="
 x86OpSymbol Multiply   = "*="
@@ -100,6 +102,7 @@ x86OpSymbol LeftShift  = "<<="
 x86OpSymbol RightShift = ">>="
 x86OpSymbol BitwiseAnd = "&="
 
+x86OpName :: X86Op -> String
 x86OpName Increment  = "addq"
 x86OpName Decrement  = "subq"
 x86OpName Multiply   = "imulq"
@@ -167,6 +170,7 @@ instance (Show s) => Show (Comp s) where
 registers :: [Register]
 registers      = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
 -- saving r15 for storing labels into memory
+allocatableRegisters :: AsRegister t => [t]
 allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14]
 registerNames :: [String]
 registerNames  = fmap show registers

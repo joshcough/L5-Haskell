@@ -36,8 +36,8 @@ varsInst = varsI where
   varsX (VarL2X v) = Set.singleton v
 
   varsS (XL2S x)        = varsX x
-  varsS (NumberL2S n)   = Set.empty
-  varsS (LabelL2S l)    = Set.empty
+  varsS (NumberL2S _)   = Set.empty
+  varsS (LabelL2S _)    = Set.empty
 
   varsRHS (CompRHS (Comp s1 _ s2)) = Set.unions [varsS s1, varsS s2] 
   varsRHS (Allocate s1 s2)         = Set.unions [varsS s1, varsS s2] 

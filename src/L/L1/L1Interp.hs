@@ -28,7 +28,7 @@ step (Assign r (Allocate size datum)) c   =
   let (h, c') = allocate (readS size c) (readS datum c) c
   in nextInstWR r h c'
 step (Assign r (Print s)) c = nextInstWR r 1 $ print  (readS s c)  c
-step (Assign r (ArrayError s1 s2)) c = arrayError (readS s1 c) (readS s2 c) c
+step (Assign _ (ArrayError s1 s2)) c = arrayError (readS s1 c) (readS s2 c) c
 step (Assign r (SRHS s)) c = nextInstWR r (readS s c) c
 -- Math Inst
 step (MathInst r op s) c = nextInst $ 

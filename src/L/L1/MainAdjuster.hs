@@ -8,7 +8,7 @@ adjustMain_ :: L1Func -> L1Func
 adjustMain_ (Func body) = Func $ concat [mainLabel : mainBody ++ [Return]] where
   mainLabel = LabelDeclaration ":main"
   mainBody = stripLabel (reverse $ stripReturn $ reverse body) where
-    stripLabel is@(LabelDeclaration ":main" : rest) = stripLabel rest
+    stripLabel (LabelDeclaration ":main" : rest) = stripLabel rest
     stripLabel is = is
     stripReturn (Return : rest) = stripReturn rest
     stripReturn rest = rest

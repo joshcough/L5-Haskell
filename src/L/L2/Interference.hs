@@ -4,23 +4,21 @@ module L.L2.Interference
   (
     connections
    ,Interference(..)
-   ,InterferenceGraph(..)
+   ,InterferenceGraph
    ,buildInterferenceGraph
    ,runInterference
    ,runInterferenceMain
    ,runInterferenceMain_
   ) where
 
-import Control.Monad
 import Data.List (sort)
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Debug.Trace
 import L.IOHelpers (withFileArg,mapFileContents)
 import L.L1L2AST
 import L.Read (showAsList)
-import L.Utils (mkString, traceA)
+import L.Utils (mkString)
 import L.L2.Liveness
 import L.L2.Vars
  
@@ -55,7 +53,9 @@ graphMembers :: InterferenceGraph -> S.Set L2X
 graphMembers = M.keysSet
 
 -- adds a node to the graph, with nothing interfering with it
+addNode :: L2X -> InterferenceGraph -> InterferenceGraph
 addNode  x  g = if (graphMember x g) then g else (M.insert x S.empty g)
+addNodes :: [L2X] -> InterferenceGraph -> InterferenceGraph
 addNodes xs g = foldl (flip addNode) g xs
 
 unions ::[InterferenceGraph] -> InterferenceGraph

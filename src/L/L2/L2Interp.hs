@@ -64,7 +64,7 @@ step (MathInst x op s) c = do
 -- CJump
 step (CJump (Comp s1 op s2) l1 l2) c = do
   s1' <- readS s1 c
-  s2' <- readS s1 c
+  s2' <- readS s2 c
   return $ goto (findLabelIndex (if cmp op s1' s2' then l1 else l2) c) c
 -- MemWrite
 step (MemWrite (MemLoc x offset) s) c = do
@@ -102,12 +102,13 @@ step Return c =
       f True  (x:xs) = error $ "computer finished, but multiple environments exist" ++ show (x:xs)
       -- we are returning, and the computer is not halted
       -- so check if there are enough environments remaining, and pop the top one.
-      f False (x':x'':xs) = (x'':|xs, c'')
+      f False (_:x:xs) = (x:|xs, c'')
       -- here we are trying to return
       -- and there are no more environments
       -- but the computer isnt in a finished state...
       -- there must be some programming error
       f False []     = error $ "trying to return, but no environments remaining"
+      f False (x:[]) = error $ "trying to return, but there wouldn't be any environments remaining"
   in do 
     es <- tail <$> get
     let (newEs,c) = f done es
@@ -124,6 +125,7 @@ readX (RegL2X r) c = return $ readReg r c
 readX (VarL2X v) _ = 
   do e <- head <$> get; return $ fromMaybe (unbound v) (Map.lookup v e)
 
+unbound :: Variable -> a
 unbound v = error $ "unbound variable: " ++ v
 
 writeX :: L2X -> Int64 -> Computer L2Instruction -> M (Computer L2Instruction)

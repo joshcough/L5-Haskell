@@ -19,18 +19,12 @@ import Control.Monad
 import Data.ByteString.UTF8 as UTF8 hiding (lines)
 import Data.Char (isDigit, isSpace)
 import qualified Data.HashSet as HashSet
-import Data.HashSet (HashSet)
-import Data.List
 import Data.Semigroup
 import Text.Parser.Combinators
-import Text.Parser.LookAhead
 import Text.Parser.Token
 import qualified Text.Parser.Token.Highlight as Highlight
 import Text.Read (readMaybe)
 import Text.Trifecta hiding (semi)
-import qualified Text.Trifecta as Trifecta (semi)
-import Text.Trifecta.Parser
-import Text.Trifecta.Result
 
 import L.Utils
 
@@ -92,9 +86,9 @@ intParser :: Parser SExpr
 intParser = tokenParser (fmap AtomNum . readMaybe) <?> "int"
 
 symParser :: Parser SExpr
-symParser = tokenParser symbol <?> "symbol" where
-  symbol (x:xs) | not (isDigit x) = Just $ AtomSym (x:xs)
-  symbol _ = Nothing
+symParser = tokenParser sym <?> "symbol" where
+  sym (x:xs) | not (isDigit x) = Just $ AtomSym (x:xs)
+  sym _ = Nothing
 
 listParser :: Parser SExpr
 listParser = List <$> (parens recur <|> brackets recur) where

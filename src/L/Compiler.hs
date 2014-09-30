@@ -26,8 +26,6 @@ module L.Compiler (
 import Control.Applicative
 import Control.Category
 import Data.Maybe
-import Debug.Trace
-import L.Computer (Computer, showComputerOutput)
 import L.IOHelpers
 import L.OS
 import L.Read
@@ -57,25 +55,29 @@ data Language i o where
     Maybe (Language o a) ->
     Language i o
 
+parser :: Language i o -> Parser i
 parser       (Language p _ _ _ _) = p
+compiler :: Language i o -> Compiler i o
 compiler     (Language _ c _ _ _) = c
+interpreter :: Language i o -> Interpreter i
 interpreter  (Language _ _ i _ _) = i
+extension :: Language i o -> Extension
 extension    (Language _ _ _ e _) = e
 
 -- helpers
 runVal :: Val a -> a
 runVal = either error id
 
+munge :: (b -> IO (Either a b1)) -> Either a b -> IO (Either a b1)
 munge = either (return . Left)
+mungeList :: (b -> [Either a b1]) -> Either a b -> [Either a b1]
 mungeList = either (\msg -> [Left msg]) 
 
 outputExtension :: Language i o -> String
 outputExtension (Language _ _ _ _ subLang) = maybe "S" extension subLang
 
-tracer s = trace s (show s)
-
 showOutput :: Language i o -> o -> String
-showOutput (Language _ _ _ _ (Just l)) = show
+showOutput (Language _ _ _ _ (Just _)) = show
 showOutput Language{} = read . show
 
 -- parsing
@@ -86,6 +88,7 @@ parseFile :: Language i o -> FilePath -> IO (Val i)
 parseFile l file = parseString l <$> readFile file
 
 -- compilation
+compile :: Language i o -> Compiler i o
 compile = compiler
 
 compileString :: 
@@ -138,6 +141,7 @@ compileFileAndWriteResult l opts outputDir inputFile = do
   munge (compileAndWriteResult l opts (getFileName inputFile) outputDir) i
 
 -- interpretation
+interpret :: Language i o -> Interpreter i
 interpret = interpreter
 
 interpretString :: Language i o -> String -> Val Output
