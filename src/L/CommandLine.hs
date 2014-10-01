@@ -6,6 +6,7 @@ import Options.Applicative
 commandLineParserWithoutInfo :: Parser (CompilationOptions, FilePath)
 commandLineParserWithoutInfo = (,) <$> optsParser <*> mainFileArgParser
 
+commandLineParser :: ParserInfo (CompilationOptions, FilePath)
 commandLineParser = 
   info (helper <*> commandLineParserWithoutInfo)
        ( fullDesc

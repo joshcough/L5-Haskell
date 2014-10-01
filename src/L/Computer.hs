@@ -222,3 +222,9 @@ runComputer step c
   | c^.halted || not (hasNextInst c) = c
   | otherwise = runComputer step $ step (currentInst c) c
 
+-- the main loop, runs a computer until completion
+runComputerM :: Monad m =>
+  (Computer a -> m (Computer a)) -> Computer a -> m (Computer a)
+runComputerM step c
+  | c^.halted || not (hasNextInst c) = return c
+  | otherwise = step c >>= runComputerM step

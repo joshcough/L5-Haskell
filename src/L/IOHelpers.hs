@@ -6,8 +6,6 @@ module L.IOHelpers
    ,getExtension
    ,getDir
    ,getFileName
-   ,getRecursiveContents
-   ,getRecursiveContentsByExt
    ,listFiles
    ,mapFileContents
    ,mapFileContentsAndPrint
@@ -21,13 +19,8 @@ module L.IOHelpers
   ) where
 
 import Control.Applicative
-import Control.Monad (forM)
-import Data.List
-import Data.Traversable hiding (forM)
 import Data.Foldable hiding (concat, notElem)
-import L.Utils (endsWith)
 import System.Environment 
-import System.FilePath ((</>))
 import System.Directory
 
 ($$>) :: IO a -> (a -> b) -> IO b
@@ -77,20 +70,6 @@ changeDir file newDir = newDir ++ "/" ++ getFileName file
 
 changeExt :: FilePath -> String -> String
 changeExt file newExt = (dropRightWhile notDot file) ++ newExt
-
-getRecursiveContents :: FilePath -> IO [FilePath]
-getRecursiveContents topdir = do
-  names <- getDirectoryContents topdir
-  let properNames = filter (`notElem` [".", ".."]) names
-  paths <- forM properNames $ \name -> do
-    let path = topdir </> name
-    isDirectory <- doesDirectoryExist path
-    if isDirectory then getRecursiveContents path else return [path]
-  return (concat paths)
-
-getRecursiveContentsByExt :: FilePath -> String -> IO [FilePath]
-getRecursiveContentsByExt dir ext = 
-  getRecursiveContents dir >>= (return . filter (endsWith ext))
 
 mapFileContentsAndPrint :: Show a => (String -> a) -> FilePath -> IO ()
 mapFileContentsAndPrint f file = mapFileContents f file >>= putStrLn . show

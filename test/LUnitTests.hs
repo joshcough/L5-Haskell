@@ -7,9 +7,9 @@ import Test.HUnit
 
 import Control.Applicative
 import Control.Exception
-import Data.List
 import Data.Traversable
 import Debug.Trace
+import System.FilePath.Find
 import System.IO.Unsafe
 import System.Info as Info
 
@@ -28,16 +28,17 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree [l3Tests]--allTests
+  ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
 allTests = [
   spillTests
+ ,lParsingTests
  ,l1InterpreterTests
  ,l164Tests
- ,l2Tests
- ,l3Tests
- ,l4Tests ]
+ ,l2Tests ]
+ --,l3Tests
+ --,l4Tests ]
 
 opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 
@@ -48,28 +49,39 @@ runInterp lang file = runVal <$> interpretFile lang file
 data TestDef = TestDef 
   { name :: String
   , dir  :: FilePath
-  , inputFileExt  :: String
-  , outputFileExt :: String
-  , compute :: (FilePath, String) -> (FilePath, String) -> Assertion
-  }
+  , inputFileSearch  :: String
+  , outputFileSearch :: Maybe String
+  , compute :: FilePath -> Maybe FilePath -> Assertion
+ }
 
+lParsingTests = TestDef {
+  name = "L Parsing Tests"
+ ,dir  = "test"
+ ,inputFileSearch  = "*.L[0-4]"
+ ,outputFileSearch = Nothing
+ ,compute = \lFile _ -> do 
+   lCode <- readFile lFile
+   sread lCode @?= (sread . show $ sread lCode)
+}
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
  ,dir = "test/x86-64-tests"
- ,inputFileExt  = "L1"
- ,outputFileExt = "res"
- ,compute = \(l1f,_) (_,e) -> do
-   interpRes <- runInterp l1Language l1f
-   strip interpRes @?= strip e
+ ,inputFileSearch  = "*.L1"
+ ,outputFileSearch = Just "*.res"
+ ,compute = \l1f (Just resFile) -> do
+   actual   <- runInterp l1Language l1f
+   expected <- readFile resFile
+   strip actual @?= strip expected
 }
 l164Tests = TestDef { 
   name = "L1" 
  ,dir  = "test/x86-64-tests"
- ,inputFileExt  = "L1"
- ,outputFileExt = "res"
- ,compute = \(r,_) (_,e) -> do 
-   res <- runVal <$> compileAndRunNativeFile l1Language opts "tmp" r
-   strip res @?= strip e
+ ,inputFileSearch  = "*.L1"
+ ,outputFileSearch = Just "*.res"
+ ,compute = \l1File (Just resFile) -> do 
+   actual   <- runVal <$> compileAndRunNativeFile l1Language opts "tmp" l1File
+   expected <- readFile resFile
+   strip actual @?= strip expected
 }
 -- Liveness tests are somewhat useless after moving to x86-64
 -- since they lack all the registers.
@@ -77,33 +89,43 @@ l164Tests = TestDef {
 livenessTests = TestDef { 
   name = "Liveness"
  ,dir  = testDir ++ "liveness-test/cough"
- ,inputFileExt  = "L2f"
- ,outputFileExt = "lres"
- ,compute = \(_,r) (_,e) -> sread (showLiveness $ runLiveness r) @?= sread e
+ ,inputFileSearch  = "*.L2f"
+ ,outputFileSearch = Just "*.lres"
+ ,compute = \livenessFile (Just resFile) -> do
+   l        <- readFile livenessFile
+   expected <- readFile resFile
+   sread (showLiveness $ runLiveness l) @?= sread expected
 }
 -- TODO: Interference suffer the same problem as liveness tests.
 interferenceTests = TestDef { 
   name = "Interference"
  ,dir  = testDir ++ "graph-test/cough"
- ,inputFileExt  = "L2f" 
- ,outputFileExt = "gres"
- ,compute = \(_,r) (_,e) -> sread (show $ runInterference r) @?= sread e
+ ,inputFileSearch  = "*.L2f" 
+ ,outputFileSearch = Just "*.gres"
+ ,compute = \interferenceFile (Just resFile) -> do
+   i        <- readFile interferenceFile
+   expected <- readFile resFile
+   sread (show $ runInterference i) @?= sread expected
 }
 -- TODO: most spill tests are not currently running :(
 -- robby's tests make cabal never return.
 spillTests = TestDef { 
   name = "Spill" 
  ,dir  = testDir ++ "spill-test/cough"
- ,inputFileExt  = "L2f"
- ,outputFileExt = "sres"
- ,compute = \(_,r) (_,e) -> sread (spillTest r) @?= sread e
+ ,inputFileSearch  = "*.L2f"
+ ,outputFileSearch = Just "*.sres"
+ ,compute = \spillFile (Just resFile) -> do
+    s        <- readFile spillFile
+    expected <- readFile resFile
+    sread (spillTest s) @?= sread expected
 }
 l2Tests = TestDef {
   name = "L2"
  ,dir  = testDir ++ "2-test"
- ,inputFileExt  = "L2"
- ,outputFileExt = "L2" -- this isn't actually used
- ,compute = \(l2f,l2) _ -> do
+ ,inputFileSearch  = "*.L2"
+ ,outputFileSearch = Nothing
+ ,compute = \l2f _ -> do
+    l2        <- readFile l2f
     nativeRes <- runVal <$> compileAndRunNativeFile l2Language opts "tmp" l2f
     interpRes <- runInterp l2Language l2f
     strip nativeRes @?= strip interpRes
@@ -111,9 +133,10 @@ l2Tests = TestDef {
 l3Tests = TestDef {
   name = "L3"
  ,dir  = testDir ++ "3-test"
- ,inputFileExt  = "L3"
- ,outputFileExt = "L3" -- this isn't actually used
- ,compute = \(l3f,l3) _ -> do
+ ,inputFileSearch  = "*.L3"
+ ,outputFileSearch = Nothing
+ ,compute = \l3f _ -> do
+    l3        <- readFile l3f
     nativeRes <- runVal <$> compileAndRunNativeFile l3Language opts "tmp" l3f
     interpRes <- runInterp l3Language l3f
     strip nativeRes @?= strip interpRes
@@ -122,20 +145,19 @@ l4Tests = TestDef {
   name = "L4"
  --,dir  = testDir ++ "L4-tests-from-2010/kleinfindler"
  ,dir  = testDir ++ "4-test"
- ,inputFileExt  = "L4"
- ,outputFileExt = "L4" -- this isn't actually used
- ,compute = \(l4f,l4) _ -> do
+ ,inputFileSearch  = "*.L4"
+ ,outputFileSearch = Nothing
+ ,compute = \l4f _ -> do
+    l4        <- readFile l4f
     nativeRes <- runVal <$> compileAndRunNativeFile l4Language opts "tmp" l4f
     interpRes <- runInterp l4Language l4f
     strip nativeRes @?= strip interpRes
 }
 
-tree def = testGroup (name def) . fmap mkTest <$> testFiles where
-  testFiles = getRecursiveContentsByExt (dir def) (inputFileExt def)
+tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def) where
+  testFiles :: String -> IO [FilePath]
+  testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
   mkTest inputFile = testCase inputFile $ do
-    inputContents  <- readFile inputFile
-    outputContents <- readFile outputFile
-    compute def (inputFile,inputContents) (outputFile,outputContents) where
-    outputFile = changeExt inputFile $ outputFileExt def
+    compute def inputFile (changeExt inputFile <$> outputFileSearch def)
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)
