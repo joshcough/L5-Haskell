@@ -46,7 +46,7 @@ linearize l3 = fst $ runState (linearizeS l3) 0
 linearizeS :: L3 -> State Int L2
 linearizeS (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
   callMain :: L2.L2Func
-  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__"]
+  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__", Return]
   l2MainInsts = (LabelDeclaration ":__L3main__" :) <$> compileE e
   l2Funcs :: State Int [L2.L2Func]
   l2Funcs  = liftM2 (:) 
@@ -99,7 +99,7 @@ compileD (BiopD Add l r) dest = return $
 compileD (BiopD Sub l r) dest = return $ 
   [dest <~ encodeVRHS l,
    dest -= encodeV r,
-   dest -= num 1]
+   dest += num 1]
 compileD (BiopD Mult l r) dest = do { tmp <- newTemp; return
   [tmp  <~ encodeVRHS l,
    tmp >> num 1,

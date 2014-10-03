@@ -80,18 +80,6 @@ interpE (IfStatement v te fe) = do
   interpE $ if v' == lTrue then te else fe
 interpE (DE d) = interpD d
 
-{-
-data D    =
-    FunCall V [V]
-  | NewTuple [V]
-  | ARef V V
-  | ASet V V V
-  | ALen V
-  | Print V
-  | MakeClosure Label V
-  | ClosureProc V
-  | ClosureVar
--}
 interpD :: D -> M Runtime
 interpD (BiopD b l r) = 
   do l' <- interpV l; r' <- interpV r; return $ mathOp l' b r'
@@ -102,7 +90,6 @@ interpD (PredD IsArray (NumV _)) = return $ lFalse
 interpD (PredD IsArray _       ) = return $ lTrue
 interpD (NewArray s d) = newArray s d
   
-
 newArray :: V -> V -> M Runtime
 newArray s v = do
   size <- evalNumber s 

@@ -5,7 +5,7 @@ import Data.Int
 import qualified Data.Vector as Vector
 import L.Computer
 import L.L1L2AST 
-import L.L1.MainAdjuster (adjustMain)
+import L.L1L2MainAdjuster (adjustMain)
 import Prelude hiding (print)
 
 interpL1 :: L1 -> String

@@ -9,17 +9,20 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Vector as Vector
+import Debug.Trace
 import L.Computer
 import L.L1L2AST 
+import L.L1L2MainAdjuster 
 import Prelude hiding (head, print, tail)
 
 interpL2 :: L2 -> String
-interpL2 p = error "todo: implement funcall in step" --showComputerOutput $ interpL2' p
+interpL2 = showComputerOutput . interpL2'
 
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2' :: L2 -> Computer L2Instruction
-interpL2' p = fst $ runState (runComputerM step (newComputer p)) emptyEnvs
+interpL2' p = fst $ runState (runComputerM step c) emptyEnvs where
+  c = newComputer $ adjustMain p
 
 type M x = State (NonEmpty Env) x
 
@@ -27,14 +30,13 @@ type M x = State (NonEmpty Env) x
 type Env = Map Variable Int64
 emptyEnvs :: NonEmpty Env
 emptyEnvs = Map.empty :| []
-replaceHead :: Env -> M ()
-replaceHead e = do es <- get; put $ e :| tail es
+replaceHeadEnv :: Env -> M ()
+replaceHeadEnv e = do es <- get; put $ e :| tail es
 addEnv :: Env -> M ()
 addEnv e = do es <- get; put $ cons e es
 
 step :: Computer L2Instruction -> M (Computer L2Instruction)
 step c = let
-
  readS :: L2S -> M Int64
  readS (NumberL2S n) = return n
  readS (XL2S x)      = readX x
@@ -45,7 +47,12 @@ step c = let
  readX (VarL2X v) = 
    do e <- head <$> get; return $ fromMaybe (unbound v) (Map.lookup v e)
 
- in case currentInst c of
+ debug f = do
+   env <- get
+   trace ("ip: " ++ show (c^.ip) ++ " inst: " ++ show (currentInst c) ++ " env:" ++ show env) f
+
+ {- uncomment debug below to print ip and env for each instruction -}
+ in {-debug $-} case currentInst c of
 
   -- Assignment statements
   (Assign x (CompRHS (Comp s1 op s2))) -> do
@@ -94,7 +101,10 @@ step c = let
     let c' = push (c^.ip + 1) c
     return $ goto func c'
   -- TailCall
-  (TailCall s) -> goto <$> readS s <*> return c
+  (TailCall s) -> do
+    loc <- readS s
+    replaceHeadEnv Map.empty
+    return $ goto loc c
   -- Return
   Return ->
     let rspVal = readReg rsp c
@@ -106,21 +116,22 @@ step c = let
         -- the computer thinks it's finished
         -- there are no environments left
         -- it's ok to halt the computer
-        f True  []     = (Map.empty :| [], halt c) 
+        f True  [] = (Map.empty :| [], halt c) 
         -- in this case we are trying to return
         -- an we think the computer is finished, 
         -- but there are extra environments remaining
         -- there must be some programming error
-        f True  (x:xs) = error $ "computer finished, but multiple environments exist" ++ show (x:xs)
-        -- we are returning, and the computer is not halted
-        -- so check if there are enough environments remaining, and pop the top one.
-        f False (_:x:xs) = (x:|xs, c'')
+        f True  xs = error $ "computer finished, but multiple environments exist" ++ show xs
         -- here we are trying to return
         -- and there are no more environments
         -- but the computer isnt in a finished state...
         -- there must be some programming error
-        f False []     = error $ "trying to return, but no environments remaining"
-        f False (_:[]) = error $ "trying to return, but there wouldn't be any environments remaining"
+        f False [] = error $ "trying to return, but no environments remaining"
+        -- we are returning, and the computer is not halted
+        -- based on the last case, there must be enough environments remaining
+        -- were looking at the tail, so we've already popped the top env off
+        -- so just return what we have
+        f False (x:xs) = (x:|xs, c'')
     in do 
       es <- tail <$> get
       let (newEs,c) = f done es
@@ -133,7 +144,7 @@ nextInstWX x i c = nextInst <$> writeX x i where
   writeX :: L2X -> Int64 -> M (Computer L2Instruction)
   writeX (RegL2X r) i = return $ writeReg r i c
   writeX (VarL2X v) i = 
-    do e <- head <$> get; replaceHead $ Map.insert v i e; return c
+    do e <- head <$> get; replaceHeadEnv $ Map.insert v i e; return c
 
 unbound :: Variable -> a
 unbound v = error $ "unbound variable: " ++ v

@@ -4,7 +4,7 @@ import L.Compiler
 import L.L1L2AST
 import L.L1L2Parser
 import L.L1.L1Interp
-import L.L1.MainAdjuster
+import L.L1L2MainAdjuster
 import L.L1.L1X86
 
 l1Language :: Language L1 String

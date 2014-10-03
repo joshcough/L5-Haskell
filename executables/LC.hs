@@ -1,8 +1,11 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Main where
 
 import L.CommandLine
 import L.Compiler
 import L.IOHelpers
+import L.NativeRunner
 import L.L1.L1
 import L.L2.L2
 import L.L3.L3
@@ -12,13 +15,30 @@ import Options.Applicative
 main :: IO ()
 main = execParser commandLineParser >>= main'
 
-main' :: (CompilationOptions, FilePath) -> IO ()
-main' (opts, file) = g (getExtension file) (getDir file) where
-  go lang dir = do
-    res <- compileFileAndWriteResult lang opts dir file
-    case res of { Left err -> error err; Right _  -> return () }
-  g "L1" = go l1Language
-  g "L2" = go l2Language
-  g "L3" = go l3Language
-  g "L4" = go l4Language
+commandLineParser :: ParserInfo (Bool, CompilationOptions, FilePath)
+commandLineParser = addInfo "The L Compiler" $
+  (,,) <$> execMode <*> compileOptionsParser <*> lStarFileParser
+
+execMode = switch
+  (short 'x' <> long "exec" <>
+   help "Run the native code after executing it." )
+
+main' :: (Bool, CompilationOptions, FilePath) -> IO ()
+main' (exec, opts, file) = case (getExtension file) of
+  "S" -> runSFileNative (getFileName file) (getDir file) >>= putStrLn
+  ext -> g ext where
+    go lang = c exec lang opts file
+    g "L1" = go l1Language
+    g "L2" = go l2Language
+    g "L3" = go l3Language
+    g "L4" = go l4Language
+    g bad  = error $ "LC: bad input file: " ++ file
+
+c :: Show o => Bool -> Language i o -> CompilationOptions -> FilePath -> IO ()
+c False lang opts file = do
+  res <- compileFileAndWriteResult lang opts (getDir file) file
+  either error (const $ return ()) res
+c True lang opts file = do
+  res <- compileAndRunNativeFile   lang opts (getDir file) file
+  either error putStrLn res
 

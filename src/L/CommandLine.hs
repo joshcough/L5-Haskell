@@ -3,19 +3,17 @@ module L.CommandLine where
 import L.Compiler
 import Options.Applicative
 
-commandLineParserWithoutInfo :: Parser (CompilationOptions, FilePath)
-commandLineParserWithoutInfo = (,) <$> optsParser <*> mainFileArgParser
+addInfo :: String -> Parser a -> ParserInfo a
+addInfo desc p = 
+  info (helper  <*> p)
+       (fullDesc <> progDesc desc <> 
+       (header "The L Programming Language"))
 
-commandLineParser :: ParserInfo (CompilationOptions, FilePath)
-commandLineParser = 
-  info (helper <*> commandLineParserWithoutInfo)
-       ( fullDesc
-          <> progDesc "The L Compiler"
-          <> header "not sure what to put here yet" )
+compileOptionsParser :: Parser CompilationOptions
+compileOptionsParser = compOpts <$> (optional $ strOption
+  (long "os" <> short 'o' <> metavar "operating system" <> help "darwin|linux"))
 
-optsParser :: Parser CompilationOptions
-optsParser = compOpts <$> (optional $ strOption
-  ( long "os" <> short 'o' <> metavar "operating system" <> help "darwin|linux" ))
-
-mainFileArgParser :: Parser FilePath
-mainFileArgParser = argument str $ metavar "'L file'"
+-- TODO: for many files later, use:
+-- some (argument str (metavar "..."))
+lStarFileParser :: Parser FilePath
+lStarFileParser = argument str $ metavar "'.L* file'"

@@ -5,6 +5,7 @@ import L.Compiler
 import L.L1L2AST
 import L.L1L2Parser
 import L.L1.L1 
+--import L.L1.L1Interp
 import L.L2.L2Interp
 import L.L2.Allocation
 
@@ -24,6 +25,8 @@ l2Language  = Language
   interpL2
   "L2"
   (Just l1Language)
+
+--interpL2' = interpL1 . compileL2ToL1
 
 -- this is the main function, the rest are just various helpers
 compileL2ToL1 :: L2 -> L1

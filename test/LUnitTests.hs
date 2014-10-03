@@ -36,8 +36,8 @@ allTests = [
  ,lParsingTests
  ,l1InterpreterTests
  ,l164Tests
- ,l2Tests ]
- --,l3Tests
+ ,l2Tests 
+ ,l3Tests ]
  --,l4Tests ]
 
 opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
@@ -49,16 +49,16 @@ runInterp lang file = runVal <$> interpretFile lang file
 data TestDef = TestDef 
   { name :: String
   , dir  :: FilePath
-  , inputFileSearch  :: String
-  , outputFileSearch :: Maybe String
+  , inputFileSearch :: String
+  , outputFileExt   :: Maybe String
   , compute :: FilePath -> Maybe FilePath -> Assertion
  }
 
 lParsingTests = TestDef {
   name = "L Parsing Tests"
  ,dir  = "test"
- ,inputFileSearch  = "*.L[0-4]"
- ,outputFileSearch = Nothing
+ ,inputFileSearch = "*.L[0-4]"
+ ,outputFileExt   = Nothing
  ,compute = \lFile _ -> do 
    lCode <- readFile lFile
    sread lCode @?= (sread . show $ sread lCode)
@@ -66,8 +66,8 @@ lParsingTests = TestDef {
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
  ,dir = "test/x86-64-tests"
- ,inputFileSearch  = "*.L1"
- ,outputFileSearch = Just "*.res"
+ ,inputFileSearch = "*.L1"
+ ,outputFileExt   = Just "res"
  ,compute = \l1f (Just resFile) -> do
    actual   <- runInterp l1Language l1f
    expected <- readFile resFile
@@ -76,8 +76,8 @@ l1InterpreterTests = TestDef {
 l164Tests = TestDef { 
   name = "L1" 
  ,dir  = "test/x86-64-tests"
- ,inputFileSearch  = "*.L1"
- ,outputFileSearch = Just "*.res"
+ ,inputFileSearch = "*.L1"
+ ,outputFileExt   = Just "res"
  ,compute = \l1File (Just resFile) -> do 
    actual   <- runVal <$> compileAndRunNativeFile l1Language opts "tmp" l1File
    expected <- readFile resFile
@@ -89,8 +89,8 @@ l164Tests = TestDef {
 livenessTests = TestDef { 
   name = "Liveness"
  ,dir  = testDir ++ "liveness-test/cough"
- ,inputFileSearch  = "*.L2f"
- ,outputFileSearch = Just "*.lres"
+ ,inputFileSearch = "*.L2f"
+ ,outputFileExt   = Just "lres"
  ,compute = \livenessFile (Just resFile) -> do
    l        <- readFile livenessFile
    expected <- readFile resFile
@@ -100,8 +100,8 @@ livenessTests = TestDef {
 interferenceTests = TestDef { 
   name = "Interference"
  ,dir  = testDir ++ "graph-test/cough"
- ,inputFileSearch  = "*.L2f" 
- ,outputFileSearch = Just "*.gres"
+ ,inputFileSearch = "*.L2f" 
+ ,outputFileExt   = Just "gres"
  ,compute = \interferenceFile (Just resFile) -> do
    i        <- readFile interferenceFile
    expected <- readFile resFile
@@ -112,8 +112,8 @@ interferenceTests = TestDef {
 spillTests = TestDef { 
   name = "Spill" 
  ,dir  = testDir ++ "spill-test/cough"
- ,inputFileSearch  = "*.L2f"
- ,outputFileSearch = Just "*.sres"
+ ,inputFileSearch = "*.L2f"
+ ,outputFileExt   = Just "sres"
  ,compute = \spillFile (Just resFile) -> do
     s        <- readFile spillFile
     expected <- readFile resFile
@@ -122,8 +122,8 @@ spillTests = TestDef {
 l2Tests = TestDef {
   name = "L2"
  ,dir  = testDir ++ "2-test"
- ,inputFileSearch  = "*.L2"
- ,outputFileSearch = Nothing
+ ,inputFileSearch = "*.L2"
+ ,outputFileExt   = Nothing
  ,compute = \l2f _ -> do
     l2        <- readFile l2f
     nativeRes <- runVal <$> compileAndRunNativeFile l2Language opts "tmp" l2f
@@ -133,8 +133,8 @@ l2Tests = TestDef {
 l3Tests = TestDef {
   name = "L3"
  ,dir  = testDir ++ "3-test"
- ,inputFileSearch  = "*.L3"
- ,outputFileSearch = Nothing
+ ,inputFileSearch = "*.L3"
+ ,outputFileExt   = Nothing
  ,compute = \l3f _ -> do
     l3        <- readFile l3f
     nativeRes <- runVal <$> compileAndRunNativeFile l3Language opts "tmp" l3f
@@ -145,8 +145,8 @@ l4Tests = TestDef {
   name = "L4"
  --,dir  = testDir ++ "L4-tests-from-2010/kleinfindler"
  ,dir  = testDir ++ "4-test"
- ,inputFileSearch  = "*.L4"
- ,outputFileSearch = Nothing
+ ,inputFileSearch = "*.L4"
+ ,outputFileExt   = Nothing
  ,compute = \l4f _ -> do
     l4        <- readFile l4f
     nativeRes <- runVal <$> compileAndRunNativeFile l4Language opts "tmp" l4f
@@ -158,6 +158,6 @@ tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def
   testFiles :: String -> IO [FilePath]
   testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
   mkTest inputFile = testCase inputFile $ do
-    compute def inputFile (changeExt inputFile <$> outputFileSearch def)
+    compute def inputFile (changeExt inputFile <$> outputFileExt def)
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)

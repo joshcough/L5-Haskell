@@ -77,17 +77,13 @@ allocate f = Func finalL1Body where
 
 
 allocateCompletely :: [L2Instruction] -> ([L2Instruction], Map Variable Register, Int)
-allocateCompletely body = let
-  finalState = runState (go 0 body) 0
-  -- TODO: the second thing is the offset...
-  -- but it probably has to be adjusted somehow
-  in (fst $ fst finalState, snd $ fst finalState, snd finalState) where
-
-    go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register)
+allocateCompletely body = evalState (go 0 body) 0
+  where
+    go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register, Int)
     go offset insts =
       let (Interference g) = buildInterferenceGraph $ liveness insts
       in case attemptAllocation (Interference g) of
-        Just registerMap -> return (insts, registerMap)
+        Just registerMap -> return (insts, registerMap, offset)
         Nothing ->
           -- find the next variable to spill by figuring out which one has the most connections
           -- TODO: tie should go to the one with the longest liverange.
@@ -96,7 +92,7 @@ allocateCompletely body = let
               f (v, _) = not $ isPrefixOf defaultSpillPrefix v
               conns = filter f $ reverse $ sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
               v = fst $ head conns
-          in spillDef (v, offset * 8) insts >>= go (offset + 1)
+          in spillDef (v, offset * 16) insts >>= go (offset + 1)
 
 {-
   OLD STUFF THAT USED foldM.
