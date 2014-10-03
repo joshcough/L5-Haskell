@@ -9,7 +9,7 @@ import Control.Applicative
 import Control.Exception
 import Data.Traversable
 import Debug.Trace
-import System.FilePath.Find
+import System.FilePath.Find hiding (extension)
 import System.IO.Unsafe
 import System.Info as Info
 
@@ -32,13 +32,16 @@ tests = do
   return $ testGroup "Main" ts
 
 allTests = [
-  spillTests
- ,lParsingTests
+  lParsingTests
  ,l1InterpreterTests
  ,l164Tests
- ,l2Tests 
- ,l3Tests ]
- --,l4Tests ]
+ ,l2Tests
+ ,l2TurtlesTests
+ ,spillTests
+ ,l3Tests
+ ,l3TurtlesTests
+ ,l4Tests
+ ,l4TurtlesTests ]
 
 opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 
@@ -83,10 +86,69 @@ l164Tests = TestDef {
    expected <- readFile resFile
    strip actual @?= strip expected
 }
+spillTests = TestDef {
+  name = "Spill"
+ ,dir  = testDir ++ "spill-test"
+ ,inputFileSearch = "*.L2f"
+ ,outputFileExt   = Just "sres"
+ ,compute = \spillFile (Just resFile) -> do
+    s        <- readFile spillFile
+    expected <- readFile resFile
+    sread (spillTest s) @?= sread expected
+}
+
+l2Tests        = oneLevelTestDef l2Language (testDir ++ "2-test")
+l2TurtlesTests = turtlesTestDef  l2Language (testDir ++ "2-test")
+
+l3Tests        = oneLevelTestDef l3Language (testDir ++ "3-test")
+l3TurtlesTests = turtlesTestDef  l3Language (testDir ++ "3-test")
+
+l4Tests        = oneLevelTestDef l4Language (testDir ++ "4-test") -- testDir ++ "L4-tests-from-2010/kleinfindler"
+l4TurtlesTests = turtlesTestDef  l4Language (testDir ++ "4-test")
+
+
+oneLevelTestDef :: Language i o -> FilePath -> TestDef
+oneLevelTestDef lang dir' = langTestDef lang "One Level" dir' runAndCompareInterpVsNative
+
+turtlesTestDef :: Language i o -> FilePath -> TestDef
+turtlesTestDef lang dir' = langTestDef lang "Turtles" dir' runAndCompareInterpTurtlesVsNative
+
+langTestDef :: Language i o -> String -> FilePath -> (Language i o -> FilePath -> IO ()) -> TestDef
+langTestDef lang name dir' runFunction = TestDef {
+  name = extension lang ++ " " ++ name
+ ,dir  = dir'
+ ,inputFileSearch = "*." ++ (extension lang)
+ ,outputFileExt   = Nothing
+ ,compute = \file _ -> runFunction lang file
+}
+
+runAndCompareInterpVsNative :: Language i o -> FilePath -> IO ()
+runAndCompareInterpVsNative lang inputFile = do
+  nativeRes <- strip . runVal <$> compileAndRunNativeFile lang opts "tmp" inputFile
+  interpRes <- strip  <$> runInterp lang inputFile
+  nativeRes @?= interpRes
+
+runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> IO ()
+runAndCompareInterpTurtlesVsNative lang inputFile = do
+  nativeRes     <- Right . strip . runVal <$> compileAndRunNativeFile lang opts "tmp" inputFile
+  interpResList <- (fmap (fmap strip)) <$> (interpretTurtlesFile lang opts inputFile)
+  assertList $ nativeRes : interpResList
+
+tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def) where
+  testFiles :: String -> IO [FilePath]
+  testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
+  mkTest inputFile = testCase inputFile $ do
+    compute def inputFile (changeExt inputFile <$> outputFileExt def)
+
+assertList :: (Eq a, Show a) => [a] -> IO ()
+assertList (x1:x2:xs) = (x1 @?= x2) >> assertList xs
+assertList _          = return ()
+
+{-
 -- Liveness tests are somewhat useless after moving to x86-64
 -- since they lack all the registers.
 -- TODO: update at least my tests
-livenessTests = TestDef { 
+livenessTests = TestDef {
   name = "Liveness"
  ,dir  = testDir ++ "liveness-test/cough"
  ,inputFileSearch = "*.L2f"
@@ -97,65 +159,16 @@ livenessTests = TestDef {
    sread (showLiveness $ runLiveness l) @?= sread expected
 }
 -- TODO: Interference suffer the same problem as liveness tests.
-interferenceTests = TestDef { 
+interferenceTests = TestDef {
   name = "Interference"
  ,dir  = testDir ++ "graph-test/cough"
- ,inputFileSearch = "*.L2f" 
+ ,inputFileSearch = "*.L2f"
  ,outputFileExt   = Just "gres"
  ,compute = \interferenceFile (Just resFile) -> do
    i        <- readFile interferenceFile
    expected <- readFile resFile
    sread (show $ runInterference i) @?= sread expected
 }
-spillTests = TestDef {
-  name = "Spill" 
- ,dir  = testDir ++ "spill-test"
- ,inputFileSearch = "*.L2f"
- ,outputFileExt   = Just "sres"
- ,compute = \spillFile (Just resFile) -> do
-    s        <- readFile spillFile
-    expected <- readFile resFile
-    sread (spillTest s) @?= sread expected
-}
-l2Tests = TestDef {
-  name = "L2"
- ,dir  = testDir ++ "2-test"
- ,inputFileSearch = "*.L2"
- ,outputFileExt   = Nothing
- ,compute = \l2f _ -> do
-    l2        <- readFile l2f
-    nativeRes <- runVal <$> compileAndRunNativeFile l2Language opts "tmp" l2f
-    interpRes <- runInterp l2Language l2f
-    strip nativeRes @?= strip interpRes
-}
-l3Tests = TestDef {
-  name = "L3"
- ,dir  = testDir ++ "3-test"
- ,inputFileSearch = "*.L3"
- ,outputFileExt   = Nothing
- ,compute = \l3f _ -> do
-    l3        <- readFile l3f
-    nativeRes <- runVal <$> compileAndRunNativeFile l3Language opts "tmp" l3f
-    interpRes <- runInterp l3Language l3f
-    strip nativeRes @?= strip interpRes
-}
-l4Tests = TestDef {
-  name = "L4"
- --,dir  = testDir ++ "L4-tests-from-2010/kleinfindler"
- ,dir  = testDir ++ "4-test"
- ,inputFileSearch = "*.L4"
- ,outputFileExt   = Nothing
- ,compute = \l4f _ -> do
-    l4        <- readFile l4f
-    nativeRes <- runVal <$> compileAndRunNativeFile l4Language opts "tmp" l4f
-    interpRes <- runInterp l4Language l4f
-    strip nativeRes @?= strip interpRes
-}
-
-tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def) where
-  testFiles :: String -> IO [FilePath]
-  testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
-  mkTest inputFile = testCase inputFile $ do
-    compute def inputFile (changeExt inputFile <$> outputFileExt def)
+-}
 
 -- s <- runSpillMain_ file `catch` \(e :: SomeException) -> return $ CompilationUnit "hello there" "wat" (show e)

@@ -15,6 +15,7 @@ module L.Compiler (
   ,compileAndWriteResult
   ,compileFileAndWriteResult
   ,compOpts
+  ,extension
   ,interpret
   ,interpretString
   ,interpretFile
@@ -57,14 +58,14 @@ data Language i o where
     Maybe (Language o a) ->
     Language i o
 
-parser :: Language i o -> Parser i
-parser       (Language p _ _ _ _) = p
-compiler :: Language i o -> Compiler i o
-compiler     (Language _ c _ _ _) = c
+parser      :: Language i o -> Parser i
+parser        (Language p _ _ _ _) = p
+compiler    :: Language i o -> Compiler i o
+compiler      (Language _ c _ _ _) = c
 interpreter :: Language i o -> Interpreter i
-interpreter  (Language _ _ i _ _) = i
-extension :: Language i o -> Extension
-extension    (Language _ _ _ e _) = e
+interpreter   (Language _ _ i _ _) = i
+extension   :: Language i o -> Extension
+extension     (Language _ _ _ e _) = e
 
 -- helpers
 runVal :: Val a -> a
@@ -177,7 +178,7 @@ interpretTurtlesString l opts name s =
 interpretTurtlesFile ::
   Language i o       ->
   CompilationOptions ->
-  String             ->
+  FilePath           ->
   IO ([Val Output])
 interpretTurtlesFile l opts file = do
   code <- readFile file
