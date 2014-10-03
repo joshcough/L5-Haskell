@@ -217,10 +217,8 @@ nextInst :: Computer a -> Computer a
 nextInst c = goto (c^.ip + 1) c
 
 -- the main loop, runs a computer until completion
-runComputer :: (a -> Computer a -> Computer a) -> Computer a -> Computer a
-runComputer step c 
-  | c^.halted || not (hasNextInst c) = c
-  | otherwise = runComputer step $ step (currentInst c) c
+runComputer :: (Computer a -> Computer a) -> Computer a -> Computer a
+runComputer step = runIdentity . runComputerM (return . step)
 
 -- the main loop, runs a computer until completion
 runComputerM :: Monad m =>

@@ -107,11 +107,9 @@ interferenceTests = TestDef {
    expected <- readFile resFile
    sread (show $ runInterference i) @?= sread expected
 }
--- TODO: most spill tests are not currently running :(
--- robby's tests make cabal never return.
-spillTests = TestDef { 
+spillTests = TestDef {
   name = "Spill" 
- ,dir  = testDir ++ "spill-test/cough"
+ ,dir  = testDir ++ "spill-test"
  ,inputFileSearch = "*.L2f"
  ,outputFileExt   = Just "sres"
  ,compute = \spillFile (Just resFile) -> do
