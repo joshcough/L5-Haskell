@@ -1,8 +1,0 @@
-((
-(rsi <- 5)
-(rdi <- 0)
-(rax <- (allocate rsi 3))
-
-(rdi <- (mem rax 8))
-(rax <- (print rdi))
-))

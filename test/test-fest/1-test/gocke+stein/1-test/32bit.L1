@@ -1,6 +1,0 @@
-;; Check number bounds
-(((rax <- 65535)
-  (rax &= 1073676288)
-  (rax *= 2)
-  (rax += 1)
-  (rax <- (print rax))))

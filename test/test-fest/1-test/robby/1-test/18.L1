@@ -1,7 +1,0 @@
-(((rsi <- 999)
-  (rdi <- 999)
-  (rcx <- 2)
-  (rcx <- rsi = rdi)
-  (rcx += rcx)
-  (rcx += 1)
-  (rax <- (print rcx))))

@@ -1,5 +1,0 @@
-(((rax <- (allocate 5 1))
-  ((mem rax 4) <- 53)
-  ((mem rax 0) <- 1)
-  (rax <- (mem rax 0)) ;;test recovering the second position
-  (rax <- (print rax))))

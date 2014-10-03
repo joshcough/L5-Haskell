@@ -1,1 +1,0 @@
-(((rax <- (allocate 5 1)) (rax <- (array-error rax 17))))

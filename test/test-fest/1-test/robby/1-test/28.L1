@@ -1,9 +1,0 @@
-(((rsi <- 999)
-  (rdi <- 999)
-  (cjump rsi <= rdi :true :false)
-  :true
-  (rax <- (print 3))
-  (goto :done)
-  :false
-  (rax <- (print 1))
-  :done))

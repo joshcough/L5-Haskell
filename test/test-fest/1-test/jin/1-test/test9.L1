@@ -1,5 +1,0 @@
-;test case 9
-(((rax <- 9)
-  (rax >>= 11)
-  (rax += 1)
-  (rax <- (print rax))))

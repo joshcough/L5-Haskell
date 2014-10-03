@@ -1,7 +1,0 @@
-(((rax <- 15)  ;15*5
-  (rdx <- 5)
-  (rax *= rdx)
-  (rax *= 2)
-  (rax += 1)
-  (rax <- (print rax))))
-  

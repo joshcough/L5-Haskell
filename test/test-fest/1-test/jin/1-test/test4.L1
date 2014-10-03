@@ -1,9 +1,0 @@
-;;test case 4
-(((rax <- 10)
-  (rax += 5)
-  (rax <- (print rax))
-  (rax <- 9)
-  (rbx <- 4)
-  (rax -= rbx)
-  (rax <- (print rax))))
-

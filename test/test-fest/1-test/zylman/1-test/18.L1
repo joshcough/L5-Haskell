@@ -1,4 +1,0 @@
-(((call :f))
- (:f
-  (rax <- (print 3))
-  (return)))

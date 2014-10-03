@@ -1,6 +1,0 @@
-((
-(rdi <- 3)
-(rax <- (print rdi))
-(rdi >>= 1)
-(rax <- (print rdi))
-))

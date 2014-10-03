@@ -1,7 +1,0 @@
-(((rbx <- 5)
-(rcx <- 3)
-(rdx <- rcx = rbx) ;;save comparison
-(rax <- rdx)
-(rax *= 2) ;;encode value
-(rax += 1)
-(rax <- (print rax))))

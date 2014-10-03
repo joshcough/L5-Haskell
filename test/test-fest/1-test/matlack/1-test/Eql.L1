@@ -1,6 +1,0 @@
-(((rax <- 5)
-  (rdx <- 5)
-  (rcx <- rax = rdx)
-  (rcx <<= 1)
-  (rcx += 1)
-  (rax <- (print rcx))))

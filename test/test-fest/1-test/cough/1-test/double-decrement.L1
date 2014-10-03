@@ -1,7 +1,0 @@
-((
-  (rsi <- 7) ; set rsi to 3
-  (rsi -= 2) ; decrement rsi. 111 - 10 = 101 = 5 = 2
-  (rax <- (print rsi))
-  (rsi -= 2) ; decrement rsi. 101 - 10 = 11 = 3 = 1
-  (rax <- (print rsi))
-))

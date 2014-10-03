@@ -1,1 +1,0 @@
-(((rsi <- 1) (rax <- (print rsi)) (rax <- (print rsi))))

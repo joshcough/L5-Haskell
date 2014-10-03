@@ -1,6 +1,0 @@
-;;1
-(((call :function)
-  (rax <- (print rax)))
- (:function 
-  (rax <- 3)
-  (return)))

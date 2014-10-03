@@ -1,5 +1,0 @@
-(((rdi <- 1) ;; Move 1 into rax
-  (rdi += 1) ;; Add 1
-  (rdi *= 2) ;; Convert
-  (rdi += 1)
-  (rax <- (print rdi))))

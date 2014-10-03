@@ -1,1 +1,0 @@
-(((rax <- 1001) (rax += rax) (rax += -1) (rax <- (print rax))))

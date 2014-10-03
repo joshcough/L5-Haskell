@@ -1,4 +1,0 @@
-(((rax <- 5)
-  (rax <<= 1)
-  (rax -= 1)
-  (rax <- (print rax))))

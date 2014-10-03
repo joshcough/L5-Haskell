@@ -1,9 +1,0 @@
-;; Test loop breaking
-(((rax <- 0) ;; Start at zero
-  :loop
-  (rax += 1)
-  (cjump rax = 5 :out :next)
-  :next
-  (goto :loop)
-  :out
-  (rax <- (print rax))))

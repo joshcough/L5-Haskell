@@ -1,2 +1,0 @@
-(((rax <- (allocate 1 1))
-  (rax <- (print rax))))

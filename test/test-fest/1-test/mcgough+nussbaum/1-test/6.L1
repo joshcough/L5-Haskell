@@ -1,7 +1,0 @@
-;;3
-(((rax <- 3)
- (goto :label)
- (rax += 2)
- :label
- (rax += 4)
- (rax <- (print rax))))

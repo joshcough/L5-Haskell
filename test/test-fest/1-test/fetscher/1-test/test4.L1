@@ -1,8 +1,0 @@
-(((rax <- 1234567)
-  (call :zeroit)
-  (rax <- (print rax)))
- (:zeroit
-  (rbx <- 0)
-  (rax &= rbx)
-  (rax += 1)
-  (return)))

@@ -1,9 +1,0 @@
-(((rax <- 0)
-  (rbx <- 2097152)
-  :loop
-  (rax += rbx)
-  (cjump rax < 2145386495 :loop :finish)
-  :finish
-  (rcx <- rax)
-  (rcx += 1)
-  (rax <- (print rcx))))

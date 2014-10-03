@@ -1,4 +1,0 @@
-(((rax <- 93)
-  (rcx <- 5)
-  (rax &= rcx)
-  (rax <- (print rax))))

@@ -1,7 +1,0 @@
-(((rax <- 1)
-  (rax <- rax = 1)
-  (rbx <- rax = 0)
-  (rax &= rbx)
-  (rax *= 2)
-  (rax += 1)
-  (rax <- (print rax))))

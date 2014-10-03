@@ -1,5 +1,0 @@
-(((rax <- 1) ;; Move 1
-  (rax -= 3)
-  (rax *= 2) ;; Convert
-  (rax += 1)
-  (rax <- (print rax))))

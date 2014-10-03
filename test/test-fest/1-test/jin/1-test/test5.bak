@@ -1,7 +1,0 @@
-;;test case 5
-(((rax <- 5)
-  ((mem esp -4) <- rax)
-  (rax <- (print rax))
-  ((mem esp -4) += 3)
-  (rax <- (mem esp -4))
-  (rax <- (print rax))))

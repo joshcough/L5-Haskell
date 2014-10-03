@@ -1,6 +1,0 @@
-((
-(rcx <- 5)
-(rdx <- :next1)
-:next1
-(rax <- (print rcx))
-))

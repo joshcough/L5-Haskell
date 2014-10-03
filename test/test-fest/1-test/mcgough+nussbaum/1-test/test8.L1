@@ -1,8 +1,0 @@
-(((rdx <- 67)
-(rdx >>= 1)
-(rdx *= 2)
-(rdx *= 2)
-(rdx += 1)
-:unusedlabel
-(rax <- rdx)
-(rax <- (print rax))))

@@ -1,9 +1,0 @@
-(((call :f) (rax <- (print rax)))
- (:f
-  (esp -= 4)
-  ((mem esp 0) <- 3)
-  (call :g)
-  (rax <- (mem esp 0))
-  (esp += 4)
-  (return))
- (:g (return)))

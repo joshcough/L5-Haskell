@@ -1,6 +1,0 @@
- (((rax <- 11)
-  (rax *= 3)
-  (rax <- (print rax))
-  (rax <- 11)
-  (rax &= 11)
-  (rax <- (print rax))))

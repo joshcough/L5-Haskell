@@ -1,6 +1,0 @@
-;test case 10
-(((rax <- 11)
-  (rsi <- rax)
-  (rdi <- rax)
-  (rax <- (print rsi))
-  (rax <- (print rdi))))

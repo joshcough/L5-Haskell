@@ -1,7 +1,0 @@
-(
-(
-(rsi <- 3)
-(rax <- (allocate rsi 3))
-(rax <- (array-error rax 3))
-)
-)

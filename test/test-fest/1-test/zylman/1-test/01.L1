@@ -1,2 +1,0 @@
-(((rbx <- 13)
-  (rax <- (print rbx))))

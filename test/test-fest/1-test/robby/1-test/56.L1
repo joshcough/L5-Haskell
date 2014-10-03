@@ -1,8 +1,0 @@
-(((rax <- 3)
-  (cjump rax = 1 :then :else)
-  :then
-  (rax <- (print 3))
-  (goto :done)
-  :else
-  (rax <- (print 1))
-  :done))

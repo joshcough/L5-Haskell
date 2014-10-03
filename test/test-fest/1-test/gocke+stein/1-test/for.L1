@@ -1,9 +1,0 @@
-;; A for loop that exits after 5 loops
-(((rax <- 0)
-  :loop
-  (rax += 1)
-  (cjump rax < 5 :loop :out)
-  :out
-  (rax *= 2)
-  (rax += 1)
-  (rax <- (print rax))))

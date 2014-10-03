@@ -1,5 +1,0 @@
-(((rax <- (allocate 3 1))
-  (rax <- (mem rax 0))
-  (rax += rax)
-  (rax += 1)
-  (rax <- (print rax))))

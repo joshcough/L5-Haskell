@@ -1,7 +1,0 @@
-(((rax <- 7)
-  (rax *= 42)
-  (rax += 1337)
-  (rax -= 13)
-  (rax <<= 1)
-  (rax += 1)
-  (rax <- (print rax))))

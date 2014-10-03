@@ -1,6 +1,0 @@
-(((rax <- 11) ;5 < 2
-  (rcx <- 5)
-  (rax <- rax < rcx)
-  (rax *= 2)
-  (rax += 1)
-  (rax <- (print rax))))

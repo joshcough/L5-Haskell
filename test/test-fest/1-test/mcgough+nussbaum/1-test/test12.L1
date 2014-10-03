@@ -1,6 +1,0 @@
-(((call :foo)
-(rax += 4)
-(rax <- (print rax)))
-(:foo
-(rax <- 7)
-(return)))

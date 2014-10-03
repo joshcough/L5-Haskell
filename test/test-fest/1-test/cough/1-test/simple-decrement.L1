@@ -1,5 +1,0 @@
-((
-  (rax <- 7) ; set rax to 3
-  (rax -= 2) ; decrement rax. 111 - 10 = 101 = 5 = 2
-  (rax <- (print rax))
-))

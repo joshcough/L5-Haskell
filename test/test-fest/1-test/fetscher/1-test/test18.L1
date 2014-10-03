@@ -1,3 +1,0 @@
-(((rax <- (allocate 3 1))
-  (rax <- (array-error rax 5))
-  (rax <- (print rax))))

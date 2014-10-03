@@ -1,7 +1,0 @@
-(((rax <- -256)
-  (rax <<= 8)
-  (rax >>= 8)
-  (rbx <- rax)
-  (rbx *= 2)
-  (rbx += 1)
-  (rax <- (print rbx))))

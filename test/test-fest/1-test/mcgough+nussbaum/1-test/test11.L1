@@ -1,5 +1,0 @@
-(((call :foo)
-(rax <- (print rax)))
-(:foo
-(rax <- 7)
-(return)))

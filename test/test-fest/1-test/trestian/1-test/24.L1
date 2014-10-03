@@ -1,8 +1,0 @@
-((
-(rsi <- 1)
-(rdi <- 3)
-
-(rax <- rsi < rdi)
-
-(rax <- (print rax))
-))

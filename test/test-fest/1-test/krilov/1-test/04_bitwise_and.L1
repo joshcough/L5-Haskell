@@ -1,7 +1,0 @@
-; Test bitwise AND
-((
-  (rax <- 11)   ; 1011
-  (rbx <- 13)   ; 1101
-  (rbx &= rax)	; 1001 = 9, but this is encoded, so it actually represents 4 when printed
-  (rax <- (print rbx))))  ; 4
-))

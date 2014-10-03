@@ -1,8 +1,0 @@
-((;;5 + 4 = 9
-  (rbx <- 5)
-  (rcx <- 4)
-  (rbx += rcx)
-  ;; Encode for printing
-  (rbx *= 2)
-  (rbx += 1)
-  (rax <- (print rbx))))

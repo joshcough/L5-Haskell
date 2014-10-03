@@ -1,5 +1,0 @@
-((
-(rsi <- 13)
-(rax <- (allocate rsi 5))
-(rax <- (print rax))
-))

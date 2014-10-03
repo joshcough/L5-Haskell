@@ -1,6 +1,0 @@
-(((rdx <- 67)
-(goto :jumphere)
-(rdx *= 2)
-:jumphere
-(rax <- rdx)
-(rax <- (print rax))))

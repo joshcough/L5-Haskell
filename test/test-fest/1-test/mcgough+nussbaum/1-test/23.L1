@@ -1,4 +1,0 @@
-;;5
-(((rax <- (allocate 7 11))
-  (rax <- (mem rax 8))
-  (rax <- (print rax))))

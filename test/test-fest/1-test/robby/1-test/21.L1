@@ -1,1 +1,0 @@
-(((rax <- (allocate 9 3)) (rax <- (print rax))))

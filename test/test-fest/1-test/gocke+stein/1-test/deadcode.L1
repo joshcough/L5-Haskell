@@ -1,7 +1,0 @@
-(((rbx <- 1)
-  (rdx <- 0)
-  (cjump 0 < rbx :safety :danger)
-  :danger
-  (rcx <- (mem rdx 0))
-  :safety
-  (rax <- (print 1))))

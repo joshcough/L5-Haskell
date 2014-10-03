@@ -1,6 +1,0 @@
-(((goto :skip)
-  (rax <- 5)
-  (rax <- (print rax))
-  :skip
-  (rax <- 1)
-  (rax <- (print rax))))

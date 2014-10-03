@@ -1,1 +1,0 @@
-(((rax <- 3) (rbx <- rax = 3) (rbx += rbx) (rbx += 1) (rax <- (print rbx))))

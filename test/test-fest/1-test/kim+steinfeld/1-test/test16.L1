@@ -1,8 +1,0 @@
-((
-(rsi <- 9)
-(rax <- (allocate rsi 11))
-(rdi <- rax)      ;; base pointer
-
-((mem rdi 4) <- 21)
-(rax <- (print rdi))
-))

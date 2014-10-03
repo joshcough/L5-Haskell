@@ -1,7 +1,0 @@
-(((rbx <- 1)
-  (rsi <- 2)
-  (rdi <- 3)
-  (rax <- 3)
-  (rax <- (print rax))
-  (rax <- rsi)
-  (rax <- rdi)))
