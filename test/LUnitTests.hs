@@ -137,7 +137,7 @@ runAndCompareInterpTurtlesVsNative lang inputFile = do
 tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def) where
   testFiles :: String -> IO [FilePath]
   testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
-  mkTest inputFile = testCase inputFile $ do
+  mkTest inputFile = testCase (name def ++ " " ++ inputFile) $ do
     compute def inputFile (changeExt inputFile <$> outputFileExt def)
 
 assertList :: (Eq a, Show a) => [a] -> IO ()

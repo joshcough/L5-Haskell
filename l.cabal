@@ -2,14 +2,14 @@
 
 name:                l
 version:             0.1.0.0
-synopsis:            A compiler written in Haskell
--- description:         
+synopsis:            Compilers and Interepters for the L5-L1 Languages.
+description:         L5 is a scheme-like language. This project provides implementations of compilers and interpreters for L5 and it's sub-languages L4-L1.
 homepage:            https://github.com/joshcough/L5-Haskell
 license:             MIT
 license-file:        LICENSE
 author:              Josh Cough
 maintainer:          joshcough@gmail.com
--- copyright:           
+copyright:           Copyright (C) 2014 Joshua D. Cough
 category:            Languages
 build-type:          Simple
 cabal-version:       >=1.8
@@ -28,6 +28,8 @@ library
   ghc-options: -Wall -fno-warn-name-shadowing
 
   exposed-modules:
+
+    -- Common Code
     L.CommandLine
     L.Compiler
     L.Computer
@@ -39,10 +41,12 @@ library
     L.OS
     L.Read
     L.Utils
+
     -- L1
     L.L1.L1
     L.L1.L1Interp
     L.L1.L1X86
+
     -- L2
     L.L2.Allocation
     L.L2.Interference
@@ -51,17 +55,20 @@ library
     L.L2.Liveness
     L.L2.Spill
     L.L2.Vars
+
     -- L3
     L.L3.L3
     L.L3.L3AST
     L.L3.L3Interp
     L.L3.L3Parser
     L.L3.Linearize
+
     -- L4
     L.L4.ANormalize
     L.L4.L4
     L.L4.L4AST
     L.L4.L4Parser
+
     -- L5
     L.L5.L5AST
     --L.L5.L5Core
