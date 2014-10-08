@@ -94,7 +94,7 @@ parseFile l file = parseString l <$> readFile file
 compile :: Language i o -> Compiler i o
 compile = compiler
 
-compileString :: 
+compileString ::
   Language i o       -> 
   ProgramName        -> 
   CompilationOptions -> 

@@ -76,7 +76,7 @@ compileE (IfStatement v t f) = do
   t'        <- compileE t
   f'        <- compileE f
   -- todo: make sure test is correct. this is going to require a bunch of testing.
-  let test    = CJump (Comp (compileV v) L2.EQ l2True) thenLabel elseLabel 
+  let test    = CJump (Comp (compileV v) L2.EQ l2True) thenLabel elseLabel
       thenDec = LabelDeclaration thenLabel
       elseDec = LabelDeclaration elseLabel
   return $ concat [v', [test], [thenDec], t', [elseDec], f']
@@ -88,22 +88,22 @@ compileE (DE d) = (\d' -> d' ++ [Return]) <$> compileD d (RegL2X rax)
 
 compileD :: D -> L2X -> State Int [L2Instruction]
 compileD (L3.Print v) dest = 
-  return [toLHS rax <~ (L2.Print $ encodeV v), dest <~ regRHS rax]
+  return [toLHS rax <~ (L2.Print $ compileV v), dest <~ regRHS rax]
 -- TODO...tail-call if last d in the tree??
 compileD (FunCall v vs) dest = return $ compileFunCall v vs (Just dest)
 -- biop ::= + | - | * | < | <= | =
 compileD (BiopD Add l r) dest = return $ 
-  [dest <~ encodeVRHS l,
-   dest += encodeV r,
+  [dest <~ compileVRHS l,
+   dest += compileV r,
    dest -= num 1]
 compileD (BiopD Sub l r) dest = return $ 
-  [dest <~ encodeVRHS l,
-   dest -= encodeV r,
+  [dest <~ compileVRHS l,
+   dest -= compileV r,
    dest += num 1]
 compileD (BiopD Mult l r) dest = do { tmp <- newTemp; return
-  [tmp  <~ encodeVRHS l,
+  [tmp  <~ compileVRHS l,
    tmp >> num 1,
-   dest <~ encodeVRHS r,
+   dest <~ compileVRHS r,
    dest >> num 1,
    dest *= XL2S tmp,
    dest << num 1,
@@ -112,17 +112,17 @@ compileD (BiopD LessThan l r) dest = return $ compileComp l r dest LT
 compileD (BiopD LTorEq l r)   dest = return $ compileComp l r dest LTEQ
 compileD (BiopD Eq l r)       dest = return $ compileComp l r dest EQ
 compileD (PredD IsNum   v) dest = return $
-  [dest <~ encodeVRHS v,
+  [dest <~ compileVRHS v,
    dest &  num 1,
    dest << num 1,
    dest += num 1]
 compileD (PredD IsArray v) dest = return $
-  [dest <~ encodeVRHS v,
+  [dest <~ compileVRHS v,
    dest &  num 1,
    dest << num (-2),
    dest += num 3]
 compileD (NewArray size init) dest = return $
-  [toLHS rax <~ Allocate (encodeV size) (encodeV init),
+  [toLHS rax <~ Allocate (compileV size) (compileV init),
    dest <~ regRHS rax]
 -- (x <- (mem s n4))
 -- TODO: does v have to be a var? why?
@@ -133,7 +133,7 @@ compileD (ARef (VarV v) loc) dest = do
   boundsPassLabel    <- newLabel
   checkNegativeLabel <- newLabel
   return [
-    index <~ encodeVRHS loc,
+    index <~ compileVRHS loc,
     index >> num 1,
     size  <~ MemRead (MemLoc (VarL2X v) 0),
     CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
@@ -162,7 +162,7 @@ compileD (ASet (VarV v) loc newVal) dest = do
   boundsPassLabel    <- newLabel
   checkNegativeLabel <- newLabel
   return [
-    index <~ encodeVRHS loc,
+    index <~ compileVRHS loc,
     index >> num 1,
     size  <~ MemRead (MemLoc (VarL2X v) 0),
     CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
@@ -176,59 +176,52 @@ compileD (ASet (VarV v) loc newVal) dest = do
     index += num 1,
     index *= num 8, --todo: check that this 8 is correct, i think it is,
     index += (XL2S $ VarL2X v),
-    MemWrite (MemLoc index 0) (encodeV newVal),
+    MemWrite (MemLoc index 0) (compileV newVal),
     dest  <~ SRHS (num 1)]
 compileD (NewTuple vs) dest = newTupleFromVs vs dest
 compileD (MakeClosure l v) dest = do
   temp <- newTemp
   let assignment = temp <~ SRHS (LabelL2S l)
-  return $ assignment : newTuple [XL2S temp, encodeV v] dest
+  return $ assignment : newTuple [XL2S temp, compileV v] dest
 
 compileD (ClosureProc v)   dest = compileD (ARef v (NumV 0)) dest
 compileD (ClosureVars v)   dest = compileD (ARef v (NumV 1)) dest
-compileD (VD v)            dest = return $ [dest <~ encodeVRHS v]
+compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
 
 compileD bad dest = error $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest
 
 newTupleFromVs :: [V] -> L2X -> State Int [L2Instruction]
-newTupleFromVs vs dest = return $ newTuple (fmap encodeV vs) dest
+newTupleFromVs vs dest = return $ newTuple (fmap compileV vs) dest
 
 newTuple :: [L2S] -> L2X -> [L2Instruction]
 newTuple as dest =
   concat [[arr], sets, [dest <~ regRHS rax]] where
-    arr  = rax <~ Allocate (encodeV . NumV $ fromIntegral $ length as) (num 1)
+    arr  = rax <~ Allocate (compileV . NumV $ fromIntegral $ length as) (num 1)
     sets = fmap f (zip as [0..])
     f (a, i) = MemWrite (MemLoc rax ((i+1)*8)) a
 
 compileComp :: V -> V -> L2X -> CompOp -> [L2Instruction]
 compileComp l r dest op = 
-  [dest <~ encodeVRHS l,
-   dest <~ CompRHS (Comp (XL2S dest) op (encodeV r)),
+  [dest <~ compileVRHS l,
+   dest <~ CompRHS (Comp (XL2S dest) op (compileV r)),
    dest << num 1,
    dest += num 1]
 
--- TODO: why have compileV and encodeV?
--- why is this necessary? it seems like only encodeV should be needed.
 compileV :: V -> L2S
 compileV (VarV v)   = XL2S $ VarL2X v
-compileV (NumV i)   = NumberL2S i
+compileV (NumV i)   = NumberL2S (i*2+1)
 compileV (LabelV l) = LabelL2S l
 
-encodeV :: V -> L2S
-encodeV (VarV v)   = XL2S $ VarL2X v
-encodeV (NumV i)   = NumberL2S (i*2+1)
-encodeV (LabelV l) = LabelL2S l
-
-encodeVRHS :: V -> AssignRHS L2X L2S
-encodeVRHS = SRHS . encodeV
+compileVRHS :: V -> AssignRHS L2X L2S
+compileVRHS = SRHS . compileV
 -- if there is a destination (L2X) then make a regular Call
 -- storing the result of the call (which is in rax) into the destination
 -- otherwise, make a TailCall
 compileFunCall :: V -> [V] -> Maybe L2X -> [L2Instruction] 
 compileFunCall v vs dest = regAssignments ++ call where
   -- on a function call, we need to put the arguments into the registers
-  regAssignments = zipWith Assign (RegL2X <$> argRegisters) (SRHS . encodeV <$> vs)
-  v'   = encodeV v
+  regAssignments = zipWith Assign (RegL2X <$> argRegisters) (SRHS . compileV <$> vs)
+  v'   = compileV v
   call = maybe ([TailCall v']) (\d -> [Call v', Assign d $ regRHS rax]) dest
 
 

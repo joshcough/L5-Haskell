@@ -7,7 +7,9 @@ module L.L3.L3Interp (
 import Control.Applicative
 import Control.Monad.State
 import Data.Array.IO (IOArray)
+import qualified Data.Array.IO as IOArray
 import Data.Int
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -18,12 +20,7 @@ import L.L3.L3AST
 import L.Utils
 import System.IO.Unsafe
 
-import qualified Data.Array.IO as IOArray
-
-data Runtime = 
-    Number Int64
-  | Pointer Int64
-  | FunctionPointer Label deriving (Show, Eq)
+data Runtime = Num Int64 | Pointer Int64 | FunctionPointer Label deriving Eq
 type Output = [String]
 type Mem = (IOArray Int64 Runtime, Int64) -- heap, and heap pointer
 type Env = Map Variable Runtime
@@ -57,26 +54,42 @@ addOutput s = do c <- get; put c { output = s : output c }
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
 locally :: (Env -> Env) -> M a -> M a
 locally modifyEnv action = do 
-  e <- getEnv
+  e   <- getEnv
   putEnv $ modifyEnv e
   res <- action
   putEnv e
-  return res where
-  putEnv e = do c <- get; put c { env = e }
+  return res where putEnv e = do c <- get; put c { env = e }
 
 lTrue, lFalse :: Runtime
-lTrue  = Number 1
-lFalse = Number 0
+lTrue  = Num 1
+lFalse = Num 0
 defaultHeapSize :: Int64
-defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
+defaultHeapSize = 10 --1024 * 16 -- with 64 bit ints, i think this is one meg.
 emptyMem :: Int64 -> IO Mem
 emptyMem heapSize = do
-  mem <- IOArray.newArray (0 :: Int64, heapSize - 1) (Number (0 :: Int64))
+  mem <- IOArray.newArray (0 :: Int64, heapSize - 1) (Num (0 :: Int64))
   return (mem, 0 :: Int64)
 
 -- TODO: change interp in L.Compiler to be an m (Output) or IO (Output)
 interpL3 :: L3 -> String
-interpL3 = mkString "" . reverse . unsafePerformIO . getL3Output
+interpL3 p = unsafePerformIO $ do
+  o <- getL3Output p
+  return $ mkString "" $ reverse o
+
+interpL3_ :: L3 -> String
+interpL3_ p = unsafePerformIO $ do
+  (_, c) <- runInterpL3 defaultHeapSize p
+  showMem (mem c)
+
+showMem :: (IOArray Int64 Runtime, Int64) -> IO String
+showMem (arr, hp) = do
+  arrS <- showArr arr
+  return $ "heapPointer: " ++ show hp ++ " arr: " ++ arrS
+
+showArr :: IOArray Int64 Runtime -> IO String
+showArr arr = do
+  rs <- IOArray.getElems arr
+  return $ mkString ", " $ fmap showRuntimeSimple rs
 
 getL3Output :: L3 -> IO Output
 getL3Output p = output . snd <$> runInterpL3 defaultHeapSize p
@@ -111,22 +124,31 @@ interpE (DE d) = interpD d
 interpD :: D -> M Runtime
 interpD (BiopD b l r) = 
   do l' <- interpV l; r' <- interpV r; return $ mathOp l' b r'
-interpD (PredD IsNum   (NumV _)) = return $ lTrue
+interpD (PredD IsNum (NumV _  )) = return $ lTrue
+interpD (PredD IsNum v@(VarV _)) =
+  do rv <- interpV v; return $ case rv of (Num _) -> lTrue; _ -> lFalse
 -- labels act like arrays, it's weird, but true.
 interpD (PredD IsNum   _       ) = return $ lFalse
-interpD (PredD IsArray (NumV _)) = return $ lFalse
+interpD (PredD IsArray v@(VarV _)) =
+  do rv <- interpV v; return $ case rv of (Pointer _) -> lTrue; _ -> lFalse
 interpD (PredD IsArray _       ) = return $ lTrue
 interpD (NewArray s d)           = newArray s d
-interpD (FunCall v vs)           = error "todo"
-interpD (NewTuple vs)            = error "todo"
-interpD (ARef a loc)             = error "todo"
-interpD (ASet a loc v)           = error "todo"
-interpD (ALen a)                 = error "todo"
-interpD (L.L3.L3AST.Print v)     = error "todo"
-interpD (MakeClosure l v)        = error "todo"
-interpD (ClosureProc v)          = error "todo"
-interpD (ClosureVars v)          = error "todo"
-interpD (VD v)                   = error "todo"
+interpD (FunCall v vs)           = interpApp v vs
+interpD (NewTuple vs)            =
+  traverse interpV vs >>= makeHeapArray (fromIntegral $ length vs)
+interpD (ARef a loc)             = arrayRef a loc
+interpD (ASet a loc v)           = arraySet a loc v
+interpD (ALen a)                 = arrayLength a
+interpD (L.L3.L3AST.Print v)     = interpPrint v
+interpD (MakeClosure l v)        = interpD (NewTuple [LabelV l, v])
+interpD (ClosureProc c)          = arrayRef c (NumV 0)
+interpD (ClosureVars c)          = arrayRef c (NumV 1)
+interpD (VD v)                   = interpV v
+
+interpV :: V -> M Runtime
+interpV (VarV v)   = envLookup v <$> getEnv
+interpV (NumV i)   = return $ Num i
+interpV (LabelV l) = return $ FunctionPointer l
 
 newArray :: V -> V -> M Runtime
 newArray s v = do
@@ -138,16 +160,59 @@ newArray s v = do
 makeHeapArray :: Int64 -> [Runtime] -> M Runtime
 makeHeapArray size rs = do
   (mem, hp) <- getMem
-  _         <- lift $ writeArrayIntoHeap mem hp (Pointer hp : rs)
-  _         <- putMem (mem, hp + size)
+  _         <- lift $ writeArrayIntoHeap mem hp (Num size : rs)
+  _         <- putMem (mem, hp + size + 1)
   return $ Pointer hp where
   writeArrayIntoHeap :: IOArray Int64 Runtime -> Int64 -> [Runtime] -> IO [()]
   writeArrayIntoHeap mem hp rs =
     Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs
 
+-- | prints the given E. (print e)
+interpPrint :: V -> M Runtime
+interpPrint v = do
+  r <- interpV v
+  s <- showRuntime r
+  _ <- addOutput (s ++ "\n")
+  return lTrue
+
+-- | function application (f v...)
+interpApp :: V -> [V] -> M Runtime
+interpApp f vs = do
+  (FunctionPointer label) <- interpV f
+  rs                      <- traverse interpV vs
+  (Func _ args body)      <- libLookup label <$> getLib
+  env                     <- getEnv
+  locally (\_ -> Map.union (Map.fromList $ zip args rs) env) (interpE body)
+
+-- | array reference (arr[i])
+arrayRef :: V -> V -> M Runtime
+arrayRef arr i = do
+  (mem,_) <- getMem
+  p       <- evalPointer arr
+  index   <- evalNumber i
+  lift $ IOArray.readArray mem (p + index + 1)
+
+-- | get array length (size arr)
+arrayLength :: V -> M Runtime
+arrayLength arr = do
+  (mem,_) <- getMem
+  p       <- evalPointer arr
+  lift $ IOArray.readArray mem p
+
+-- | sets the (arr[i] = e)
+arraySet :: V -> V -> V -> M Runtime
+arraySet arr i v = do
+  p        <- evalPointer arr
+  index    <- evalNumber i
+  r        <- interpV v
+  (mem,_)  <- getMem
+  ()       <- lift $ IOArray.writeArray mem (p + index + 1) r
+  return lTrue
+
+
 evalNumber, evalPointer  :: V -> M Int64
-evalNumber  v = foldRuntime (\(Number i) -> i) evalErrN evalErrN <$> interpV v
-  where evalErrN = evalErr "Number"
+evalNumber  v = foldRuntime (\(Num i) -> i) evalErrN evalErrN <$> interpV v
+  where evalErrN = evalErr "Num"
 evalPointer v = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interpV v
   where evalErrP = evalErr "Pointer"
 --evalClosure :: E -> M Runtime
@@ -155,34 +220,65 @@ evalPointer v = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interpV v
 --  where evalErrC = evalErr "<function>"
 
 evalErr :: String -> Runtime -> a -- hmm...
-evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ (show r)
+evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ showRuntimeSimple r
+
+showRuntimeSimple :: Runtime -> String
+showRuntimeSimple (Num n)     = "Num "     ++ show n
+showRuntimeSimple (Pointer n) = "Pointer " ++ show n
+showRuntimeSimple (FunctionPointer l) = "FunctionPointer " ++ l
 
 runtimeError :: String -> a
 runtimeError msg = error $ "Runtime error: " ++ msg
 
+getHeapList :: M [Runtime]
+getHeapList = fst <$> getMem >>= lift . IOArray.getElems
+
+showRuntime :: Runtime -> M String
+showRuntime r = showRuntimePure <$> getHeapList <*> return r
+
+envLookup :: Variable -> Env -> Runtime
+envLookup = forceLookup "variable"
+
+libLookup :: Variable -> Lib -> Func
+libLookup = forceLookup "function"
+
+forceLookup :: (Show k, Ord k) => String -> k -> Map k v -> v
+forceLookup kName k m =
+  fromMaybe (runtimeError $ concat ["unbound ", kName, ": ", show k]) (Map.lookup k m)
+
+mathOp :: Runtime -> Biop -> Runtime -> Runtime  
+mathOp (Num l) Add      (Num r) = Num    $ l +  r
+mathOp (Num l) Sub      (Num r) = Num    $ l -  r
+mathOp (Num l) Mult     (Num r) = Num    $ l *  r
+mathOp (Num l) LessThan (Num r) = boolToNum $ l <  r
+mathOp (Num l) LTorEq   (Num r) = boolToNum $ l <= r
+mathOp (Num l) Eq       (Num r) = boolToNum $ l == r
+mathOp l b r = error $
+  concat ["invalid arguments to ", show b, " :", showRuntimeSimple l, ", " , showRuntimeSimple r]
+
+boolToNum :: Bool -> Runtime
+boolToNum True  = Num 1
+boolToNum False = Num 0
+
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc r = f r where
-  f n@(Number _)          = fn n
+  f n@(Num _)             = fn n
   f p@(Pointer _)         = fp p
   f c@(FunctionPointer _) = fc c
 
-mathOp :: Runtime -> Biop -> Runtime -> Runtime  
-mathOp (Number l) Add      (Number r) = Number    $ l +  r
-mathOp (Number l) Sub      (Number r) = Number    $ l -  r
-mathOp (Number l) Mult     (Number r) = Number    $ l *  r
-mathOp (Number l) LessThan (Number r) = boolToNum $ l <  r
-mathOp (Number l) LTorEq   (Number r) = boolToNum $ l <= r
-mathOp (Number l) Eq       (Number r) = boolToNum $ l == r
-mathOp l b r = 
-  error $ concat ["invalid arguments to ", show b, " :", show l, ", " , show r]
+showRuntimePure :: [Runtime] -> Runtime -> String
+showRuntimePure m = foldRuntime
+ (\(Num n) -> show n) (showArrayPure m) (\l -> runtimeError $ "can't print a label: " ++ showRuntimeSimple l)
 
-boolToNum :: Bool -> Runtime
-boolToNum True  = Number 1
-boolToNum False = Number 0
+getArrayPure :: [Runtime] -> Int64 -> (Int64, [Runtime])
+getArrayPure mem i = (size, arr) where
+  view       = drop (fromIntegral i) mem
+  (Num size) = foldRuntime id err err $ head view
+  err r      = runtimeError $ "bug, bad array size: " ++ showRuntimeSimple r
+  arr        = take (fromIntegral size) $ drop 1 view
 
-interpV :: V -> M Runtime
-interpV (VarV v) = do
-  env <- getEnv
-  return $ fromMaybe (error $ "unbound variable: " ++ v) (Map.lookup v $ traceShowId env)
-interpV (NumV i) = return $ Number i
-interpV (LabelV l) = error "todo" -- uh oh
+showArrayPure :: [Runtime] -> Runtime -> String
+showArrayPure mem (Pointer i) = concat ["{s:", show size, ", ", body, "}"] where
+  (size, arr) = getArrayPure mem i
+  body = join $ intersperse ", " (showRuntimePure mem <$> arr)
+showArrayPure _ e = error $ "impossible (showArrayPure called with: " ++ showRuntimeSimple e ++ ")"

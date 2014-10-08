@@ -138,7 +138,7 @@ makeHeapArray :: Int -> [Runtime] -> M Runtime
 makeHeapArray size rs = do
   (mem, hp) <- getMem
   _         <- lift $ writeArrayIntoHeap mem hp (Pointer hp : rs)
-  _         <- putMem (mem, hp + size)
+  _         <- putMem (mem, hp + size + 1)
   return $ Pointer hp
 
 writeArrayIntoHeap :: IOArray Int Runtime -> Int -> [Runtime] -> IO [()]
@@ -206,8 +206,8 @@ lFalse :: Runtime
 lFalse = Num 0 
 
 isNumber, isArray :: Runtime -> Runtime
-isNumber = foldRuntime (const lTrue) (const lFalse) (const lFalse)
-isArray  = foldRuntime (const lFalse) (const lTrue) (const lFalse)
+isNumber = foldRuntime (const lTrue)  (const lFalse) (const lFalse)
+isArray  = foldRuntime (const lFalse) (const lTrue)  (const lFalse)
 
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc r = f r where

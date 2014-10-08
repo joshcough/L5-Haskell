@@ -84,7 +84,7 @@ fill d = fill' where
     maybeLet d $ \v -> l4Find e $ FunCallContext es makeD (vs++[v]) k 
   fill' (FunCallContext [] (Just makeD) vs k) = 
     maybeLet d $ \v -> fill (makeD $ vs++[v]) k
-  fill' (FunCallContext [] Nothing vs k) = maybeLet d $ \v -> 
+  fill' (FunCallContext [] Nothing vs k) = maybeLet d $ \v ->
     let vsv = vs ++ [v]
     in fill (L3.FunCall (head vsv) (tail vsv)) k
   {-
