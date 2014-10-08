@@ -187,26 +187,16 @@ interpApp f vs = do
 -- | array reference (arr[i])
 arrayRef :: V -> V -> M Runtime
 arrayRef arr i = do
-  (mem,_) <- getMem
-  p       <- evalPointer arr
-  index   <- evalNumber i
-  lift $ IOArray.readArray mem (p + index + 1)
-
-{-
-
-  size    <- lift $ IOArray.readArray mem p
-  if size <= i
-    then (addOutput $ "attempted to use position "++show i++" in an array that only has "++show size++" positions")
-    else (lift $ IOArray.readArray mem (p + index + 1))
-
--- read an array from memory
-readArray :: Int64 -> Computer a -> Vector Int64
-readArray addr c = go where
-  size       = fromIntegral $ readMem "readArray" addr c
-  startIndex = fromIntegral addr `div` 8 + 1
-  go | startIndex + size < memSize = Vector.slice startIndex size (c^.memory)
-     | otherwise = error $ "readArray tried to access out of bounds memory index: " ++ show startIndex
--}
+  (mem,_)    <- getMem
+  p          <- evalPointer arr
+  index      <- evalNumber i
+  (Num size) <- lift $ IOArray.readArray mem p
+  if (index < size)
+    then (lift $ IOArray.readArray mem (p + index + 1))
+    else bomb size index where
+      bomb size index = do
+        _ <- addOutput $ concat ["attempted to use position ", show index, " in an array that only has ", show size, " positions"]
+        return $ Num 0 -- TODO: need to stop execution here!!
 
 -- | get array length (size arr)
 arrayLength :: V -> M Runtime
