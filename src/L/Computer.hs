@@ -4,14 +4,22 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module L.Computer where
 
+import Control.Applicative
 import Control.Lens hiding (set)
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Writer
 import Data.Bits
 import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Monoid()
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 --import Debug.Trace
@@ -23,18 +31,38 @@ type Memory = Vector Int64
 type Output = [String]
 type Ip = Int64 -- instruction pointer
 
+class Monad m => MonadOutput m where
+  say :: String -> m ()
+  default say :: (MonadTrans t, MonadOutput n, m ~ t n) => String -> m ()
+  say = lift . say
+
+instance MonadOutput IO where
+  say = putStrLn
+
+instance MonadOutput m => MonadOutput (StateT s m)
+instance MonadOutput m => MonadOutput (ReaderT s m)
+instance (Monoid w, MonadOutput m) => MonadOutput (WriterT w m)
+
+newtype OutputT m a = OutputT { runOutputT :: m ([String], a) }
+
+instance Monad m => Monad (OutputT m) where
+  return a = OutputT $ return ([], a)
+  OutputT m >>= f = OutputT $ do
+    (xs, a) <- m
+    (ys, b) <- runOutputT $ f a
+    return (xs ++ ys, b)
+
 data Computer a = Computer {
    _registers :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
  , _memory    :: Memory           -- "" (same as registers)
  , _program   :: Vector a         -- ok...non-linear programs (L3 and above) might have trouble here.
  , _labels    :: Map Label Int64  -- however, this could me a map from label to something else
- , _output    :: Output           -- output is the same across all languages [String], but, could a computer also possibly have a final result?
  , _ip        :: Ip               -- Ip might mean nothing to L3 and above, but then again maybe theres a way to make use of it.
  , _heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
- , _halted    :: Bool             -- can this be used across all languages? I'm not sure...
 }
 makeClassy ''Computer
 
+{-
 data PrintableComputer a = PrintableComputer {
    registersP :: RegisterState
  , memoryP    :: Memory
@@ -54,6 +82,7 @@ instance Show a => Show (Computer a) where
 
 showComputerOutput :: HasComputer c a => c -> String
 showComputerOutput c = mkString "" $ reverse (c^.output)
+-}
 
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
@@ -90,147 +119,133 @@ newComputer p = Computer {
   _memory    = emptyMem,
   _program   = Vector.fromList insts,
   _labels    = Map.map fromIntegral $ labelIndices insts,
-  _output    = [],
   _ip        = 0,
-  _heapP     = 0,
-  _halted    = False 
+  _heapP     = 0
 } where insts = programToList p
 
 -- set the value of a register to an int value
-writeReg :: HasComputer c a => Register -> Int64 -> c -> c
-writeReg reg newValue c = newReg (Map.insert reg newValue $ c^.registers) c
+writeReg :: (MonadState c m, HasComputer c a) => Register -> Int64 -> m ()
+writeReg reg newValue = registers.at reg ?= newValue
 
 -- set the value of r1 to the value of r2
-set :: HasComputer c a => Register -> Register -> c -> c
-set r1 r2 c = writeReg r1 (readReg r2 c) c
+set :: (MonadState c m, HasComputer c a) => Register -> Register -> m ()
+set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
-readReg :: HasComputer c a => Register -> c -> Int64
-readReg r c = 
-  maybe (error $ "error: unitialized register: " ++ show r) id (Map.lookup r $ c^.registers)
+readReg :: (MonadState c m, HasComputer c a) => Register -> m Int64
+readReg r = use (registers.at r) >>= maybe (fail $ "error: unitialized register: " ++ show r) return
 
 -- write an int into memory at the given address
-writeMem :: HasComputer c a => String -> Int64 -> Int64 -> c -> c
-writeMem caller addr value c = go where
+writeMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> Int64 -> m ()
+writeMem caller addr value = go where
   index = fromIntegral addr `div` 8
-  go | index < memSize = newMem ((c^.memory) Vector.// [(index, value)]) c
-     | otherwise = error $ caller ++ "tried to write out of bounds memory index: " ++ show index
+  go | index < memSize = memory.ix index .= value
+     | otherwise = fail $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: HasComputer c a => String -> Int64 -> c -> Int64
-readMem caller addr c = go where
+readMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> m Int64
+readMem caller addr = go where
   index = fromIntegral addr `div` 8
-  go | index < memSize = (c^.memory) Vector.! index
-     | otherwise       = error $ caller ++ "tried to access out of bounds memory index: " ++ show index
+  go | index < memSize = use $ singular $ memory.ix index
+     | otherwise       = fail $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: HasComputer c a => Int64 -> c -> Vector Int64
-readArray addr c = go where
-  size       = fromIntegral $ readMem "readArray" addr c
-  startIndex = fromIntegral addr `div` 8 + 1
-  go | startIndex + size < memSize = Vector.slice startIndex size (c^.memory)
-     | otherwise = error $ "readArray tried to access out of bounds memory index: " ++ show startIndex
+readArray :: (MonadState c m, HasComputer c a) => Int64 -> m (Vector Int64)
+readArray addr = do
+  s <- fromIntegral `liftM` readMem "readArray" addr
+  let startIndex = fromIntegral addr `div` 8 + 1
+  if startIndex + s < memSize
+    then uses memory (Vector.slice startIndex s)
+    else fail $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
 -- push the given int argument onto the top of the stack
 -- adjust rsp accordingly
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: HasComputer c a => Int64 -> c -> c
-push value c =
-  let rspVal = readReg rsp c - 8
-      c'     = writeReg rsp rspVal c
-  in  writeMem "push" rspVal value c'
+push :: (MonadState c m, HasComputer c a) => Int64 -> m ()
+push value = do
+  rspVal <- readReg rsp
+  writeReg rsp (rspVal - 8)
+  writeMem "push" (rspVal - 8) value
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
-pop :: HasComputer c a => Register -> c -> c
-pop r c =
-  let rspVal = readReg rsp c
-      c'     = writeReg r (readMem "pop" rspVal c) c
-  in writeReg rsp (rspVal + 8) c'
+pop :: (MonadState c m, HasComputer c a) => Register -> m ()
+pop r = do
+  rspVal <- readReg rsp
+  s      <- readMem "pop" rspVal
+  writeReg r s
+  writeReg rsp (rspVal + 8)
 
 encodeNum :: Int64 -> Int64
 encodeNum n = shiftR n 1
 
 -- TODO: test if heap runs into stack, and vice-versa
-allocate :: HasComputer c a => Int64 -> Int64 -> c -> (Int64, c)
-allocate size n c =
+allocate :: (MonadState c m, HasComputer c a) => Int64 -> Int64 -> m Int64
+allocate size n = do
+  hp <- use heapP
   let size'   = encodeNum size
       ns      = Prelude.replicate (fromIntegral size') n
       indices :: [Int]
-      indices = [(fromIntegral $ c^.heapP `div` 8)..]
+      indices = [(fromIntegral $ hp `div` 8)..]
       nsWithIndices = zip indices $ size' : ns
-      heap    = newMem ((c^.memory) Vector.// nsWithIndices) (c & heapP +~ ((size'+1)*8))
-  in (c^.heapP, heap)
+  memory %= (Vector.// nsWithIndices)
+  heapP <<+= ((size'+1) * 8)
 
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: HasComputer c a => Int64 -> c -> c
-print n c = addOutput (printContent n 0 ++ "\n") c where
-  printContent :: Int64 -> Int -> String
+print :: forall m c a . (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> m ()
+print n = printContent n 0 >>= \s -> say (s ++ "\n") where
+  printContent :: Int64 -> Int -> m String
   printContent n depth
-    | depth >= 4   = "..."
-    | n .&. 1 == 1 = show $ shiftR n 1
-    | otherwise    =
-      let size  = readMem "print" n c
-          arr   = readArray n c
-          contentsV = Vector.map (\n -> printContent n $ depth + 1) arr
-          contents  = mkString ", " $ show size : Vector.toList contentsV
-      in "{s:" ++ contents ++ "}"
+    | depth >= 4   = return $ "..."
+    | n .&. 1 == 1 = return . show $ shiftR n 1
+    | otherwise    = do
+      size      <- readMem "print" n
+      arr       <- readArray n
+      contentsV <- Vector.mapM (\n -> printContent n $ depth + 1) arr
+      return $ "{s:" ++ (mkString ", " $ show size : Vector.toList contentsV) ++ "}"
 
 -- print an array error
-arrayError :: HasComputer c a => Int64 -> Int64 -> c -> c
-arrayError a x c = haltWith msg c where
-  pos  = show $ encodeNum x
-  size = show $ readMem "arrayError" a c
-  msg  = "attempted to use position " ++ pos ++ 
-         " in an array that only has "++ size ++" positions"
+arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> m ()
+arrayError a x = do
+  size <- readMem "arrayError" a
+  let pos  = show $ encodeNum x
+  say $ "attempted to use position " ++ show (encodeNum x) ++
+         " in an array that only has "++ show size ++" positions"
+  fail "array error"
 
-findLabelIndex :: HasComputer c a => Label -> c -> Int64
-findLabelIndex l c = maybe (error $ "no such label: " ++ l) id (Map.lookup l (c^.labels))
+findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> m Int64
+findLabelIndex l = use (labels.at l) >>= maybe (fail $ "no such label: " ++ l) return
 
-newReg :: HasComputer c a => RegisterState -> c -> c
-newReg r c = c & registers .~ r
+goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
+goto i = ip .= i
 
+haltWith :: (MonadPlus m, MonadState c m, MonadOutput m, HasComputer c a) => String -> m ()
+haltWith msg = do
+  say msg
+  mzero
 
-newMem :: HasComputer c a => Memory -> c -> c
-newMem m c = c & memory .~ m
+currentInst :: (MonadState c m, HasComputer c a) => m a
+currentInst = do
+  ip' <- uses ip fromIntegral
+  p   <- use program
+  when (ip' < memSize) $ fail "halt!"
+  return $ p Vector.! ip'
 
-goto :: HasComputer c a => Ip -> c -> c
-goto m c = c & ip .~ m
-
-addOutput :: HasComputer c a => String -> c -> c
-addOutput s c = c & output %~ (s:)
-
-haltWith :: HasComputer c a => String -> c -> c
-haltWith msg c = c & addOutput msg & halted .~ True
-
-halt :: HasComputer c a => c -> c
-halt c = c & halted .~ True
-
-currentInst :: HasComputer c a => c -> a
-currentInst c = go where
-  ip' :: Int
-  ip' = fromIntegral $ c^.ip
-  go | ip' < memSize = (c^.program) Vector.! ip'
-     | otherwise     = error $ "instruction out of bounds: " ++ show ip'
-
-hasNextInst :: HasComputer c a => c -> Bool
-hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
+hasNextInst :: (MonadState c m, HasComputer c a) => m Bool
+hasNextInst = do
+  ip' <- use ip
+  p   <- use program
+  return $ ip' < (fromIntegral $ Vector.length p)
 
 -- advance the computer to the next instruction
-nextInst :: HasComputer c a => c -> c
-nextInst c = goto (c^.ip + 1) c
+nextInst :: (MonadState c m, HasComputer c a) => m ()
+nextInst = ip += 1
 
 -- the main loop, runs a computer until completion
-runComputer :: HasComputer c a => (c -> c) -> c -> c
-runComputer step = runIdentity . runComputerM (return . step)
-
--- the main loop, runs a computer until completion
-runComputerM :: (HasComputer c a, Monad m) =>
-  (c -> m c) -> c -> m c
-runComputerM step c
-  | c^.halted || not (hasNextInst c) = return c
-  | otherwise = step c >>= runComputerM step
+-- todo: if we go to get next inst and it aint there, halt! (mzero)
+runComputerM :: (Monad m) => m () -> m ()
+runComputerM = forever
