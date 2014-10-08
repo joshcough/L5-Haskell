@@ -52,7 +52,7 @@ instance Show a => Show (Computer a) where
         (c^.registers) (c^.memory) (c^.output) (c^.ip)
         (currentInst c) (c^.heapP) (c^.halted)
 
-showComputerOutput :: Computer a -> String
+showComputerOutput :: HasComputer c a => c -> String
 showComputerOutput c = mkString "" $ reverse (c^.output)
 
 oneMeg, twoMeg, memSize :: Int
@@ -97,34 +97,34 @@ newComputer p = Computer {
 } where insts = programToList p
 
 -- set the value of a register to an int value
-writeReg :: Register -> Int64 -> Computer a -> Computer a
+writeReg :: HasComputer c a => Register -> Int64 -> c -> c
 writeReg reg newValue c = newReg (Map.insert reg newValue $ c^.registers) c
 
 -- set the value of r1 to the value of r2
-set :: Register -> Register -> Computer a -> Computer a
+set :: HasComputer c a => Register -> Register -> c -> c
 set r1 r2 c = writeReg r1 (readReg r2 c) c
 
 -- read the value of a register
-readReg :: Register -> Computer a -> Int64
+readReg :: HasComputer c a => Register -> c -> Int64
 readReg r c = 
-  maybe (error $ "error: unitialized register: " ++ (show r)) id (Map.lookup r $ c^.registers)
+  maybe (error $ "error: unitialized register: " ++ show r) id (Map.lookup r $ c^.registers)
 
 -- write an int into memory at the given address
-writeMem :: String -> Int64 -> Int64 -> Computer a -> Computer a
+writeMem :: HasComputer c a => String -> Int64 -> Int64 -> c -> c
 writeMem caller addr value c = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = newMem ((c^.memory) Vector.// [(index, value)]) c
      | otherwise = error $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: String -> Int64 -> Computer a -> Int64
+readMem :: HasComputer c a => String -> Int64 -> c -> Int64
 readMem caller addr c = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = (c^.memory) Vector.! index
      | otherwise       = error $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: Int64 -> Computer a -> Vector Int64
+readArray :: HasComputer c a => Int64 -> c -> Vector Int64
 readArray addr c = go where
   size       = fromIntegral $ readMem "readArray" addr c
   startIndex = fromIntegral addr `div` 8 + 1
@@ -136,7 +136,7 @@ readArray addr c = go where
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: Int64 -> Computer a -> Computer a
+push :: HasComputer c a => Int64 -> c -> c
 push value c =
   let rspVal = readReg rsp c - 8
       c'     = writeReg rsp rspVal c
@@ -144,19 +144,19 @@ push value c =
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
-pop :: Register -> Computer a -> Computer a
+pop :: HasComputer c a => Register -> c -> c
 pop r c =
   let rspVal = readReg rsp c
       c'     = writeReg r (readMem "pop" rspVal c) c
   in writeReg rsp (rspVal + 8) c'
 
-adjustNum :: Int64 -> Int64
-adjustNum n = shiftR n 1
+encodeNum :: Int64 -> Int64
+encodeNum n = shiftR n 1
 
 -- TODO: test if heap runs into stack, and vice-versa
-allocate :: Int64 -> Int64 -> Computer a -> (Int64, Computer a)
+allocate :: HasComputer c a => Int64 -> Int64 -> c -> (Int64, c)
 allocate size n c =
-  let size'   = adjustNum size
+  let size'   = encodeNum size
       ns      = Prelude.replicate (fromIntegral size') n
       indices :: [Int]
       indices = [(fromIntegral $ c^.heapP `div` 8)..]
@@ -167,7 +167,7 @@ allocate size n c =
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: Int64 -> Computer a -> Computer a
+print :: HasComputer c a => Int64 -> c -> c
 print n c = addOutput (printContent n 0 ++ "\n") c where
   printContent :: Int64 -> Int -> String
   printContent n depth
@@ -181,48 +181,56 @@ print n c = addOutput (printContent n 0 ++ "\n") c where
       in "{s:" ++ contents ++ "}"
 
 -- print an array error
-arrayError :: Int64 -> Int64 -> Computer a -> Computer a
+arrayError :: HasComputer c a => Int64 -> Int64 -> c -> c
 arrayError a x c = haltWith msg c where
-  pos  = show $ adjustNum x
+  pos  = show $ encodeNum x
   size = show $ readMem "arrayError" a c
   msg  = "attempted to use position " ++ pos ++ 
          " in an array that only has "++ size ++" positions"
 
-findLabelIndex :: Label -> Computer a -> Int64
+findLabelIndex :: HasComputer c a => Label -> c -> Int64
 findLabelIndex l c = maybe (error $ "no such label: " ++ l) id (Map.lookup l (c^.labels))
 
-newReg :: RegisterState -> Computer a -> Computer a
+newReg :: HasComputer c a => RegisterState -> c -> c
 newReg r c = c & registers .~ r
-newMem :: Memory -> Computer a -> Computer a
+
+
+newMem :: HasComputer c a => Memory -> c -> c
 newMem m c = c & memory .~ m
-goto :: Ip -> Computer a -> Computer a
+
+goto :: HasComputer c a => Ip -> c -> c
 goto m c = c & ip .~ m
-addOutput :: String -> Computer a -> Computer a
+
+addOutput :: HasComputer c a => String -> c -> c
 addOutput s c = c & output %~ (s:)
-haltWith :: String -> Computer a -> Computer a
+
+haltWith :: HasComputer c a => String -> c -> c
 haltWith msg c = c & addOutput msg & halted .~ True
-halt :: HasComputer b a => b -> b
+
+halt :: HasComputer c a => c -> c
 halt c = c & halted .~ True
-currentInst :: HasComputer s a => s -> a
+
+currentInst :: HasComputer c a => c -> a
 currentInst c = go where
   ip' :: Int
   ip' = fromIntegral $ c^.ip
   go | ip' < memSize = (c^.program) Vector.! ip'
      | otherwise     = error $ "instruction out of bounds: " ++ show ip'
 
-hasNextInst :: HasComputer s a => s -> Bool
+hasNextInst :: HasComputer c a => c -> Bool
 hasNextInst c = (c^.ip) < (fromIntegral $ Vector.length (c^.program))
+
 -- advance the computer to the next instruction
-nextInst :: Computer a -> Computer a
+nextInst :: HasComputer c a => c -> c
 nextInst c = goto (c^.ip + 1) c
 
 -- the main loop, runs a computer until completion
-runComputer :: (Computer a -> Computer a) -> Computer a -> Computer a
+runComputer :: HasComputer c a => (c -> c) -> c -> c
 runComputer step = runIdentity . runComputerM (return . step)
 
 -- the main loop, runs a computer until completion
-runComputerM :: Monad m =>
-  (Computer a -> m (Computer a)) -> Computer a -> m (Computer a)
+runComputerM :: (HasComputer c a, Monad m) =>
+  (c -> m c) -> c -> m c
 runComputerM step c
   | c^.halted || not (hasNextInst c) = return c
   | otherwise = step c >>= runComputerM step
