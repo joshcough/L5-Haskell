@@ -64,7 +64,7 @@ lTrue, lFalse :: Runtime
 lTrue  = Num 1
 lFalse = Num 0
 defaultHeapSize :: Int64
-defaultHeapSize = 10 --1024 * 16 -- with 64 bit ints, i think this is one meg.
+defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
 emptyMem :: Int64 -> IO Mem
 emptyMem heapSize = do
   mem <- IOArray.newArray (0 :: Int64, heapSize - 1) (Num (0 :: Int64))
@@ -152,7 +152,7 @@ interpV (LabelV l) = return $ FunctionPointer l
 
 newArray :: V -> V -> M Runtime
 newArray s v = do
-  size <- evalNumber s 
+  size <- evalNumber s
   val  <- interpV v
   makeHeapArray size $ replicate (fromIntegral size) val
 
@@ -173,7 +173,7 @@ interpPrint v = do
   r <- interpV v
   s <- showRuntime r
   _ <- addOutput (s ++ "\n")
-  return lTrue
+  return lFalse
 
 -- | function application (f v...)
 interpApp :: V -> [V] -> M Runtime

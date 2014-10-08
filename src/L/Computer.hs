@@ -24,14 +24,14 @@ type Output = [String]
 type Ip = Int64 -- instruction pointer
 
 data Computer a = Computer {
-   _registers :: RegisterState
- , _memory    :: Memory
- , _program   :: Vector a
- , _labels    :: Map Label Int64
- , _output    :: Output
- , _ip        :: Ip
- , _heapP     :: Int64 -- pointer to top of heap
- , _halted    :: Bool
+   _registers :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
+ , _memory    :: Memory           -- "" (same as registers)
+ , _program   :: Vector a         -- ok...non-linear programs (L3 and above) might have trouble here.
+ , _labels    :: Map Label Int64  -- however, this could me a map from label to something else
+ , _output    :: Output           -- output is the same across all languages [String], but, could a computer also possibly have a final result?
+ , _ip        :: Ip               -- Ip might mean nothing to L3 and above, but then again maybe theres a way to make use of it.
+ , _heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
+ , _halted    :: Bool             -- can this be used across all languages? I'm not sure...
 }
 makeClassy ''Computer
 

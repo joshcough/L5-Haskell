@@ -1,10 +1,16 @@
-(((call :L_1))
- (:L_1
-  (x <- 1)
-  (y <- x)
-  (y &= 1)
-  (y <<= 1)
-  (y += 1)
-  (rax <- (print y))
-  (rax <- rax)
-  (return)))
+(
+(:main
+	(call :__L3main__)
+	(return)
+	)
+(:__L3main__
+	(x <- 1)
+	(y <- x)
+	(y &= 1)
+	(y <<= 1)
+	(y += 1)
+	(rax <- (print y))
+	(rax <- rax)
+	(return)
+	)
+)
