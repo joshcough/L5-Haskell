@@ -192,6 +192,22 @@ arrayRef arr i = do
   index   <- evalNumber i
   lift $ IOArray.readArray mem (p + index + 1)
 
+{-
+
+  size    <- lift $ IOArray.readArray mem p
+  if size <= i
+    then (addOutput $ "attempted to use position "++show i++" in an array that only has "++show size++" positions")
+    else (lift $ IOArray.readArray mem (p + index + 1))
+
+-- read an array from memory
+readArray :: Int64 -> Computer a -> Vector Int64
+readArray addr c = go where
+  size       = fromIntegral $ readMem "readArray" addr c
+  startIndex = fromIntegral addr `div` 8 + 1
+  go | startIndex + size < memSize = Vector.slice startIndex size (c^.memory)
+     | otherwise = error $ "readArray tried to access out of bounds memory index: " ++ show startIndex
+-}
+
 -- | get array length (size arr)
 arrayLength :: V -> M Runtime
 arrayLength arr = do
