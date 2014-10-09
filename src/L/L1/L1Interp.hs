@@ -1,6 +1,10 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module L.L1.L1Interp (interpL1) where
 
+import Control.Applicative
 import Control.Lens hiding (set)
+import Control.Monad.State
 import Data.Int
 import qualified Data.Vector as Vector
 import Debug.Trace
@@ -10,68 +14,81 @@ import L.L1L2MainAdjuster (adjustMain)
 import Prelude hiding (print)
 
 interpL1 :: L1 -> String
-interpL1 p = showComputerOutput $ interpL1' p
+interpL1 p = error "todo" --showComputerOutput $ interpL1' p
 
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1' :: L1 -> Computer L1Instruction
-interpL1' p = runComputer step (newComputer $ adjustMain p) 
+interpL1' p = error "todo" --runComputer step (newComputer $ adjustMain p)
   --(traceSA (unlines . map show . zip [0..] . Vector.toList $ c^.program) c)
 
-step :: Computer L1Instruction -> Computer L1Instruction
-step c = let
-  debug f = trace ("ip: " ++ show (c^.ip) ++ " inst: " ++ show (currentInst c)) f
+--debug f = trace ("ip: " ++ show (c^.ip) ++ " inst: " ++ show (currentInst c)) f
 
-  {- uncomment debug below to print ip and env for each instruction -}
-  in {-debug $-} case currentInst c of
-
+step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => m ()
+step = do
+  instruction <- currentInst
+  case instruction of
     -- Assignment statements
-    (Assign r (CompRHS (Comp s1 op s2))) -> nextInstWR r
-      (if cmp op (readS s1 c) (readS s2 c) then 1 else 0) c
-    (Assign r (MemRead (MemLoc x offset))) ->
-      let index = readReg x c + fromIntegral offset
-      in nextInstWR r (readMem "step MemRead" index c) c
-    (Assign r (Allocate size datum)) ->
-      let (h, c') = allocate (readS size c) (readS datum c) c
-      in nextInstWR r h c'
-    (Assign r (Print s)) -> nextInstWR r 1 $ print  (readS s c)  c
-    (Assign _ (ArrayError s1 s2)) -> arrayError (readS s1 c) (readS s2 c) c
-    (Assign r (SRHS s)) -> nextInstWR r (readS s c) c
+    (Assign r (CompRHS (Comp s1 op s2))) -> do
+      s1' <- readS s1
+      s2' <- readS s2
+      nextInstWR r (if cmp op s1' s2' then 1 else 0)
+    (Assign r (MemRead (MemLoc x offset))) -> do
+      x' <- readReg x
+      let index = x' + fromIntegral offset
+      memVal <- readMem "MemRead" index
+      nextInstWR r memVal
+    (Assign r (Allocate size datum)) -> do
+      s  <- readS size
+      d  <- readS datum
+      hp <- allocate s d
+      nextInstWR r hp
+    (Assign r (Print s)) -> do
+      readS s >>= print
+      nextInstWR r 1
+    (Assign _ (ArrayError s1 s2)) -> do
+      s1' <- readS s1
+      s2' <- readS s2
+      arrayError s1' s2'
+    (Assign r (SRHS s)) -> readS s >>= nextInstWR r
     -- Math Inst
-    (MathInst r op s) -> nextInst $
-      writeReg r (runOp op (readReg r c) (readS s c)) c
+    (MathInst r op s) -> do
+      r' <- readReg r
+      s' <- readS s
+      nextInstWR r (runOp op r' s')
     -- CJump
-    (CJump (Comp s1 op s2) l1 l2) ->
-      let l = findLabelIndex (if cmp op (readS s1 c) (readS s2 c) then l1 else l2) c
-      in goto l c
+    (CJump (Comp s1 op s2) l1 l2) -> do
+      s1' <- readS s1
+      s2' <- readS s2
+      li  <- findLabelIndex (if cmp op s1' s2' then l1 else l2)
+      goto li
     -- MemWrite
-    (MemWrite (MemLoc x offset) s) ->
-      let index = readReg x c + fromIntegral offset
-      in nextInst $ writeMem "step MemWrite" index (readS s c) c
+    (MemWrite (MemLoc x offset) s) -> do
+      x' <- readReg x
+      let index = x' + fromIntegral offset
+      readS s >>= writeMem "step MemWrite" index
+      nextInst
     -- Goto
-    (Goto l) -> goto (findLabelIndex l c) c
+    (Goto l) -> findLabelIndex l >>= goto
     -- LabelDec, just advance
-    (LabelDeclaration _) -> nextInst c
+    (LabelDeclaration _) -> nextInst
     -- Call
-    (Call s) ->
-      let func = readS s c
-          c'   = push (c^.ip + 1) c
-      in goto func c'
+    (Call s) -> do
+      func <- readS s
+      ip'  <- use ip
+      push (ip' + 1)
+      goto func
     -- TailCall
-    (TailCall s) -> goto (readS s c) c
+    (TailCall s) -> readS s >>= goto
     -- Return
-    Return ->
-      let rspVal = readReg rsp c
-          done   = rspVal >= (fromIntegral $ Vector.length (c^.memory) * 8)
-          c'     = writeReg rsp (rspVal + 8) c
-          c''    = goto (readMem "step Return" rspVal c') c'
-      in if done then halt c else c''
+    Return -> do
+      rspVal    <- readReg rsp
+      memLength <- liftM (8*) $ uses memory Vector.length
+      let done = rspVal >= fromIntegral memLength
+      writeReg rsp (rspVal + 8)
+      if done then halt else readMem "step Return" rspVal >>= goto
 
-readS :: L1S -> Computer L1Instruction -> Int64
-readS (NumberL1S n) = \_ -> n
+readS :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => L1S -> m Int64
+readS (NumberL1S n) = return n
 readS (RegL1S r)    = readReg r
 readS (LabelL1S l)  = findLabelIndex l
-
--- goto the next instruction after writing a register
-nextInstWR :: Register -> Int64 -> Computer a -> Computer a
-nextInstWR r i c = nextInst $ writeReg r i c

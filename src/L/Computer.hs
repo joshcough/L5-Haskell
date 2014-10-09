@@ -10,7 +10,6 @@
 
 module L.Computer where
 
-import Control.Applicative
 import Control.Lens hiding (set)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -223,10 +222,11 @@ findLabelIndex l = use (labels.at l) >>= maybe (fail $ "no such label: " ++ l) r
 goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
 goto i = ip .= i
 
-haltWith :: (MonadPlus m, MonadState c m, MonadOutput m, HasComputer c a) => String -> m ()
-haltWith msg = do
-  say msg
-  mzero
+haltWith :: (MonadState c m, MonadOutput m, HasComputer c a) => String -> m ()
+haltWith msg = do say msg; fail "halt!"
+
+halt :: Monad m => m ()
+halt = fail "halt"
 
 currentInst :: (MonadState c m, HasComputer c a) => m a
 currentInst = do
@@ -244,6 +244,10 @@ hasNextInst = do
 -- advance the computer to the next instruction
 nextInst :: (MonadState c m, HasComputer c a) => m ()
 nextInst = ip += 1
+
+-- goto the next instruction after writing a register
+nextInstWR :: (MonadState c m, MonadOutput m, HasComputer c a) => Register -> Int64 -> m ()
+nextInstWR r i = do writeReg r i; nextInst
 
 -- the main loop, runs a computer until completion
 -- todo: if we go to get next inst and it aint there, halt! (mzero)

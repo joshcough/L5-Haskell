@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module L.L2.L2Interp (interpL2) where
 
 import Control.Applicative
@@ -16,36 +21,41 @@ import L.L1L2MainAdjuster
 import Prelude hiding (head, print, tail)
 
 interpL2 :: L2 -> String
-interpL2 = showComputerOutput . interpL2'
+interpL2 = error "todo" --showComputerOutput . interpL2'
 
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2' :: L2 -> Computer L2Instruction
-interpL2' p = fst $ runState (runComputerM step c) emptyEnvs where
-  c = newComputer $ adjustMain p
+interpL2' p = error "todo" -- fst $ runState (runComputerM step c) emptyEnvs where
+  --c = newComputer $ adjustMain p
+
+data CE = CE {
+  envs     :: NonEmpty Env,
+  computer :: Computer L2Instruction
+}
+
+instance HasComputer CE L2Instruction where
+  computer f (CE envs c) = fmap (CE envs) (f c)
 
 type M x = State (NonEmpty Env) x
 
 -- Env, and some Env operations
 type Env = Map Variable Int64
+
 emptyEnvs :: NonEmpty Env
 emptyEnvs = Map.empty :| []
-replaceHeadEnv :: Env -> M ()
-replaceHeadEnv e = do es <- get; put $ e :| tail es
+
+replaceHeadEnv :: MonadState CE m => Env -> m ()
+replaceHeadEnv e = do
+  (CE es c) <- get
+  put $ CE (e :| tail es) c
+
 addEnv :: Env -> M ()
 addEnv e = do es <- get; put $ cons e es
 
-step :: Computer L2Instruction -> M (Computer L2Instruction)
-step c = let
- readS :: L2S -> M Int64
- readS (NumberL2S n) = return n
- readS (XL2S x)      = readX x
- readS (LabelL2S l)  = return $ findLabelIndex l c
-
- readX :: L2X -> M Int64
- readX (RegL2X r) = return $ readReg r c
- readX (VarL2X v) = 
-   do e <- head <$> get; return $ fromMaybe (unbound v) (Map.lookup v e)
+{-
+step :: (MonadState c m, MonadOutput m, HasComputer c L2Instruction) =>  m ()
+step c =
 
  debug f = do
    env <- get
@@ -137,15 +147,26 @@ step c = let
       let (newEs,c) = f done es
       put newEs
       return c where
+-}
 
 -- goto the next instruction after writing an x value
-nextInstWX :: L2X -> Int64 -> Computer L2Instruction -> M (Computer L2Instruction)
-nextInstWX x i c = nextInst <$> writeX x i where
-  writeX :: L2X -> Int64 -> M (Computer L2Instruction)
-  writeX (RegL2X r) i = return $ writeReg r i c
-  writeX (VarL2X v) i = 
-    do e <- head <$> get; replaceHeadEnv $ Map.insert v i e; return c
+nextInstWX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
+nextInstWX x i = do writeX x i; nextInst
 
-unbound :: Variable -> a
-unbound v = error $ "unbound variable: " ++ v
+unbound :: Monad m => Variable -> m a
+unbound v = fail $ "unbound variable: " ++ v
 
+readS :: (Functor m, MonadState CE m) => L2S -> m Int64
+readS (NumberL2S n) = return n
+readS (XL2S x)      = readX x
+readS (LabelL2S l)  = findLabelIndex l
+
+readX :: (Functor m, MonadState CE m) => L2X -> m Int64
+readX (RegL2X r) = readReg r
+readX (VarL2X v) = do
+  e <- (head . envs) <$> get
+  maybe (unbound v) return (Map.lookup v e)
+
+writeX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
+writeX (RegL2X r) i = writeReg r i
+writeX (VarL2X v) i = do e <- (head . envs) <$> get; replaceHeadEnv $ Map.insert v i e
