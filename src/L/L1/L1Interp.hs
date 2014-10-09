@@ -2,27 +2,24 @@
 
 module L.L1.L1Interp (interpL1) where
 
-import Control.Applicative
+import Control.Exception.Base
 import Control.Lens hiding (set)
 import Control.Monad.State
 import Data.Int
 import qualified Data.Vector as Vector
-import Debug.Trace
+--import Debug.Trace
 import L.Computer
 import L.L1L2AST 
 import L.L1L2MainAdjuster (adjustMain)
 import Prelude hiding (print)
 
-interpL1 :: L1 -> String
-interpL1 p = error "todo" --showComputerOutput $ interpL1' p
-
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
-interpL1' :: L1 -> Computer L1Instruction
-interpL1' p = error "todo" --runComputer step (newComputer $ adjustMain p)
-  --(traceSA (unlines . map show . zip [0..] . Vector.toList $ c^.program) c)
+interpL1 :: L1 -> String
+interpL1 p = concat . reverse . fst . runIdentity . runOutputT $
+  runStateT (runComputerM step) (newComputer $ adjustMain p)
 
---debug f = trace ("ip: " ++ show (c^.ip) ++ " inst: " ++ show (currentInst c)) f
+--`catch` \(e :: SomeException) -> something?
 
 step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => m ()
 step = do

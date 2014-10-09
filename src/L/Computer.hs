@@ -38,11 +38,17 @@ class Monad m => MonadOutput m where
 instance MonadOutput IO where
   say = putStrLn
 
+instance Monad m => MonadOutput (OutputT m) where
+  say s = OutputT $ return ([s], ())
+
 instance MonadOutput m => MonadOutput (StateT s m)
 instance MonadOutput m => MonadOutput (ReaderT s m)
 instance (Monoid w, MonadOutput m) => MonadOutput (WriterT w m)
 
 newtype OutputT m a = OutputT { runOutputT :: m ([String], a) }
+
+instance Functor f => Functor (OutputT f) where
+  fmap fun (OutputT f) = OutputT $ fmap (\(xs, a) -> (xs, fun a)) f
 
 instance Monad m => Monad (OutputT m) where
   return a = OutputT $ return ([], a)
@@ -251,5 +257,5 @@ nextInstWR r i = do writeReg r i; nextInst
 
 -- the main loop, runs a computer until completion
 -- todo: if we go to get next inst and it aint there, halt! (mzero)
-runComputerM :: (Monad m) => m () -> m ()
+runComputerM :: Monad m => m () -> m ()
 runComputerM = forever
