@@ -32,16 +32,16 @@ tests = do
   return $ testGroup "Main" ts
 
 allTests = [
- -- lParsingTests
- --,l1InterpreterTests
- --,l164Tests
- --,l2Tests
- --,l2TurtlesTests
- --,spillTests
-  l3Tests ]
- --,l3TurtlesTests ]
--- ,l4Tests
--- ,l4TurtlesTests ]
+  lParsingTests
+ ,l1InterpreterTests
+ ,l164Tests
+ ,l2Tests
+ ,l2TurtlesTests
+ ,spillTests
+ ,l3Tests
+ ,l3TurtlesTests
+ ,l4Tests
+ ,l4TurtlesTests ]
 
 opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
 

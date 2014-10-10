@@ -15,10 +15,10 @@ import Prelude hiding (print)
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = concat . fst $ interp' p
+interpL1 p = concat . fst $ interpL1' p
 
-interp' :: L1 -> ([String], (Either String ((), Computer L1Instruction)))
-interp' p = runIdentity $ runOutputT $ runErrorT $
+interpL1' :: L1 -> ([String], (Either String ((), Computer L1Instruction)))
+interpL1' p = runIdentity $ runOutputT $ runErrorT $
   runStateT (runComputerM step) (newComputer $ adjustMain p)
 
 step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => m ()

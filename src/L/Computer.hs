@@ -22,7 +22,6 @@ import qualified Data.Map as Map
 import Data.Monoid()
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import Debug.Trace
 import L.L1L2AST hiding (registers)
 import L.Utils
 

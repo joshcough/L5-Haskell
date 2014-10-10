@@ -8,6 +8,7 @@ module L.L2.L2Interp (interpL2) where
 import Control.Applicative
 import Control.Lens hiding (cons, set)
 import Control.Monad.State
+import Control.Monad.Trans.Error
 import Data.Int
 import Data.List.NonEmpty
 import Data.Map (Map)
@@ -16,14 +17,17 @@ import Data.Maybe
 import qualified Data.Vector as Vector
 --import Debug.Trace
 import L.Computer
-import L.L1L2AST 
+import L.L1L2AST
 import L.L1L2MainAdjuster 
 import Prelude hiding (head, print, tail)
 
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 p = concat . Prelude.reverse . fst . runIdentity . runOutputT $
+interpL2 = concat . fst . interpL2'
+
+interpL2' :: L2 -> ([String], (Either String ((), CE)))
+interpL2' p = runIdentity $ runOutputT $ runErrorT $
   runStateT (runComputerM step) (newCE . newComputer $ adjustMain p)
 
 data CE = CE (NonEmpty Env) (Computer L2Instruction)
