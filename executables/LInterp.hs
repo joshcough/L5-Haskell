@@ -31,4 +31,5 @@ main' (turtles, opts, file) = g (getExtension file) where
   g "L2" = go l2Language
   g "L3" = go l3Language
   g "L4" = go l4Language
+  g bad  = error $ "LInterp: bad input file: " ++ file
 
