@@ -13,6 +13,7 @@ module L.Computer where
 import Control.Lens hiding (set)
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Trans.Error
 import Control.Monad.Writer
 import Data.Bits
 import Data.Int
@@ -21,7 +22,7 @@ import qualified Data.Map as Map
 import Data.Monoid()
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
---import Debug.Trace
+import Debug.Trace
 import L.L1L2AST hiding (registers)
 import L.Utils
 
@@ -43,6 +44,7 @@ instance Monad m => MonadOutput (OutputT m) where
 
 instance MonadOutput m => MonadOutput (StateT s m)
 instance MonadOutput m => MonadOutput (ReaderT s m)
+instance (Error s, MonadOutput m)  => MonadOutput (ErrorT s m)
 instance (Monoid w, MonadOutput m) => MonadOutput (WriterT w m)
 
 newtype OutputT m a = OutputT { runOutputT :: m ([String], a) }
@@ -64,30 +66,8 @@ data Computer a = Computer {
  , _labels    :: Map Label Int64  -- however, this could me a map from label to something else
  , _ip        :: Ip               -- Ip might mean nothing to L3 and above, but then again maybe theres a way to make use of it.
  , _heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
-}
-makeClassy ''Computer
-
-{-
-data PrintableComputer a = PrintableComputer {
-   registersP :: RegisterState
- , memoryP    :: Memory
- , outputP    :: Output
- , ipP        :: Ip
- , instP      :: a
- , heapPP     :: Int64 -- pointer to top of heap
- , haltedP    :: Bool
 } deriving Show
-
-instance Show a => Show (Computer a) where
-  show c = show $ printable c where
-    printable c =
-      PrintableComputer
-        (c^.registers) (c^.memory) (c^.output) (c^.ip)
-        (currentInst c) (c^.heapP) (c^.halted)
-
-showComputerOutput :: HasComputer c a => c -> String
-showComputerOutput c = mkString "" $ reverse (c^.output)
--}
+makeClassy ''Computer
 
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
@@ -118,8 +98,8 @@ registerStartState = Map.fromList [
 emptyMem :: Vector Int64
 emptyMem = Vector.replicate memSize zero
 
-newComputer :: Program x s -> Computer (Instruction x s)
-newComputer p = Computer { 
+newComputer :: (Show x, Show s) => Program x s -> Computer (Instruction x s)
+newComputer p = Computer {
   _registers = registerStartState,
   _memory    = emptyMem,
   _program   = Vector.fromList insts,
@@ -217,9 +197,8 @@ print n = printContent n 0 >>= \s -> say (s ++ "\n") where
 arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> m ()
 arrayError a x = do
   size <- readMem "arrayError" a
-  let pos  = show $ encodeNum x
   say $ "attempted to use position " ++ show (encodeNum x) ++
-         " in an array that only has "++ show size ++" positions"
+        " in an array that only has " ++ show size ++ " positions"
   fail "array error"
 
 findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> m Int64
@@ -238,7 +217,7 @@ currentInst :: (MonadState c m, HasComputer c a) => m a
 currentInst = do
   ip' <- uses ip fromIntegral
   p   <- use program
-  when (ip' < memSize) $ fail "halt!"
+  when (ip' >= memSize || ip' < 0) $ fail "halt!"
   return $ p Vector.! ip'
 
 hasNextInst :: (MonadState c m, HasComputer c a) => m Bool

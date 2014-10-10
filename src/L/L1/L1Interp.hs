@@ -2,12 +2,11 @@
 
 module L.L1.L1Interp (interpL1) where
 
-import Control.Exception.Base
 import Control.Lens hiding (set)
 import Control.Monad.State
+import Control.Monad.Trans.Error
 import Data.Int
 import qualified Data.Vector as Vector
---import Debug.Trace
 import L.Computer
 import L.L1L2AST 
 import L.L1L2MainAdjuster (adjustMain)
@@ -16,10 +15,11 @@ import Prelude hiding (print)
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = concat . reverse . fst . runIdentity . runOutputT $
-  runStateT (runComputerM step) (newComputer $ adjustMain p)
+interpL1 p = concat . fst $ interp' p
 
---`catch` \(e :: SomeException) -> something?
+interp' :: L1 -> ([String], (Either String ((), Computer L1Instruction)))
+interp' p = runIdentity $ runOutputT $ runErrorT $
+  runStateT (runComputerM step) (newComputer $ adjustMain p)
 
 step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => m ()
 step = do
