@@ -68,6 +68,23 @@ instance Monad m => Monad (OutputT m) where
     (ys, b) <- runOutputT $ f a
     return (xs ++ ys, b)
 
+data Halt = Normal | Exceptional String
+--exception = throwError . Exceptional
+data RunState = Running | Halted Halt
+
+instance Error Halt where
+  noMsg  = Normal
+  strMsg = Exceptional
+
+data ComputationState a = ComputationResult {
+   _output    :: [Output]
+  ,_haltState :: RunState
+  ,_internals :: a
+}
+mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationState a
+mkComputationState (o, (Left  h , c)) = ComputationResult o (Halted h) c
+mkComputationState (o, (Right (), c)) = ComputationResult o Running c
+
 data Computer a = Computer {
    _registers :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
  , _memory    :: Memory           -- "" (same as registers)
@@ -126,8 +143,8 @@ set :: (MonadState c m, HasComputer c a) => Register -> Register -> m ()
 set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
-readReg :: (MonadState c m, HasComputer c a) => Register -> m Int64
-readReg r = use (registers.at r) >>= maybe (fail $ "error: unitialized register: " ++ show r) return
+readReg :: (MonadState c m, HasComputer c a) => Register -> ErrorT Halt m Int64
+readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: unitialized register: " ++ show r) return
 
 -- write an int into memory at the given address
 writeMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> Int64 -> m ()
@@ -157,7 +174,7 @@ readArray addr = do
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: (MonadState c m, HasComputer c a) => Int64 -> m ()
+push :: (MonadState c m, HasComputer c a) => Int64 -> ErrorT Halt m ()
 push value = do
   rspVal <- readReg rsp
   writeReg rsp (rspVal - 8)
@@ -165,7 +182,7 @@ push value = do
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
-pop :: (MonadState c m, HasComputer c a) => Register -> m ()
+pop :: (MonadState c m, HasComputer c a) => Register -> ErrorT Halt m ()
 pop r = do
   rspVal <- readReg rsp
   s      <- readMem "pop" rspVal

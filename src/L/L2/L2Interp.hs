@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module L.L2.L2Interp (interpL2) where
+module L.L2.L2Interp (interpL2, interpL2') where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
@@ -24,13 +24,16 @@ import Prelude hiding (head, print, tail)
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 = concat . fmap outputText . fst . interpL2'
+interpL2 p = case interpL2' p of
+ ComputationResult output (Halted Normal) _ -> concat $ fmap outputText output
+ ComputationResult output (Halted (Exceptional msg)) c -> error msg -- todo: maybe show output thus far
+ ComputationResult output Running c -> error $ "computer still running: " ++ show c -- todo: maybe show output thus far
 
-interpL2' :: L2 -> ([Output], (Either String ((), CE)))
-interpL2' p = runIdentity $ runOutputT $ runErrorT $
-  runStateT (runComputerM step) (newCE . newComputer $ adjustMain p)
+interpL2' :: L2 -> ComputationState CE
+interpL2' p = mkComputationState . runIdentity . runOutputT $
+  runStateT (runErrorT $ runComputerM step) (newCE . newComputer $ adjustMain p)
 
-data CE = CE (NonEmpty Env) (Computer L2Instruction)
+data CE = CE (NonEmpty Env) (Computer L2Instruction) deriving Show
 newCE :: Computer L2Instruction -> CE
 newCE c = CE (Map.empty :| []) c
 envs :: CE -> NonEmpty Env
@@ -50,7 +53,7 @@ replaceHeadEnv e = do
 addEnv :: MonadState CE m => Env -> m ()
 addEnv e = do (CE es c) <- get; put $ CE (cons e es) c
 
-step :: (Functor m, MonadOutput m, MonadState CE m) =>  m ()
+step :: (Functor m, MonadState CE m, MonadOutput m) => ErrorT Halt m ()
 step = do
   instruction <- currentInst
   case instruction of
@@ -151,12 +154,12 @@ nextInstWX x i = do writeX x i; nextInst
 unbound :: Monad m => Variable -> m a
 unbound v = fail $ "unbound variable: " ++ v
 
-readS :: (Functor m, MonadState CE m) => L2S -> m Int64
+readS :: (Functor m, MonadState CE m) => L2S -> ErrorT Halt m Int64
 readS (NumberL2S n) = return n
 readS (XL2S x)      = readX x
 readS (LabelL2S l)  = findLabelIndex l
 
-readX :: (Functor m, MonadState CE m) => L2X -> m Int64
+readX :: (Functor m, MonadState CE m) => L2X -> ErrorT Halt m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . envs) <$> get

@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module L.L1.L1Interp (interpL1) where
+module L.L1.L1Interp (interpL1, interpL1') where
 
 import Control.Lens hiding (set)
 import Control.Monad.State
@@ -15,13 +15,16 @@ import Prelude hiding (print)
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = concat . fmap outputText . fst $ interpL1' p
+interpL1 p = case interpL1' p of
+ ComputationResult output (Halted Normal) c -> concat $ fmap outputText output
+ ComputationResult output (Halted (Exceptional msg)) c -> error msg -- todo: maybe show output thus far
+ ComputationResult output Running c -> error $ "computer still running: " ++ show c  -- todo: maybe show output thus far
 
-interpL1' :: L1 -> ([Output], (Either String ((), Computer L1Instruction)))
-interpL1' p = runIdentity $ runOutputT $ runErrorT $
-  runStateT (runComputerM step) (newComputer $ adjustMain p)
+interpL1' :: L1 -> ComputationState (Computer L1Instruction)
+interpL1' p = mkComputationState . runIdentity . runOutputT $ runStateT
+  (runErrorT $ runComputerM step) (newComputer $ adjustMain p)
 
-step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => m ()
+step :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => ErrorT Halt m ()
 step = do
   instruction <- currentInst
   case instruction of
@@ -85,7 +88,7 @@ step = do
       writeReg rsp (rspVal + 8)
       if done then halt else readMem "step Return" rspVal >>= goto
 
-readS :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => L1S -> m Int64
+readS :: (MonadState c m, MonadOutput m, HasComputer c L1Instruction) => L1S -> ErrorT Halt m Int64
 readS (NumberL1S n) = return n
 readS (RegL1S r)    = readReg r
 readS (LabelL1S l)  = findLabelIndex l
