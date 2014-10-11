@@ -69,7 +69,10 @@ instance Monad m => Monad (OutputT m) where
     return (xs ++ ys, b)
 
 data Halt = Normal | Exceptional String
---exception = throwError . Exceptional
+halt :: Monad m => ErrorT Halt m a
+halt = throwError Normal
+exception :: Monad m => String -> ErrorT Halt m a
+exception s = throwError (Exceptional s)
 data RunState = Running | Halted Halt
 
 instance Error Halt where
@@ -147,27 +150,27 @@ readReg :: (MonadState c m, HasComputer c a) => Register -> ErrorT Halt m Int64
 readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: unitialized register: " ++ show r) return
 
 -- write an int into memory at the given address
-writeMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> Int64 -> m ()
+writeMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> Int64 -> ErrorT Halt m ()
 writeMem caller addr value = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = memory.ix index .= value
-     | otherwise = fail $ caller ++ "tried to write out of bounds memory index: " ++ show index
+     | otherwise = exception $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> m Int64
+readMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> ErrorT Halt m Int64
 readMem caller addr = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = use $ singular $ memory.ix index
-     | otherwise       = fail $ caller ++ "tried to access out of bounds memory index: " ++ show index
+     | otherwise       = exception $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: (MonadState c m, HasComputer c a) => Int64 -> m (Vector Int64)
+readArray :: (MonadState c m, HasComputer c a) => Int64 -> ErrorT Halt m (Vector Int64)
 readArray addr = do
   s <- fromIntegral `liftM` readMem "readArray" addr
   let startIndex = fromIntegral addr `div` 8 + 1
   if startIndex + s < memSize
     then uses memory (Vector.slice startIndex s)
-    else fail $ "readArray tried to access out of bounds memory index: " ++ show startIndex
+    else exception $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
 -- push the given int argument onto the top of the stack
 -- adjust rsp accordingly
@@ -207,9 +210,9 @@ allocate size n = do
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: forall m c a . (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> m ()
+print :: forall m c a . (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> ErrorT Halt m ()
 print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
-  printContent :: Int64 -> Int -> m String
+  printContent :: Int64 -> Int -> ErrorT Halt m String
   printContent n depth
     | depth >= 4   = return $ "..."
     | n .&. 1 == 1 = return . show $ shiftR n 1
@@ -220,30 +223,24 @@ print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
       return $ "{s:" ++ (mkString ", " $ show size : Vector.toList contentsV) ++ "}"
 
 -- print an array error
-arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> m ()
+arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> ErrorT Halt m ()
 arrayError a x = do
   size <- readMem "arrayError" a
   stdErr $ "attempted to use position " ++ show (encodeNum x) ++
            " in an array that only has " ++ show size ++ " positions"
-  fail "array error"
+  halt
 
-findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> m Int64
-findLabelIndex l = use (labels.at l) >>= maybe (fail $ "no such label: " ++ l) return
+findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> ErrorT Halt m Int64
+findLabelIndex l = use (labels.at l) >>= maybe (exception $ "no such label: " ++ l) return
 
 goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
 goto i = ip .= i
 
-haltWith :: (MonadState c m, MonadOutput m, HasComputer c a) => String -> m ()
-haltWith msg = do stdErr msg; fail "halt!"
-
-halt :: Monad m => m ()
-halt = fail "halt"
-
-currentInst :: (MonadState c m, HasComputer c a) => m a
+currentInst :: (MonadState c m, HasComputer c a) => ErrorT Halt m a
 currentInst = do
   ip' <- uses ip fromIntegral
   p   <- use program
-  when (ip' >= memSize || ip' < 0) $ fail "halt!"
+  when (ip' >= memSize || ip' < 0) halt
   return $ p Vector.! ip'
 
 hasNextInst :: (MonadState c m, HasComputer c a) => m Bool

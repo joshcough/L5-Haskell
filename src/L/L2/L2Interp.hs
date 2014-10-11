@@ -131,12 +131,12 @@ step = do
         -- an we think the computer is finished,
         -- but there are extra environments remaining
         -- there must be some programming error
-        (True,  xs) -> fail $ "computer finished, but multiple environments exist" ++ show xs
+        (True,  xs) -> exception $ "computer finished, but multiple environments exist" ++ show xs
         -- here we are trying to return
         -- and there are no more environments
         -- but the computer isnt in a finished state...
         -- there must be some programming error
-        (False, []) -> fail $ "trying to return, but no environments remaining"
+        (False, []) -> exception $ "trying to return, but no environments remaining"
         -- we are returning, and the computer is not halted
         -- based on the last case, there must be enough environments remaining
         -- were looking at the tail, so we've already popped the top env off
@@ -151,9 +151,6 @@ step = do
 nextInstWX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
 nextInstWX x i = do writeX x i; nextInst
 
-unbound :: Monad m => Variable -> m a
-unbound v = fail $ "unbound variable: " ++ v
-
 readS :: (Functor m, MonadState CE m) => L2S -> ErrorT Halt m Int64
 readS (NumberL2S n) = return n
 readS (XL2S x)      = readX x
@@ -163,7 +160,7 @@ readX :: (Functor m, MonadState CE m) => L2X -> ErrorT Halt m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . envs) <$> get
-  maybe (unbound v) return (Map.lookup v e)
+  maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
 writeX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
