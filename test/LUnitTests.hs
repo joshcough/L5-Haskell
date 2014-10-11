@@ -31,6 +31,10 @@ tests = do
   ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
+allL1Tests  = [ l1InterpreterTests, l164Tests ]
+easyL2Tests = [ l2Tests, l2TurtlesTests ]
+easyL1AndL2Tests = concat [ allL1Tests, easyL2Tests ]
+
 allTests = [
   lParsingTests
  ,l1InterpreterTests

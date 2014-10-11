@@ -22,31 +22,41 @@ import qualified Data.Map as Map
 import Data.Monoid()
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
+import System.IO
 import L.L1L2AST hiding (registers)
 import L.Utils
 
 type RegisterState = Map Register Int64
 type Memory = Vector Int64
-type Output = [String]
 type Ip = Int64 -- instruction pointer
 
 class Monad m => MonadOutput m where
-  say :: String -> m ()
-  default say :: (MonadTrans t, MonadOutput n, m ~ t n) => String -> m ()
-  say = lift . say
+  stdOut :: String -> m ()
+  stdErr :: String -> m ()
+  default stdOut :: (MonadTrans t, MonadOutput n, m ~ t n) => String -> m ()
+  stdOut = lift . stdOut
+  default stdErr :: (MonadTrans t, MonadOutput n, m ~ t n) => String -> m ()
+  stdErr = lift . stdErr
 
 instance MonadOutput IO where
-  say = putStrLn
+  stdOut = hPutStr stdout
+  stdErr = hPutStr stderr
 
 instance Monad m => MonadOutput (OutputT m) where
-  say s = OutputT $ return ([s], ())
+  stdOut s = OutputT $ return ([StdOut s], ())
+  stdErr s = OutputT $ return ([StdErr s], ())
 
 instance MonadOutput m => MonadOutput (StateT s m)
 instance MonadOutput m => MonadOutput (ReaderT s m)
 instance (Error s, MonadOutput m)  => MonadOutput (ErrorT s m)
 instance (Monoid w, MonadOutput m) => MonadOutput (WriterT w m)
 
-newtype OutputT m a = OutputT { runOutputT :: m ([String], a) }
+data Output = StdOut String | StdErr String
+outputText :: Output -> String
+outputText (StdOut s) = s
+outputText (StdErr s) = s
+
+newtype OutputT m a = OutputT { runOutputT :: m ([Output], a) }
 
 instance Functor f => Functor (OutputT f) where
   fmap fun (OutputT f) = OutputT $ fmap (\(xs, a) -> (xs, fun a)) f
@@ -181,7 +191,7 @@ allocate size n = do
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
 print :: forall m c a . (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> m ()
-print n = printContent n 0 >>= \s -> say (s ++ "\n") where
+print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
   printContent :: Int64 -> Int -> m String
   printContent n depth
     | depth >= 4   = return $ "..."
@@ -196,8 +206,8 @@ print n = printContent n 0 >>= \s -> say (s ++ "\n") where
 arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> m ()
 arrayError a x = do
   size <- readMem "arrayError" a
-  say $ "attempted to use position " ++ show (encodeNum x) ++
-        " in an array that only has " ++ show size ++ " positions"
+  stdErr $ "attempted to use position " ++ show (encodeNum x) ++
+           " in an array that only has " ++ show size ++ " positions"
   fail "array error"
 
 findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> m Int64
@@ -207,7 +217,7 @@ goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
 goto i = ip .= i
 
 haltWith :: (MonadState c m, MonadOutput m, HasComputer c a) => String -> m ()
-haltWith msg = do say msg; fail "halt!"
+haltWith msg = do stdErr msg; fail "halt!"
 
 halt :: Monad m => m ()
 halt = fail "halt"
