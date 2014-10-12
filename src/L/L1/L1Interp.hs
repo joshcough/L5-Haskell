@@ -19,10 +19,17 @@ interpL1 :: L1 -> String
 interpL1 p = handleResult . mkComputationState . runIdentity . runOutputT $ runStateT
   (runErrorT $ runComputer step) (newComputer $ adjustMain p)
 
+-- TODO: we have the ability to distinguish between stdout and stderr
+--       we shold be able to use that
+--       but forcing us into a string here makes this difficult.
 handleResult :: ComputationResult (Computer L1Instruction) -> String
-handleResult (ComputationResult output (Halted Normal) c) = concat $ fmap outputText output
-handleResult (ComputationResult output (Halted (Exceptional msg)) c) = error msg -- todo: maybe show output thus far
-handleResult (ComputationResult output Running c) = error $ "computer still running: " ++ show c  -- todo: maybe show output thus far
+handleResult (ComputationResult output (Halted Normal) c) =
+  concat $ fmap outputText output
+-- todo: maybe show output thus far for the follow error cases
+handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
+  error msg
+handleResult (ComputationResult output Running c) =
+  error $ "computer still running: " ++ show c
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
 step (Assign r (CompRHS (Comp s1 op s2))) =

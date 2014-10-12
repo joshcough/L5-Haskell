@@ -29,9 +29,13 @@ interpL2 p = handleResult . mkComputationState . runIdentity . runOutputT $
   runStateT (runErrorT $ runComputer step) (newCE . newComputer $ adjustMain p)
 
 handleResult :: ComputationResult CE -> String
-handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
-handleResult (ComputationResult output (Halted (Exceptional msg)) c) = error msg -- todo: maybe show output thus far
-handleResult (ComputationResult output Running c) = error $ "computer still running: " ++ show c -- todo: maybe show output thus far
+handleResult (ComputationResult output (Halted Normal) _) =
+  concat $ fmap outputText output
+-- todo: maybe show output thus far for the following error cases
+handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
+  error msg -- todo: maybe show output thus far
+handleResult (ComputationResult output Running c) =
+  error $ "computer still running: " ++ show c
 
 data CE = CE (NonEmpty Env) (Computer L2Instruction) deriving Show
 newCE :: Computer L2Instruction -> CE

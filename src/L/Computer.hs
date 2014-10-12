@@ -12,6 +12,7 @@
 
 module L.Computer where
 
+import Control.Applicative
 import Control.Lens hiding (set)
 import Control.Monad.Error.Class
 import Control.Monad.Reader
@@ -64,6 +65,11 @@ newtype OutputT m a = OutputT { runOutputT :: m ([Output], a) }
 
 instance Functor f => Functor (OutputT f) where
   fmap f (OutputT m) = OutputT $ fmap (second f) m
+
+instance Applicative f => Applicative (OutputT f) where
+  pure a = OutputT $ pure ([], a)
+  OutputT f <*> OutputT a = OutputT $
+    (,) <$> ((++) <$> fmap fst f <*> fmap fst a) <*> (fmap snd f <*> fmap snd a)
 
 instance Monad m => Monad (OutputT m) where
   return a = OutputT $ return ([], a)
