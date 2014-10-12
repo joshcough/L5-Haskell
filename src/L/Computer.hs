@@ -101,7 +101,7 @@ data Computer a = Computer {
 } deriving Show
 makeClassy ''Computer
 
-type MonadComputer c m a = (MonadError Halt m, MonadState c m, HasComputer c a)
+type MonadComputer c m a = (Functor m, MonadError Halt m, MonadState c m, HasComputer c a)
 
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576

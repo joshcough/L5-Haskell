@@ -53,7 +53,7 @@ replaceHeadEnv e = do
 addEnv :: MonadState CE m => Env -> m ()
 addEnv e = do (CE es c) <- get; put $ CE (cons e es) c
 
-step :: (Functor m, MonadOutput m, MonadComputer CE m a) => m ()
+step :: (MonadOutput m, MonadComputer CE m a) => m ()
 step = do
   instruction <- currentInst
   case instruction of
@@ -148,20 +148,20 @@ step = do
           goto ip'
 
 -- goto the next instruction after writing an x value
-nextInstWX :: (Functor m, MonadComputer CE m a) => L2X -> Int64 -> m ()
+nextInstWX :: MonadComputer CE m a => L2X -> Int64 -> m ()
 nextInstWX x i = do writeX x i; nextInst
 
-readS :: (Functor m, MonadComputer CE m a) => L2S -> m Int64
+readS :: MonadComputer CE m a => L2S -> m Int64
 readS (NumberL2S n) = return n
 readS (XL2S x)      = readX x
 readS (LabelL2S l)  = findLabelIndex l
 
-readX :: (Functor m, MonadComputer CE m a) => L2X -> m Int64
+readX :: MonadComputer CE m a => L2X -> m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . envs) <$> get
   maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
-writeX :: (Functor m, MonadComputer CE m a) => L2X -> Int64 -> m ()
+writeX :: MonadComputer CE m a => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = do e <- (head . envs) <$> get; replaceHeadEnv $ Map.insert v i e
