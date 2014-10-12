@@ -1,19 +1,22 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module L.Computer where
 
 import Control.Lens hiding (set)
+import Control.Monad.Error.Class
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Trans.Error
+import Control.Monad.Trans.Error hiding (throwError)
 import Control.Monad.Writer
 import Data.Bits
 import Data.Int
@@ -69,9 +72,9 @@ instance Monad m => Monad (OutputT m) where
     return (xs ++ ys, b)
 
 data Halt = Normal | Exceptional String
-halt :: Monad m => ErrorT Halt m a
+halt :: MonadError Halt m => m a
 halt = throwError Normal
-exception :: Monad m => String -> ErrorT Halt m a
+exception :: MonadError Halt m => String -> m a
 exception s = throwError (Exceptional s)
 data RunState = Running | Halted Halt
 
@@ -97,6 +100,8 @@ data Computer a = Computer {
  , _heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
 } deriving Show
 makeClassy ''Computer
+
+type MonadComputer c m a = (MonadError Halt m, MonadState c m, HasComputer c a)
 
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
@@ -146,25 +151,25 @@ set :: (MonadState c m, HasComputer c a) => Register -> Register -> m ()
 set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
-readReg :: (MonadState c m, HasComputer c a) => Register -> ErrorT Halt m Int64
+readReg :: MonadComputer c m a => Register -> m Int64
 readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: unitialized register: " ++ show r) return
 
 -- write an int into memory at the given address
-writeMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> Int64 -> ErrorT Halt m ()
+writeMem :: MonadComputer c m a => String -> Int64 -> Int64 -> m ()
 writeMem caller addr value = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = memory.ix index .= value
      | otherwise = exception $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: (MonadState c m, HasComputer c a) => String -> Int64 -> ErrorT Halt m Int64
+readMem :: MonadComputer c m a => String -> Int64 -> m Int64
 readMem caller addr = go where
   index = fromIntegral addr `div` 8
   go | index < memSize = use $ singular $ memory.ix index
      | otherwise       = exception $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: (MonadState c m, HasComputer c a) => Int64 -> ErrorT Halt m (Vector Int64)
+readArray :: MonadComputer c m a => Int64 -> m (Vector Int64)
 readArray addr = do
   s <- fromIntegral `liftM` readMem "readArray" addr
   let startIndex = fromIntegral addr `div` 8 + 1
@@ -177,7 +182,7 @@ readArray addr = do
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: (MonadState c m, HasComputer c a) => Int64 -> ErrorT Halt m ()
+push :: MonadComputer c m a => Int64 -> m ()
 push value = do
   rspVal <- readReg rsp
   writeReg rsp (rspVal - 8)
@@ -185,7 +190,7 @@ push value = do
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
-pop :: (MonadState c m, HasComputer c a) => Register -> ErrorT Halt m ()
+pop :: MonadComputer c m a => Register -> m ()
 pop r = do
   rspVal <- readReg rsp
   s      <- readMem "pop" rspVal
@@ -210,9 +215,9 @@ allocate size n = do
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: forall m c a . (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> ErrorT Halt m ()
+print :: forall m c a . (MonadOutput m, MonadComputer c m a) => Int64 -> m ()
 print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
-  printContent :: Int64 -> Int -> ErrorT Halt m String
+  printContent :: MonadError Halt m => Int64 -> Int -> m String
   printContent n depth
     | depth >= 4   = return $ "..."
     | n .&. 1 == 1 = return . show $ shiftR n 1
@@ -223,20 +228,20 @@ print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
       return $ "{s:" ++ (mkString ", " $ show size : Vector.toList contentsV) ++ "}"
 
 -- print an array error
-arrayError :: (MonadState c m, MonadOutput m, HasComputer c a) => Int64 -> Int64 -> ErrorT Halt m ()
+arrayError :: (MonadOutput m, MonadComputer c m a) => Int64 -> Int64 -> m ()
 arrayError a x = do
   size <- readMem "arrayError" a
   stdErr $ "attempted to use position " ++ show (encodeNum x) ++
            " in an array that only has " ++ show size ++ " positions"
   halt
 
-findLabelIndex :: (MonadState c m, HasComputer c a) => Label -> ErrorT Halt m Int64
+findLabelIndex :: MonadComputer c m a => Label -> m Int64
 findLabelIndex l = use (labels.at l) >>= maybe (exception $ "no such label: " ++ l) return
 
 goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
 goto i = ip .= i
 
-currentInst :: (MonadState c m, HasComputer c a) => ErrorT Halt m a
+currentInst :: MonadComputer c m a => m a
 currentInst = do
   ip' <- uses ip fromIntegral
   p   <- use program
@@ -254,10 +259,9 @@ nextInst :: (MonadState c m, HasComputer c a) => m ()
 nextInst = ip += 1
 
 -- goto the next instruction after writing a register
-nextInstWR :: (MonadState c m, MonadOutput m, HasComputer c a) => Register -> Int64 -> m ()
+nextInstWR :: MonadComputer c m a => Register -> Int64 -> m ()
 nextInstWR r i = do writeReg r i; nextInst
 
 -- the main loop, runs a computer until completion
--- todo: if we go to get next inst and it aint there, halt! (mzero)
 runComputerM :: Monad m => m () -> m ()
 runComputerM = forever

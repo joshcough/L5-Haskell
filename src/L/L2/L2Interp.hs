@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -32,7 +33,6 @@ interpL2 p = case interpL2' p of
 interpL2' :: L2 -> ComputationState CE
 interpL2' p = mkComputationState . runIdentity . runOutputT $
   runStateT (runErrorT $ runComputerM step) (newCE . newComputer $ adjustMain p)
-
 data CE = CE (NonEmpty Env) (Computer L2Instruction) deriving Show
 newCE :: Computer L2Instruction -> CE
 newCE c = CE (Map.empty :| []) c
@@ -53,7 +53,7 @@ replaceHeadEnv e = do
 addEnv :: MonadState CE m => Env -> m ()
 addEnv e = do (CE es c) <- get; put $ CE (cons e es) c
 
-step :: (Functor m, MonadState CE m, MonadOutput m) => ErrorT Halt m ()
+step :: (Functor m, MonadOutput m, MonadComputer CE m a) => m ()
 step = do
   instruction <- currentInst
   case instruction of
@@ -148,20 +148,20 @@ step = do
           goto ip'
 
 -- goto the next instruction after writing an x value
-nextInstWX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
+nextInstWX :: (Functor m, MonadComputer CE m a) => L2X -> Int64 -> m ()
 nextInstWX x i = do writeX x i; nextInst
 
-readS :: (Functor m, MonadState CE m) => L2S -> ErrorT Halt m Int64
+readS :: (Functor m, MonadComputer CE m a) => L2S -> m Int64
 readS (NumberL2S n) = return n
 readS (XL2S x)      = readX x
 readS (LabelL2S l)  = findLabelIndex l
 
-readX :: (Functor m, MonadState CE m) => L2X -> ErrorT Halt m Int64
+readX :: (Functor m, MonadComputer CE m a) => L2X -> m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . envs) <$> get
   maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
-writeX :: (Functor m, MonadState CE m) => L2X -> Int64 -> m ()
+writeX :: (Functor m, MonadComputer CE m a) => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = do e <- (head . envs) <$> get; replaceHeadEnv $ Map.insert v i e
