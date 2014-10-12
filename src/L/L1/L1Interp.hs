@@ -3,7 +3,9 @@
 
 module L.L1.L1Interp (interpL1) where
 
+import Control.Applicative
 import Control.Lens hiding (set)
+import Control.Lens.Operators
 import Control.Monad.State
 import Control.Monad.Trans.Error
 import Data.Int
@@ -35,8 +37,7 @@ step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m (
 step (Assign r (CompRHS (Comp s1 op s2))) =
   bind2 (\s1' s2' -> nextInstWR r $ if cmp op s1' s2' then 1 else 0) (readS s1) (readS s2)
 step (Assign r (MemRead (MemLoc x offset))) = do
-  x' <- readReg x
-  let index = x' + fromIntegral offset
+  index <- readReg x <&> (+ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWR r
 step (Assign r (Allocate size datum)) = do
   hp <- bind2 allocate (readS size) (readS datum)
@@ -50,8 +51,7 @@ step (CJump (Comp s1 op s2) l1 l2) = do
   li <- bind2 (\s1 s2 -> findLabelIndex $ if cmp op s1 s2 then l1 else l2) (readS s1) (readS s2)
   goto li
 step (MemWrite (MemLoc x offset) s) = do
-  x' <- readReg x
-  let index = x' + fromIntegral offset
+  index <- readReg x <&> (+ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
 step (Goto l) = findLabelIndex l >>= goto
@@ -64,8 +64,8 @@ step (TailCall s) = readS s >>= goto
 step Return = do
   rspVal    <- readReg rsp
   memLength <- liftM (8*) $ uses memory Vector.length
-  let done = rspVal >= fromIntegral memLength
   writeReg rsp (rspVal + 8)
+  let done = rspVal >= fromIntegral memLength
   if done then halt else readMem "step Return" rspVal >>= goto
 
 readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64

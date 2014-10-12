@@ -8,6 +8,7 @@ module L.L2.L2Interp (interpL2) where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
+import Control.Lens.Operators
 import Control.Monad.State
 import Control.Monad.Trans.Error
 import Data.Int
@@ -59,7 +60,7 @@ step :: (MonadOutput m, MonadComputer CE m a) => L2Instruction -> m ()
 step (Assign x (CompRHS (Comp s1 op s2))) = do
   bind2 (\s1 s2 -> nextInstWX x $ if cmp op s1 s2 then 1 else 0) (readS s1) (readS s2)
 step (Assign x1 (MemRead (MemLoc x2 offset))) = do
-  index <- (fromIntegral offset +) <$> readX x2
+  index <- readX x2 <&> (+ fromIntegral offset)
   readMem "step MemRead" index >>= nextInstWX x1
 step (Assign x (Allocate size datum)) =
   bind2 allocate (readS size) (readS datum) >>= nextInstWX x
@@ -72,7 +73,7 @@ step (CJump (Comp s1 op s2) l1 l2) = do
   li <- bind2 (\s1 s2 -> findLabelIndex $ if cmp op s1 s2 then l1 else l2) (readS s1) (readS s2)
   goto li
 step (MemWrite (MemLoc x offset) s) = do
-  index <- (fromIntegral offset +) <$> readX x
+  index <- readX x <&> (+ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
 step (Goto l) = findLabelIndex l >>= goto
@@ -114,8 +115,7 @@ step Return = do
     (False, (x:xs)) -> do
       put (CE (x:|xs) c)
       writeReg rsp (rspVal + 8)
-      ip' <- readMem "step Return" rspVal
-      goto ip'
+      readMem "step Return" rspVal >>= goto
 
 -- goto the next instruction after writing an x value
 nextInstWX :: MonadComputer CE m a => L2X -> Int64 -> m ()
