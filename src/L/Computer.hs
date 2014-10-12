@@ -103,6 +103,9 @@ makeClassy ''Computer
 
 type MonadComputer c m a = (Functor m, MonadError Halt m, MonadState c m, HasComputer c a)
 
+bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+bind2 f ma mb = do a <- ma; b <- mb; f a b
+
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
 twoMeg = oneMeg * 2
@@ -260,7 +263,7 @@ nextInst = ip += 1
 
 -- goto the next instruction after writing a register
 nextInstWR :: MonadComputer c m a => Register -> Int64 -> m ()
-nextInstWR r i = do writeReg r i; nextInst
+nextInstWR r i = writeReg r i >> nextInst
 
 -- the main loop, runs a computer until completion
 runComputer :: (MonadOutput m, MonadComputer c m a) => (a -> m ()) -> m ()

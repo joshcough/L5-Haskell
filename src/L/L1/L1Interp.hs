@@ -25,36 +25,22 @@ handleResult (ComputationResult output (Halted (Exceptional msg)) c) = error msg
 handleResult (ComputationResult output Running c) = error $ "computer still running: " ++ show c  -- todo: maybe show output thus far
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
-step (Assign r (CompRHS (Comp s1 op s2))) = do
-  s1' <- readS s1
-  s2' <- readS s2
-  nextInstWR r (if cmp op s1' s2' then 1 else 0)
+step (Assign r (CompRHS (Comp s1 op s2))) =
+  bind2 (\s1' s2' -> nextInstWR r $ if cmp op s1' s2' then 1 else 0) (readS s1) (readS s2)
 step (Assign r (MemRead (MemLoc x offset))) = do
   x' <- readReg x
   let index = x' + fromIntegral offset
-  memVal <- readMem "MemRead" index
-  nextInstWR r memVal
+  readMem "MemRead" index >>= nextInstWR r
 step (Assign r (Allocate size datum)) = do
-  s  <- readS size
-  d  <- readS datum
-  hp <- allocate s d
+  hp <- bind2 allocate (readS size) (readS datum)
   nextInstWR r hp
-step (Assign r (Print s)) = do
-  readS s >>= print
-  nextInstWR r 1
-step (Assign _ (ArrayError s1 s2)) = do
-  s1' <- readS s1
-  s2' <- readS s2
-  arrayError s1' s2'
+step (Assign r (Print s)) = (readS s >>= print) >> nextInstWR r 1
+step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
 step (Assign r (SRHS s)) = readS s >>= nextInstWR r
-step (MathInst r op s) = do
-  r' <- readReg r
-  s' <- readS s
-  nextInstWR r (runOp op r' s')
+step (MathInst r op s) =
+  bind2 (\v s' -> nextInstWR r $ runOp op v s') (readReg r) (readS s)
 step (CJump (Comp s1 op s2) l1 l2) = do
-  s1' <- readS s1
-  s2' <- readS s2
-  li  <- findLabelIndex (if cmp op s1' s2' then l1 else l2)
+  li <- bind2 (\s1 s2 -> findLabelIndex $ if cmp op s1 s2 then l1 else l2) (readS s1) (readS s2)
   goto li
 step (MemWrite (MemLoc x offset) s) = do
   x' <- readReg x
@@ -65,8 +51,7 @@ step (Goto l) = findLabelIndex l >>= goto
 step (LabelDeclaration _) = nextInst
 step (Call s) = do
   func <- readS s
-  ip'  <- use ip
-  push (ip' + 1)
+  use ip >>= push . (1+)
   goto func
 step (TailCall s) = readS s >>= goto
 step Return = do
