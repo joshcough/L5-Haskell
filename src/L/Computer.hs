@@ -82,12 +82,12 @@ instance Error Halt where
   noMsg  = Normal
   strMsg = Exceptional
 
-data ComputationState a = ComputationResult {
+data ComputationResult a = ComputationResult {
    _output    :: [Output]
   ,_haltState :: RunState
   ,_internals :: a
 }
-mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationState a
+mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationResult a
 mkComputationState (o, (Left  h , c)) = ComputationResult o (Halted h) c
 mkComputationState (o, (Right (), c)) = ComputationResult o Running c
 
@@ -263,5 +263,5 @@ nextInstWR :: MonadComputer c m a => Register -> Int64 -> m ()
 nextInstWR r i = do writeReg r i; nextInst
 
 -- the main loop, runs a computer until completion
-runComputerM :: Monad m => m () -> m ()
-runComputerM = forever
+runComputer :: (MonadOutput m, MonadComputer c m a) => (a -> m ()) -> m ()
+runComputer step = forever $ currentInst >>= step
