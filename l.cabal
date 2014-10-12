@@ -77,6 +77,7 @@ library
   build-depends:
     array                     >= 0.3.0.2 && < 0.6,
     base                      >= 4       && < 5,
+    bifunctors                >= 4.1.1.1,
     bound                     >= 1.0.3,
     bytestring                >= 0.10.4.0,
     charset                   >= 0.3     && < 1,

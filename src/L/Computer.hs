@@ -18,6 +18,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Error hiding (throwError)
 import Control.Monad.Writer
+import Data.Bifunctor
 import Data.Bits
 import Data.Int
 import Data.Map (Map)
@@ -62,7 +63,7 @@ outputText (StdErr s) = s
 newtype OutputT m a = OutputT { runOutputT :: m ([Output], a) }
 
 instance Functor f => Functor (OutputT f) where
-  fmap fun (OutputT f) = OutputT $ fmap (\(xs, a) -> (xs, fun a)) f
+  fmap f (OutputT m) = OutputT $ fmap (second f) m
 
 instance Monad m => Monad (OutputT m) where
   return a = OutputT $ return ([], a)
