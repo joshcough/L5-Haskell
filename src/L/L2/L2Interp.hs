@@ -112,7 +112,7 @@ step Return = do
     -- based on the last case, there must be enough environments remaining
     -- were looking at the tail, so we've already popped the top env off
     -- so just return what we have
-    (False, (x:xs)) -> do
+    (False, x:xs) -> do
       put (CE (x:|xs) c)
       writeReg rsp (rspVal + 8)
       readMem "step Return" rspVal >>= goto
