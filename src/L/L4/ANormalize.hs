@@ -119,7 +119,7 @@ freeVars e = nub $ f e [] where
   f :: L3.E -> [Variable] -> [Variable]
   f (L3.Let x r body)            bv = f (DE r) bv ++ f body (x : bv)
   f (L3.IfStatement e a b)       bv = f (ve e) bv ++ f a bv ++  f b bv
-  f (DE (VD (L3.VarV v)))        bv = maybe [] (:[]) $ Data.List.find (v==) bv
+  f (DE (VD (L3.VarV v)))        bv = maybe [v] (const []) $ Data.List.find (v==) bv
   f (DE (VD _))                  _  = []
   f (DE (BiopD _ l r))           bv = f (ve l) bv ++ f (ve r) bv
   f (DE (PredD _ l))             bv = f (ve l) bv
