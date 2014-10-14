@@ -119,7 +119,7 @@ compileD (PredD IsNum   v) dest = return $
 compileD (PredD IsArray v) dest = return $
   [dest <~ compileVRHS v,
    dest &  num 1,
-   dest << num (-2),
+   dest *= num (-2),
    dest += num 3]
 compileD (NewArray size init) dest = return $
   [toLHS rax <~ Allocate (compileV size) (compileV init),
