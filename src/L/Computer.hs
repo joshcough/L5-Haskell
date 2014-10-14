@@ -36,6 +36,7 @@ import qualified Data.Vector.Mutable as MV
 import Prelude hiding (read)
 import System.IO
 import L.L1L2AST hiding (registers)
+import L.Utils
 
 type RegisterState = Map Register Int64
 type Ip = Int64 -- instruction pointer
@@ -242,24 +243,32 @@ allocate size n = do
       indices :: [Int]
       indices = [(fromIntegral $ hp `div` 8)..]
       nsWithIndices = Prelude.zip indices $ size' : ns
-  do m <- use memory; liftST $ update m (fromList nsWithIndices) --memory %= error "todo" -- (Vector.// nsWithIndices)   --	 v // l  ==> update m (fromList l)
+  do m <- use memory; liftST $ update m (fromList nsWithIndices)
   heapP <<+= ((size'+1) * 8)
 
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
 print :: forall c m a . (MonadOutput m, MonadComputer c m a) => Int64 -> m ()
-print n = error "todo" {-printContent n 0 >>= \s -> stdOut (s ++ "\n") where
-  printContent :: MonadError Halt m => Int64 -> Int -> m String
-  printContent n depth
+print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") where
+
+  loop v depth index
+    | index >= MV.length v = return []
+    | otherwise = do
+      h <- liftST (read v index) >>= printContent depth
+      t <- loop v depth (index + 1)
+      return $ h : t
+
+  printContent :: Int -> Int64 -> m String
+  printContent depth n
     | depth >= 4   = return $ "..."
     | n .&. 1 == 1 = return . show $ shiftR n 1
     | otherwise    = do
       size      <- readMem "print" n
       arr       <- readArray n
-      contentsV <- MV.mapM (\n -> printContent n $ depth + 1) arr
-      return $ "{s:" ++ (mkString ", " $ show size : Vector.toList contentsV) ++ "}"
--}
+      contentsV <- loop arr depth 0
+      return $ "{s:" ++ (mkString ", " $ show size : contentsV) ++ "}"
+
 -- print an array error
 arrayError :: (MonadOutput m, MonadComputer c m a) => Int64 -> Int64 -> m ()
 arrayError a x = do

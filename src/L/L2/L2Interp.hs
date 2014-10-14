@@ -6,12 +6,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module L.L2.L2Interp (interpL2) where
+module L.L2.L2Interp (interpL2, runL2Computation) where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
 import Control.Lens.Operators
 import Control.Monad.State
+import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
 import Data.Int
@@ -32,40 +33,37 @@ import Prelude hiding (head, length, print, tail)
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 p = error "todo" {- handleResult . mkComputationResult . runIdentity . runOutputT $
-  runStateT (runErrorT $ runComputer step) (newCE . newComputer $ adjustMain p)
+interpL2 p = runST $ handleResult <$> runL2Computation p
 
-handleResult :: ComputationResult CE -> String
+handleResult :: ComputationResult FrozenL2Computer -> String
 handleResult (ComputationResult output (Halted Normal) _) =
   concat $ fmap outputText output
 -- todo: maybe show output thus far for the following error cases
 handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
   error msg -- todo: maybe show output thus far
 handleResult (ComputationResult output Running c) =
-  error $ "computer still running: " ++ show c
--}
-
-type L2Computer m = RunningComputer m L2Instruction
-
-data CE m = CE (NonEmpty Env) (RunningComputer m L2Instruction)
-newCE :: L2Computer m -> CE m
-newCE c = CE (Map.empty :| []) c
-envs :: CE m -> NonEmpty Env
-envs (CE es _) = es
-
-instance (Monad m, s ~ World m) => HasComputer (CE m) (STVector s Int64) L2Instruction where
-  computer f (CE envs c) = fmap (CE envs) (f c)
+  error $ "computer still running "
 
 -- Env, and some Env operations
 type Env = Map Variable Int64
+replaceHeadEnv e = do (es, c) <- get; put $ (e :| tail es, c)
+addEnv e = do (es, c) <- get; put $ (cons e es, c)
 
-replaceHeadEnv :: MonadState (CE m) m => Env -> m ()
-replaceHeadEnv e = do (CE es c) <- get; put $ CE (e :| tail es) c
+type RunningL2Computer m = RunningComputer m L2Instruction
+type FrozenL2Computer    = FrozenComputer L2Instruction
+type CE m = (NonEmpty Env, RunningL2Computer m)
 
-addEnv :: MonadState (CE m) m => Env -> m ()
-addEnv e = do (CE es c) <- get; put $ CE (cons e es) c
+instance HasComputer r t a => HasComputer (l, r) t a where
+  computer = _2.computer
 
-step :: (MonadOutput m, MonadComputer (CE  m) m a) => L2Instruction -> m ()
+runL2Computation p = do
+  c   <- (newComputer $ adjustMain p)
+  let ce = (Map.empty :| [], c)
+  blah@(output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runComputer step) ce
+  fzc <- freezeComputer comp
+  return $ mkComputationResult (output, (haltEither, fzc))
+
+step :: (MonadOutput m, MonadComputer (CE m) m L2Instruction) => L2Instruction -> m ()
 step (Assign x (CompRHS (Comp s1 op s2))) = do
   bind2 (\s1 s2 -> nextInstWX x $ if cmp op s1 s2 then 1 else 0) (readS s1) (readS s2)
 step (Assign x1 (MemRead (MemLoc x2 offset))) = do
@@ -99,7 +97,7 @@ step (TailCall s) = do
 step Return = do
   rspVal <- readReg rsp
   memLength <- liftM (8*) $ uses memory (fromIntegral . length)
-  (CE (_:|es) c) <- get
+  (_:|es, c) <- get
   let done = rspVal >= memLength
   case (done, es) of
     -- in this case, we must be returning from main
@@ -122,7 +120,7 @@ step Return = do
     -- were looking at the tail, so we've already popped the top env off
     -- so just return what we have
     (False, x:xs) -> do
-      put (CE (x:|xs) c)
+      put (x:|xs, c)
       writeReg rsp (rspVal + 8)
       readMem "step Return" rspVal >>= goto
 
@@ -138,9 +136,9 @@ readS (LabelL2S l)  = findLabelIndex l
 readX :: MonadComputer (CE m) m a => L2X -> m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
-  e <- (head . envs) <$> get
+  e <- (head . fst) <$> get
   maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
 writeX :: MonadComputer (CE m) m a => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
-writeX (VarL2X v) i = (head . envs) <$> get >>= replaceHeadEnv . Map.insert v i
+writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
