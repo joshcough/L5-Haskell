@@ -1,37 +1,49 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module L.L1.L1Interp (interpL1) where
+module L.L1.L1Interp (interpL1, xxx, zzz) where
 
 import Control.Applicative
 import Control.Lens hiding (set)
 import Control.Lens.Operators
 import Control.Monad.State
+import Control.Monad.ST
+import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
 import Data.Int
-import qualified Data.Vector as Vector
+import Data.Vector.Generic.Mutable (length)
 import L.Computer
 import L.L1L2AST 
 import L.L1L2MainAdjuster (adjustMain)
-import Prelude hiding (print)
+import Prelude hiding (length, print)
 
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = handleResult . mkComputationState . runIdentity . runOutputT $ runStateT
+interpL1 p = error "todo" {-handleResult . mkComputationState . runIdentity . runOutputT $ runStateT
   (runErrorT $ runComputer step) (newComputer $ adjustMain p)
 
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
-handleResult :: ComputationResult (Computer L1Instruction) -> String
+handleResult :: ComputationResult (Computer s L1Instruction) -> String
 handleResult (ComputationResult output (Halted Normal) c) =
   concat $ fmap outputText output
 -- todo: maybe show output thus far for the follow error cases
 handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
   error msg
 handleResult (ComputationResult output Running c) =
-  error $ "computer still running: " ++ show c
+  error $ "computer still running: " -- ++ show c
+-}
+
+--mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationResult a
+
+zzz :: StateT s (OutputT Identity) a -> s ->  ([Output], (a, s))
+zzz a s = runIdentity . runOutputT $ runStateT a s
+
+xxx :: (MonadOutput m, MonadComputer c m a) => L1 ->  m (Either Halt (), RunningComputer m L1Instruction)
+xxx p = do c <- newComputer $ adjustMain p; runStateT (runErrorT $ runComputer step) c
+
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
 step (Assign r (CompRHS (Comp s1 op s2))) =
@@ -63,7 +75,7 @@ step (Call s) = do
 step (TailCall s) = readS s >>= goto
 step Return = do
   rspVal    <- readReg rsp
-  memLength <- liftM (8*) $ uses memory Vector.length
+  memLength <- liftM (8*) $ uses memory length
   writeReg rsp (rspVal + 8)
   let done = rspVal >= fromIntegral memLength
   if done then halt else readMem "step Return" rspVal >>= goto

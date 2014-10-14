@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module L.Computer where
 
@@ -17,6 +18,7 @@ import Control.Lens hiding (set)
 import Control.Monad.Error.Class
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.ST.Class
 import Control.Monad.Trans.Error hiding (throwError)
 import Control.Monad.Writer
 import Data.Bifunctor
@@ -25,14 +27,17 @@ import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Monoid()
-import Data.Vector (Vector)
+import Data.Vector (Vector, freeze)
+import Data.Vector.Fusion.Stream hiding ((++))
+import Data.Vector.Generic.Mutable (update)
+import Data.Vector.Mutable (STVector, read, write)
 import qualified Data.Vector as Vector
+import qualified Data.Vector.Mutable as MV
+import Prelude hiding (read)
 import System.IO
 import L.L1L2AST hiding (registers)
-import L.Utils
 
 type RegisterState = Map Register Int64
-type Memory = Vector Int64
 type Ip = Int64 -- instruction pointer
 
 class Monad m => MonadOutput m where
@@ -98,17 +103,36 @@ mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationResult a
 mkComputationState (o, (Left  h , c)) = ComputationResult o (Halted h) c
 mkComputationState (o, (Right (), c)) = ComputationResult o Running c
 
-data Computer a = Computer {
+data Computer v a = Computer {
    _registers :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
- , _memory    :: Memory           -- "" (same as registers)
+ , _memory    :: v                -- "" (same as registers)
  , _program   :: Vector a         -- ok...non-linear programs (L3 and above) might have trouble here.
  , _labels    :: Map Label Int64  -- however, this could me a map from label to something else
  , _ip        :: Ip               -- Ip might mean nothing to L3 and above, but then again maybe theres a way to make use of it.
  , _heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
-} deriving Show
+}
 makeClassy ''Computer
 
-type MonadComputer c m a = (Functor m, MonadError Halt m, MonadState c m, HasComputer c a)
+{-
+L.Computer> :t registers
+registers
+  :: (HasComputer c v a, Functor f) =>
+     (RegisterState -> f RegisterState) -> c -> f c
+-}
+
+type RunningMemory m = STVector (World m) Int64
+type FrozenMemory    = Vector Int64
+
+type RunningComputer m a = Computer (RunningMemory m) a
+type FrozenComputer    a = Computer FrozenMemory a
+
+freezeMem :: MonadComputer c m a => m (Vector Int64)
+freezeMem = use memory >>= liftST . freeze
+
+freezeComputer :: MonadComputer c m a => m (FrozenComputer a)
+freezeComputer = do c <- use computer; m <- freezeMem; return $ c { _memory = m }
+
+type MonadComputer c m a = (Functor m, MonadST m, MonadError Halt m, MonadState c m, HasComputer c (RunningMemory m) a)
 
 bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
 bind2 f ma mb = do a <- ma; b <- mb; f a b
@@ -121,6 +145,7 @@ rspStart :: Int64
 rspStart = fromIntegral memSize * 8
 zero :: Int64
 zero = 0
+
 registerStartState :: Map Register Int64
 registerStartState = Map.fromList [
  (rax, zero),
@@ -139,25 +164,28 @@ registerStartState = Map.fromList [
  (rsi, zero),
  (rbp, zero),
  (rsp, rspStart) ]
-emptyMem :: Vector Int64
-emptyMem = Vector.replicate memSize zero
 
-newComputer :: (Show x, Show s) => Program x s -> Computer (Instruction x s)
-newComputer p = Computer {
-  _registers = registerStartState,
-  _memory    = emptyMem,
-  _program   = Vector.fromList insts,
-  _labels    = Map.map fromIntegral $ labelIndices insts,
-  _ip        = 0,
-  _heapP     = 0
-} where insts = programToList p
+newMem :: MonadST m => m (STVector (World m) Int64)
+newMem = liftST $ MV.replicate memSize zero
+
+newComputer :: (MonadST m, Show x, Show s) => Program x s -> m (RunningComputer m (Instruction x s))
+newComputer p = do
+  m <-  newMem
+  return $ Computer {
+            _registers = registerStartState,
+            _memory    = m,
+            _program   = Vector.fromList insts,
+            _labels    = Map.map fromIntegral $ labelIndices insts,
+            _ip        = 0,
+            _heapP     = 0
+          } where insts = programToList p
 
 -- set the value of a register to an int value
-writeReg :: (MonadState c m, HasComputer c a) => Register -> Int64 -> m ()
+writeReg :: (MonadState c m, HasComputer c v a) => Register -> Int64 -> m ()
 writeReg reg newValue = registers.at reg ?= newValue
 
 -- set the value of r1 to the value of r2
-set :: (MonadState c m, HasComputer c a) => Register -> Register -> m ()
+set :: (MonadState c m, HasComputer c v a) => Register -> Register -> m ()
 set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
@@ -168,23 +196,23 @@ readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: u
 writeMem :: MonadComputer c m a => String -> Int64 -> Int64 -> m ()
 writeMem caller addr value = go where
   index = fromIntegral addr `div` 8
-  go | index < memSize = memory.ix index .= value
+  go | index < memSize = do m <- use memory; liftST $ write m index value
      | otherwise = exception $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
 readMem :: MonadComputer c m a => String -> Int64 -> m Int64
 readMem caller addr = go where
   index = fromIntegral addr `div` 8
-  go | index < memSize = use $ singular $ memory.ix index
+  go | index < memSize = do m <- use memory; liftST $ read m index
      | otherwise       = exception $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: MonadComputer c m a => Int64 -> m (Vector Int64)
+readArray :: MonadComputer c m a => Int64 -> m (STVector (World m) Int64)
 readArray addr = do
   s <- fromIntegral `liftM` readMem "readArray" addr
   let startIndex = fromIntegral addr `div` 8 + 1
   if startIndex + s < memSize
-    then uses memory (Vector.slice startIndex s)
+    then uses memory (MV.slice startIndex s)
     else exception $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
 -- push the given int argument onto the top of the stack
@@ -211,22 +239,22 @@ encodeNum :: Int64 -> Int64
 encodeNum n = shiftR n 1
 
 -- TODO: test if heap runs into stack, and vice-versa
-allocate :: (MonadState c m, HasComputer c a) => Int64 -> Int64 -> m Int64
+allocate :: (MonadState c m, MonadComputer c m a) => Int64 -> Int64 -> m Int64
 allocate size n = do
   hp <- use heapP
   let size'   = encodeNum size
       ns      = Prelude.replicate (fromIntegral size') n
       indices :: [Int]
       indices = [(fromIntegral $ hp `div` 8)..]
-      nsWithIndices = zip indices $ size' : ns
-  memory %= (Vector.// nsWithIndices)
+      nsWithIndices = Prelude.zip indices $ size' : ns
+  do m <- use memory; liftST $ update m (fromList nsWithIndices) --memory %= error "todo" -- (Vector.// nsWithIndices)   --	 v // l  ==> update m (fromList l)
   heapP <<+= ((size'+1) * 8)
 
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: forall m c a . (MonadOutput m, MonadComputer c m a) => Int64 -> m ()
-print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
+print :: forall c m a . (MonadOutput m, MonadComputer c m a) => Int64 -> m ()
+print n = error "todo" {-printContent n 0 >>= \s -> stdOut (s ++ "\n") where
   printContent :: MonadError Halt m => Int64 -> Int -> m String
   printContent n depth
     | depth >= 4   = return $ "..."
@@ -234,9 +262,9 @@ print n = printContent n 0 >>= \s -> stdOut (s ++ "\n") where
     | otherwise    = do
       size      <- readMem "print" n
       arr       <- readArray n
-      contentsV <- Vector.mapM (\n -> printContent n $ depth + 1) arr
+      contentsV <- MV.mapM (\n -> printContent n $ depth + 1) arr
       return $ "{s:" ++ (mkString ", " $ show size : Vector.toList contentsV) ++ "}"
-
+-}
 -- print an array error
 arrayError :: (MonadOutput m, MonadComputer c m a) => Int64 -> Int64 -> m ()
 arrayError a x = do
@@ -248,7 +276,7 @@ arrayError a x = do
 findLabelIndex :: MonadComputer c m a => Label -> m Int64
 findLabelIndex l = use (labels.at l) >>= maybe (exception $ "no such label: " ++ l) return
 
-goto :: (MonadState c m, HasComputer c a) => Ip -> m ()
+goto :: (MonadState c m, HasComputer c v a) => Ip -> m ()
 goto i = ip .= i
 
 currentInst :: MonadComputer c m a => m a
@@ -258,14 +286,14 @@ currentInst = do
   when (ip' >= memSize || ip' < 0) halt
   return $ p Vector.! ip'
 
-hasNextInst :: (MonadState c m, HasComputer c a) => m Bool
+hasNextInst :: (MonadState c m, HasComputer c v a) => m Bool
 hasNextInst = do
   ip' <- use ip
   p   <- use program
   return $ ip' < (fromIntegral $ Vector.length p)
 
 -- advance the computer to the next instruction
-nextInst :: (MonadState c m, HasComputer c a) => m ()
+nextInst :: (MonadState c m, HasComputer c v a) => m ()
 nextInst = ip += 1
 
 -- goto the next instruction after writing a register

@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module L.L2.L2Interp (interpL2) where
 
@@ -10,23 +12,27 @@ import Control.Applicative
 import Control.Lens hiding (cons, set)
 import Control.Lens.Operators
 import Control.Monad.State
+import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
 import Data.Int
-import Data.List.NonEmpty
+import Data.List.NonEmpty hiding (length)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Vector as Vector
+import Data.Vector.Generic.Mutable (length)
+import Data.Vector.Mutable (STVector)
+import qualified Data.Vector.Mutable as MV
 --import Debug.Trace
 import L.Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster 
-import Prelude hiding (head, print, tail)
+import Prelude hiding (head, length, print, tail)
 
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 p = handleResult . mkComputationState . runIdentity . runOutputT $
+interpL2 p = error "todo" {- handleResult . mkComputationState . runIdentity . runOutputT $
   runStateT (runErrorT $ runComputer step) (newCE . newComputer $ adjustMain p)
 
 handleResult :: ComputationResult CE -> String
@@ -37,26 +43,29 @@ handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
   error msg -- todo: maybe show output thus far
 handleResult (ComputationResult output Running c) =
   error $ "computer still running: " ++ show c
+-}
 
-data CE = CE (NonEmpty Env) (Computer L2Instruction) deriving Show
-newCE :: Computer L2Instruction -> CE
+type L2Computer m = RunningComputer m L2Instruction
+
+data CE m = CE (NonEmpty Env) (RunningComputer m L2Instruction)
+newCE :: L2Computer m -> CE m
 newCE c = CE (Map.empty :| []) c
-envs :: CE -> NonEmpty Env
+envs :: CE m -> NonEmpty Env
 envs (CE es _) = es
 
-instance HasComputer CE L2Instruction where
+instance (Monad m, s ~ World m) => HasComputer (CE m) (STVector s Int64) L2Instruction where
   computer f (CE envs c) = fmap (CE envs) (f c)
 
 -- Env, and some Env operations
 type Env = Map Variable Int64
 
-replaceHeadEnv :: MonadState CE m => Env -> m ()
+replaceHeadEnv :: MonadState (CE m) m => Env -> m ()
 replaceHeadEnv e = do (CE es c) <- get; put $ CE (e :| tail es) c
 
-addEnv :: MonadState CE m => Env -> m ()
+addEnv :: MonadState (CE m) m => Env -> m ()
 addEnv e = do (CE es c) <- get; put $ CE (cons e es) c
 
-step :: (MonadOutput m, MonadComputer CE m a) => L2Instruction -> m ()
+step :: (MonadOutput m, MonadComputer (CE  m) m a) => L2Instruction -> m ()
 step (Assign x (CompRHS (Comp s1 op s2))) = do
   bind2 (\s1 s2 -> nextInstWX x $ if cmp op s1 s2 then 1 else 0) (readS s1) (readS s2)
 step (Assign x1 (MemRead (MemLoc x2 offset))) = do
@@ -89,9 +98,9 @@ step (TailCall s) = do
   goto loc
 step Return = do
   rspVal <- readReg rsp
-  m      <- use memory
+  memLength <- liftM (8*) $ uses memory (fromIntegral . length)
   (CE (_:|es) c) <- get
-  let done = rspVal >= (fromIntegral $ Vector.length m * 8) -- todo: this seems like readMem
+  let done = rspVal >= memLength
   case (done, es) of
     -- in this case, we must be returning from main
     -- the computer thinks it's finished
@@ -118,20 +127,20 @@ step Return = do
       readMem "step Return" rspVal >>= goto
 
 -- goto the next instruction after writing an x value
-nextInstWX :: MonadComputer CE m a => L2X -> Int64 -> m ()
+nextInstWX :: MonadComputer (CE m) m a => L2X -> Int64 -> m ()
 nextInstWX x i = do writeX x i; nextInst
 
-readS :: MonadComputer CE m a => L2S -> m Int64
+readS :: MonadComputer (CE m) m a => L2S -> m Int64
 readS (NumberL2S n) = return n
 readS (XL2S x)      = readX x
 readS (LabelL2S l)  = findLabelIndex l
 
-readX :: MonadComputer CE m a => L2X -> m Int64
+readX :: MonadComputer (CE m) m a => L2X -> m Int64
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . envs) <$> get
   maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
-writeX :: MonadComputer CE m a => L2X -> Int64 -> m ()
+writeX :: MonadComputer (CE m) m a => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = (head . envs) <$> get >>= replaceHeadEnv . Map.insert v i
