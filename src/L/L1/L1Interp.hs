@@ -1,7 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module L.L1.L1Interp (interpL1, xxx, zzz) where
+module L.L1.L1Interp (interpL1) where
 
 import Control.Applicative
 import Control.Lens hiding (set)
@@ -10,6 +10,7 @@ import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
+import Control.Monad.Trans.Identity
 import Data.Int
 import Data.Vector.Generic.Mutable (length)
 import L.Computer
@@ -20,8 +21,7 @@ import Prelude hiding (length, print)
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = error "todo" {-handleResult . mkComputationState . runIdentity . runOutputT $ runStateT
-  (runErrorT $ runComputer step) (newComputer $ adjustMain p)
+interpL1 p = runST $ handleResult <$> runL1Computation p
 
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
@@ -34,16 +34,13 @@ handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
   error msg
 handleResult (ComputationResult output Running c) =
   error $ "computer still running: " -- ++ show c
--}
 
---mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationResult a
-
-zzz :: StateT s (OutputT Identity) a -> s ->  ([Output], (a, s))
-zzz a s = runIdentity . runOutputT $ runStateT a s
-
-xxx :: (MonadOutput m, MonadComputer c m a) => L1 ->  m (Either Halt (), RunningComputer m L1Instruction)
-xxx p = do c <- newComputer $ adjustMain p; runStateT (runErrorT $ runComputer step) c
-
+runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenComputer L1Instruction))
+runL1Computation p = do
+  c    <- newComputer $ adjustMain p
+  (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runComputer step) c
+  fzc  <- freezeComputer comp
+  return $ mkComputationResult (output, (haltEither, fzc))
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
 step (Assign r (CompRHS (Comp s1 op s2))) =

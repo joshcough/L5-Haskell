@@ -32,7 +32,7 @@ import Prelude hiding (head, length, print, tail)
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 p = error "todo" {- handleResult . mkComputationState . runIdentity . runOutputT $
+interpL2 p = error "todo" {- handleResult . mkComputationResult . runIdentity . runOutputT $
   runStateT (runErrorT $ runComputer step) (newCE . newComputer $ adjustMain p)
 
 handleResult :: ComputationResult CE -> String

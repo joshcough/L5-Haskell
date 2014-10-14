@@ -9,7 +9,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module L.Computer where
 
@@ -20,6 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error hiding (throwError)
+import Control.Monad.Trans.Identity
 import Control.Monad.Writer
 import Data.Bifunctor
 import Data.Bits
@@ -56,6 +56,7 @@ instance Monad m => MonadOutput (OutputT m) where
   stdOut s = OutputT $ return ([StdOut s], ())
   stdErr s = OutputT $ return ([StdErr s], ())
 
+instance MonadOutput m => MonadOutput (IdentityT m)
 instance MonadOutput m => MonadOutput (StateT s m)
 instance MonadOutput m => MonadOutput (ReaderT s m)
 instance (Error s, MonadOutput m)  => MonadOutput (ErrorT s m)
@@ -83,6 +84,9 @@ instance Monad m => Monad (OutputT m) where
     (ys, b) <- runOutputT $ f a
     return (xs ++ ys, b)
 
+instance MonadTrans OutputT where
+  lift m = OutputT $ do a <- m; return ([], a)
+
 data Halt = Normal | Exceptional String
 halt :: MonadError Halt m => m a
 halt = throwError Normal
@@ -98,10 +102,11 @@ data ComputationResult a = ComputationResult {
    _output    :: [Output]
   ,_haltState :: RunState
   ,_internals :: a
-}
-mkComputationState :: ([Output], (Either Halt (), a)) -> ComputationResult a
-mkComputationState (o, (Left  h , c)) = ComputationResult o (Halted h) c
-mkComputationState (o, (Right (), c)) = ComputationResult o Running c
+} deriving (Functor)
+
+mkComputationResult :: ([Output], (Either Halt (), a)) -> ComputationResult a
+mkComputationResult (o, (Left  h , c)) = ComputationResult o (Halted h) c
+mkComputationResult (o, (Right (), c)) = ComputationResult o Running c
 
 data Computer v a = Computer {
    _registers :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
@@ -113,24 +118,14 @@ data Computer v a = Computer {
 }
 makeClassy ''Computer
 
-{-
-L.Computer> :t registers
-registers
-  :: (HasComputer c v a, Functor f) =>
-     (RegisterState -> f RegisterState) -> c -> f c
--}
-
 type RunningMemory m = STVector (World m) Int64
 type FrozenMemory    = Vector Int64
 
 type RunningComputer m a = Computer (RunningMemory m) a
 type FrozenComputer    a = Computer FrozenMemory a
 
-freezeMem :: MonadComputer c m a => m (Vector Int64)
-freezeMem = use memory >>= liftST . freeze
-
-freezeComputer :: MonadComputer c m a => m (FrozenComputer a)
-freezeComputer = do c <- use computer; m <- freezeMem; return $ c { _memory = m }
+freezeComputer :: MonadST m => RunningComputer m a -> m (FrozenComputer a)
+freezeComputer c = do m <- liftST $ freeze (_memory c); return $ c { _memory = m }
 
 type MonadComputer c m a = (Functor m, MonadST m, MonadError Halt m, MonadState c m, HasComputer c (RunningMemory m) a)
 
