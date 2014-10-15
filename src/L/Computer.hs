@@ -136,7 +136,7 @@ bind2 f ma mb = do a <- ma; b <- mb; f a b
 oneMeg, twoMeg, memSize :: Int
 oneMeg = 1048576
 twoMeg = oneMeg * 2
-memSize = 2048  -- twoMeg
+memSize = twoMeg
 rspStart :: Int64
 rspStart = fromIntegral memSize * 8
 zero :: Int64
@@ -251,14 +251,12 @@ allocate size n = do
 --   else it's an array, print the contents of the array (and recur)
 print :: forall c m a . (MonadOutput m, MonadComputer c m a) => Int64 -> m ()
 print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") where
-
   loop v depth index
     | index >= MV.length v = return []
     | otherwise = do
       h <- liftST (read v index) >>= printContent depth
       t <- loop v depth (index + 1)
       return $ h : t
-
   printContent :: Int -> Int64 -> m String
   printContent depth n
     | depth >= 4   = return $ "..."
