@@ -12,6 +12,7 @@ import L.L2.L2
 import L.L3.L3
 import L.L4.L4
 import Options.Applicative
+import System.FilePath.Lens
 
 main :: IO ()
 main = execParser commandLineParser >>= main'
@@ -30,7 +31,7 @@ turtlesMode = switch
 
 main' :: (Bool, Bool, CompilationOptions, FilePath) -> IO ()
 main' (exec, turtles, opts, file) = case (getExtension file) of
-  "S" -> runSFileNative (getFileName file) (getDir file) >>= putStrLn
+  "S" -> runSFileNative (getFileName file) (file^.directory) >>= putStrLn
   ext -> g ext where
     go lang = c exec lang opts file
     g "L1" = go l1Language
@@ -41,8 +42,8 @@ main' (exec, turtles, opts, file) = case (getExtension file) of
 
 c :: Show o => Bool -> Language i o -> CompilationOptions -> FilePath -> IO ()
 c False lang opts file = do
-  res <- compileFileAndWriteResult lang (opts & outputDir %~ (<|> (Just $ getDir file))) file
+  res <- compileFileAndWriteResult lang (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error (const $ return ()) res
 c True lang opts file = do
-  res <- compileFileAndRunNative   lang (opts & outputDir %~ (<|> (Just $ getDir file))) file
+  res <- compileFileAndRunNative   lang (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error putStrLn res

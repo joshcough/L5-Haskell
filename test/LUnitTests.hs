@@ -129,9 +129,9 @@ turtlesTestDef lang dirs' = langTestDef lang "Turtles" dirs' runAndCompareInterp
 
 langTestDef :: Language i o -> String -> [FilePath] -> (Language i o -> FilePath -> IO ()) -> TestDef
 langTestDef lang name dirs' runFunction = TestDef {
-  name = extension lang ++ " " ++ name
+  name = ext lang ++ " " ++ name
  ,dirs  = dirs'
- ,inputFileSearch = "*." ++ (extension lang)
+ ,inputFileSearch = "*." ++ (ext lang)
  ,outputFileExt   = Nothing
  ,compute = \file _ -> runFunction lang file
 }

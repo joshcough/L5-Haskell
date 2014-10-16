@@ -17,7 +17,7 @@ module L.Compiler (
   ,compileTurtles
   ,compileTurtlesFile
   ,compOpts
-  ,extension
+  ,ext
   ,interpret
   ,interpretString
   ,interpretFile
@@ -39,6 +39,7 @@ import L.OS
 import L.Read
 import L.NativeRunner
 import Prelude hiding ((.),id)
+import System.FilePath.Lens
 
 data CompilationOptions = CompilationOptions {
   _os :: OS,
@@ -54,7 +55,7 @@ compOpts mOs mOutputDir =
 getOutputDirOrElse :: CompilationOptions -> FilePath -> FilePath
 getOutputDirOrElse opts inputFile = fromJust $ setIfAbsent^.outputDir where
   setIfAbsent :: CompilationOptions
-  setIfAbsent = opts & outputDir %~ (<|> (Just $ getDir inputFile))
+  setIfAbsent = opts & outputDir %~ (<|> (Just $ inputFile^.directory))
 
 instance Default CompilationOptions where
   def = CompilationOptions systemOS Nothing
@@ -82,8 +83,8 @@ compiler    :: Language i o -> Compiler i o
 compiler      (Language _ c _ _ _) = c
 interpreter :: Language i o -> Interpreter i
 interpreter   (Language _ _ i _ _) = i
-extension   :: Language i o -> Extension
-extension     (Language _ _ _ e _) = e
+ext         :: Language i o -> Extension
+ext           (Language _ _ _ e _) = e
 
 -- helpers
 runVal :: Val a -> a
@@ -95,7 +96,7 @@ mungeList :: (b -> [Either a b1]) -> Either a b -> [Either a b1]
 mungeList = either (\msg -> [Left msg]) 
 
 outputExtension :: Language i o -> String
-outputExtension (Language _ _ _ _ subLang) = maybe "S" extension subLang
+outputExtension (Language _ _ _ _ subLang) = maybe "S" ext subLang
 
 showOutput :: Language i o -> o -> String
 showOutput (Language _ _ _ _ (Just _)) = show
@@ -233,7 +234,7 @@ compileAndRunNative ::
 compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile input = do
   code <- compileAndWriteResult l opts inputFile input
   munge (recur subLang) code where
-  recur Nothing    _    = Right <$> runSFileNative sFile (getDir sFile) where
+  recur Nothing    _    = Right <$> runSFileNative sFile (sFile^.directory) where
     sFile = changeDir (changeExt inputFile (outputExtension l)) (getOutputDirOrElse opts inputFile)
   recur (Just sub) code = compileAndRunNative sub opts inputFile code
 
