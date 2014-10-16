@@ -12,3 +12,5 @@ osFromString "darwin" = Darwin
 osFromString "linux"  = Linux
 osFromString o        = error $ "unsupported os: " ++ o
 
+systemOS :: OS
+systemOS = osFromString Sys.os

@@ -1,19 +1,21 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module L.Compiler (
    Val 
   ,ProgramName
-  ,CompilationOptions(..)
+  ,CompilationOptions(..), os, outputDir
   ,Language(..)
-  ,OS(..)
   ,compile
   ,compileString
   ,compileFile
   ,compileAndRunNative
-  ,compileAndRunNativeFile
+  ,compileFileAndRunNative
   ,compileAndWriteResult
   ,compileFileAndWriteResult
+  ,compileTurtles
+  ,compileTurtlesFile
   ,compOpts
   ,extension
   ,interpret
@@ -24,10 +26,13 @@ module L.Compiler (
   ,interpretTurtlesFile
   ,osFromString
   ,runVal
+  ,munge
 ) where
 
 import Control.Applicative
 import Control.Category
+import Control.Lens
+import Data.Default
 import Data.Maybe
 import L.IOHelpers
 import L.OS
@@ -36,10 +41,23 @@ import L.NativeRunner
 import Prelude hiding ((.),id)
 
 data CompilationOptions = CompilationOptions {
-  os :: OS
+  _os :: OS,
+  _outputDir :: Maybe FilePath
 } deriving (Show, Eq)
-compOpts :: Maybe String -> CompilationOptions
-compOpts = CompilationOptions . osFromMaybeString
+makeLenses ''CompilationOptions
+
+compOpts :: Maybe String -> Maybe FilePath -> CompilationOptions
+compOpts mOs mOutputDir =
+  CompilationOptions (osFromMaybeString mOs) mOutputDir
+
+-- this sets it only if it isnt there
+getOutputDirOrElse :: CompilationOptions -> FilePath -> FilePath
+getOutputDirOrElse opts inputFile = fromJust $ setIfAbsent^.outputDir where
+  setIfAbsent :: CompilationOptions
+  setIfAbsent = opts & outputDir %~ (<|> (Just $ getDir inputFile))
+
+instance Default CompilationOptions where
+  def = CompilationOptions systemOS Nothing
 
 type Output           = String
 type ProgramName      = String
@@ -113,13 +131,12 @@ compileAndWriteResult :: Show o =>
   Language i o       -> 
   CompilationOptions -> 
   ProgramName        -> 
-  FilePath           -> 
-  i                  -> 
+  i                  ->
   IO (Val o)
-compileAndWriteResult l opts inputFile outputDir input = 
+compileAndWriteResult l opts inputFile input =
   f $ compile l opts inputFile input where
     f = munge $ \o -> do
-      _ <- writeOutput l inputFile outputDir o
+      _ <- writeOutput l inputFile (getOutputDirOrElse opts inputFile) o
       return (Right o)
 
 writeOutput :: Show o =>
@@ -136,11 +153,10 @@ compileFileAndWriteResult :: Show o =>
   Language i o       -> 
   CompilationOptions -> 
   FilePath           -> 
-  FilePath           -> 
   IO (Val o)
-compileFileAndWriteResult l opts outputDir inputFile = do
+compileFileAndWriteResult l opts inputFile = do
   i <- parseFile l inputFile
-  munge (compileAndWriteResult l opts (getFileName inputFile) outputDir) i
+  munge (compileAndWriteResult l opts (getFileName inputFile)) i
 
 -- interpretation
 interpret :: Language i o -> Interpreter i
@@ -184,27 +200,48 @@ interpretTurtlesFile l opts file = do
   code <- readFile file
   return $ interpretTurtlesString l opts file code
 
--- native execution
-compileAndRunNative :: 
-  Language i o       -> 
-  CompilationOptions -> 
+-- compile all the way to assembly, writing intermediate files
+compileTurtles ::
+  Language i o       ->
+  CompilationOptions ->
   FilePath           -> --the original input file, also serves as the program name
-  FilePath           -> 
-  i                  -> 
-  IO (Val Output)
-compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile outputDir input = do
-  code <- compileAndWriteResult l opts inputFile outputDir input
-  munge (recur subLang) code where
-  recur Nothing    _    = Right <$> runSFileNative sFile outputDir where
-    sFile = changeDir (changeExt inputFile (outputExtension l)) outputDir
-  recur (Just sub) code = compileAndRunNative sub opts inputFile outputDir code
+  i                  ->
+  IO ()
+compileTurtles l@(Language _ _ _ _ subLang) opts inputFile input = do
+  code <- compileAndWriteResult l opts inputFile input
+  case (subLang, code) of
+    (_, Left err)       -> error err
+    (Nothing, _)        -> return ()
+    (Just sub, Right o) -> compileTurtles sub opts inputFile o
 
-compileAndRunNativeFile ::
+compileTurtlesFile ::
+ Language i o       ->
+ CompilationOptions ->
+ FilePath           ->
+ IO ()
+compileTurtlesFile l opts file = do
+  code <- parseFile l file
+  either error (compileTurtles l opts file) code
+
+-- native execution
+compileAndRunNative ::
+  Language i o       ->
+  CompilationOptions ->
+  FilePath           -> --the original input file, also serves as the program name
+  i                  ->
+  IO (Val Output)
+compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile input = do
+  code <- compileAndWriteResult l opts inputFile input
+  munge (recur subLang) code where
+  recur Nothing    _    = Right <$> runSFileNative sFile (getDir sFile) where
+    sFile = changeDir (changeExt inputFile (outputExtension l)) (getOutputDirOrElse opts inputFile)
+  recur (Just sub) code = compileAndRunNative sub opts inputFile code
+
+compileFileAndRunNative ::
   Language i o       -> 
   CompilationOptions ->
-  FilePath           -> 
-  FilePath           -> 
+  FilePath           ->
   IO (Val Output)
-compileAndRunNativeFile lang opts outputDir inputFile = do
+compileFileAndRunNative lang opts inputFile = do
   code <- readFile inputFile
-  munge (compileAndRunNative lang opts inputFile outputDir) (parseString lang code)
+  munge (compileAndRunNative lang opts inputFile) (parseString lang code)

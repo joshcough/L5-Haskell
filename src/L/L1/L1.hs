@@ -1,5 +1,6 @@
 module L.L1.L1 (l1Language) where
 
+import Control.Lens
 import L.Compiler
 import L.L1L2AST
 import L.L1L2Parser
@@ -11,4 +12,4 @@ l1Language :: Language L1 String
 l1Language  = Language parseL1 compileL1 interpL1 "L1" Nothing
 
 compileL1 :: CompilationOptions -> ProgramName -> L1 -> Either String String
-compileL1 opts name = genX86Code name (os opts) . adjustMain
+compileL1 opts name = genX86Code name (opts^.os) . adjustMain

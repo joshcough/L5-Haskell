@@ -6,9 +6,12 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import Control.Applicative
+import Control.Lens
 import Control.Exception
+import Data.Default
 import Data.Traversable
 import Debug.Trace
+import Prelude hiding (sequence)
 import System.FilePath.Find hiding (extension)
 import System.IO.Unsafe
 import System.Info as Info
@@ -47,7 +50,8 @@ allTests = [
  ,l4Tests
  ,l4TurtlesTests ]
 
-opts = CompilationOptions { L.Compiler.os = OS.osFromString Info.os }
+opts :: CompilationOptions
+opts = def & outputDir .~ (Just "./tmp")
 
 testDir = "./test/test-fest/"
 
@@ -55,7 +59,7 @@ runInterp lang file = runVal <$> interpretFile lang file
 
 data TestDef = TestDef 
   { name :: String
-  , dir  :: FilePath
+  , dirs :: [FilePath]
   , inputFileSearch :: String
   , outputFileExt   :: Maybe String
   , compute :: FilePath -> Maybe FilePath -> Assertion
@@ -63,7 +67,7 @@ data TestDef = TestDef
 
 lParsingTests = TestDef {
   name = "L Parsing Tests"
- ,dir  = "test"
+ ,dirs = ["test"]
  ,inputFileSearch = "*.L[0-4]"
  ,outputFileExt   = Nothing
  ,compute = \lFile _ -> do 
@@ -72,7 +76,7 @@ lParsingTests = TestDef {
 }
 l1InterpreterTests = TestDef {
   name = "L1 Interpreter"
- ,dir = "test/x86-64-tests"
+ ,dirs = ["test/x86-64-tests"]
  ,inputFileSearch = "*.L1"
  ,outputFileExt   = Just "res"
  ,compute = \l1f (Just resFile) -> do
@@ -82,17 +86,17 @@ l1InterpreterTests = TestDef {
 }
 l164Tests = TestDef { 
   name = "L1" 
- ,dir  = "test/x86-64-tests"
+ ,dirs = ["test/x86-64-tests"]
  ,inputFileSearch = "*.L1"
  ,outputFileExt   = Just "res"
  ,compute = \l1File (Just resFile) -> do 
-   actual   <- runVal <$> compileAndRunNativeFile l1Language opts "tmp" l1File
+   actual   <- runVal <$> compileFileAndRunNative l1Language opts l1File
    expected <- readFile resFile
    strip actual @?= strip expected
 }
 spillTests = TestDef {
   name = "Spill"
- ,dir  = testDir ++ "spill-test"
+ ,dirs = [testDir ++ "spill-test"]
  ,inputFileSearch = "*.L2f"
  ,outputFileExt   = Just "sres"
  ,compute = \spillFile (Just resFile) -> do
@@ -101,26 +105,32 @@ spillTests = TestDef {
     sread (spillTest s) @?= sread expected
 }
 
-l2Tests        = oneLevelTestDef l2Language (testDir ++ "2-test")
-l2TurtlesTests = turtlesTestDef  l2Language (testDir ++ "2-test")
+l2Tests        = oneLevelTestDef l2Language [testDir ++ "2-test"]
+l2TurtlesTests = turtlesTestDef  l2Language [testDir ++ "2-test"]
 
-l3Tests        = oneLevelTestDef l3Language (testDir ++ "3-test")
-l3TurtlesTests = turtlesTestDef  l3Language (testDir ++ "3-test")
+l3Tests        = oneLevelTestDef l3Language [testDir ++ "3-test"]
+l3TurtlesTests = turtlesTestDef  l3Language [testDir ++ "3-test"]
 
-l4Tests        = oneLevelTestDef l4Language (testDir ++ "4-test") -- testDir ++ "L4-tests-from-2010/kleinfindler"
-l4TurtlesTests = turtlesTestDef  l4Language (testDir ++ "4-test")
+l4_2010_Dir sub = testDir ++ "L4-tests-from-2010/" ++ sub
+l4Dirs = [testDir ++ "4-test",
+          l4_2010_Dir "mcglynn",
+          l4_2010_Dir "shawger",
+          l4_2010_Dir "kleinfindler",
+          l4_2010_Dir "burgener"] -- TODO: no hartglass yet... 100% cpu usage
+l4Tests        = oneLevelTestDef l4Language l4Dirs
+l4TurtlesTests = turtlesTestDef  l4Language l4Dirs
 
 
-oneLevelTestDef :: Language i o -> FilePath -> TestDef
-oneLevelTestDef lang dir' = langTestDef lang "One Level" dir' runAndCompareInterpVsNative
+oneLevelTestDef :: Language i o -> [FilePath] -> TestDef
+oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNative
 
-turtlesTestDef :: Language i o -> FilePath -> TestDef
-turtlesTestDef lang dir' = langTestDef lang "Turtles" dir' runAndCompareInterpTurtlesVsNative
+turtlesTestDef :: Language i o -> [FilePath] -> TestDef
+turtlesTestDef lang dirs' = langTestDef lang "Turtles" dirs' runAndCompareInterpTurtlesVsNative
 
-langTestDef :: Language i o -> String -> FilePath -> (Language i o -> FilePath -> IO ()) -> TestDef
-langTestDef lang name dir' runFunction = TestDef {
+langTestDef :: Language i o -> String -> [FilePath] -> (Language i o -> FilePath -> IO ()) -> TestDef
+langTestDef lang name dirs' runFunction = TestDef {
   name = extension lang ++ " " ++ name
- ,dir  = dir'
+ ,dirs  = dirs'
  ,inputFileSearch = "*." ++ (extension lang)
  ,outputFileExt   = Nothing
  ,compute = \file _ -> runFunction lang file
@@ -128,19 +138,22 @@ langTestDef lang name dir' runFunction = TestDef {
 
 runAndCompareInterpVsNative :: Language i o -> FilePath -> IO ()
 runAndCompareInterpVsNative lang inputFile = do
-  nativeRes <- strip . runVal <$> compileAndRunNativeFile lang opts "tmp" inputFile
+  nativeRes <- strip . runVal <$> compileFileAndRunNative lang opts inputFile
   interpRes <- strip  <$> runInterp lang inputFile
   nativeRes @?= interpRes
 
 runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> IO ()
 runAndCompareInterpTurtlesVsNative lang inputFile = do
-  nativeRes     <- Right . strip . runVal <$> compileAndRunNativeFile lang opts "tmp" inputFile
+  nativeRes     <- Right . strip . runVal <$> compileFileAndRunNative lang opts inputFile
   interpResList <- (fmap (fmap strip)) <$> (interpretTurtlesFile lang opts inputFile)
   assertList $ nativeRes : interpResList
 
-tree def = testGroup (name def) . fmap mkTest <$> testFiles (inputFileSearch def) where
-  testFiles :: String -> IO [FilePath]
-  testFiles rgx = find always (fileType ==? RegularFile &&? fileName ~~? rgx) (dir def)
+tree def = testGroup (name def) . fmap mkTest <$> testFiles where
+  findFiles :: FilePath -> IO [FilePath]
+  findFiles dir =
+    find always (fileType ==? RegularFile &&? fileName ~~? (inputFileSearch def)) dir
+  testFiles :: IO [FilePath]
+  testFiles = concat <$> sequence (findFiles <$> dirs def)
   mkTest inputFile = testCase (name def ++ " " ++ inputFile) $ do
     compute def inputFile (changeExt inputFile <$> outputFileExt def)
 

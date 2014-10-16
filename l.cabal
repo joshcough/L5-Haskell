@@ -40,6 +40,7 @@ library
     L.NativeRunner
     L.OS
     L.Read
+    L.ReplTools
     L.Utils
 
     -- L1
@@ -82,10 +83,11 @@ library
     bytestring                >= 0.10.4.0,
     charset                   >= 0.3     && < 1,
     containers                >= 0.3     && < 0.6,
+    data-default              >= 0.5.3,
     directory                 >= 1.2.0.1,
     either                    >= 4.3.1,
     --ermine                    >= 0.6,
-    lens                      >= 4,
+    lens                      >= 4.4,
     monad-st                  >= 0.2.4,
     mtl                       >= 2,
     optparse-applicative      >= 0.10.0,
@@ -110,8 +112,9 @@ executable lc
   build-depends: 
     base < 5, 
     directory >= 1.2.0.1, 
-    l, 
-    mtl >= 2,
+    l,
+    lens      >= 4.4,
+    mtl       >= 2,
     optparse-applicative >= 0.10.0
 
 -- interpreter for any .Ln file (where n is a number).
@@ -150,9 +153,11 @@ test-suite tests
     build-depends:
       base,
       directory                  >= 1.2.0.1,
+      data-default               >= 0.5.3,
       filemanip                  >= 0.3.6.2,
       HUnit,
       l,
+      lens                       >= 4.4,
       test-framework             >= 0.6,
       test-framework-hunit,
       test-framework-quickcheck2 >= 0.2,

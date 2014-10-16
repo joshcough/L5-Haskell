@@ -2,6 +2,7 @@
 
 module Main where
 
+import Control.Lens
 import L.CommandLine
 import L.Compiler
 import L.IOHelpers
@@ -15,16 +16,20 @@ import Options.Applicative
 main :: IO ()
 main = execParser commandLineParser >>= main'
 
-commandLineParser :: ParserInfo (Bool, CompilationOptions, FilePath)
+commandLineParser :: ParserInfo (Bool, Bool, CompilationOptions, FilePath)
 commandLineParser = addInfo "The L Compiler" $
-  (,,) <$> execMode <*> compileOptionsParser <*> lStarFileParser
+  (,,,) <$> execMode <*> turtlesMode <*> compileOptionsParser <*> lStarFileParser
 
 execMode = switch
   (short 'x' <> long "exec" <>
    help "Run the native code after executing it." )
 
-main' :: (Bool, CompilationOptions, FilePath) -> IO ()
-main' (exec, opts, file) = case (getExtension file) of
+turtlesMode = switch
+  (short 't' <> long "turtles" <>
+   help "Write all intermediate languages" )
+
+main' :: (Bool, Bool, CompilationOptions, FilePath) -> IO ()
+main' (exec, turtles, opts, file) = case (getExtension file) of
   "S" -> runSFileNative (getFileName file) (getDir file) >>= putStrLn
   ext -> g ext where
     go lang = c exec lang opts file
@@ -36,9 +41,8 @@ main' (exec, opts, file) = case (getExtension file) of
 
 c :: Show o => Bool -> Language i o -> CompilationOptions -> FilePath -> IO ()
 c False lang opts file = do
-  res <- compileFileAndWriteResult lang opts (getDir file) file
+  res <- compileFileAndWriteResult lang (opts & outputDir %~ (<|> (Just $ getDir file))) file
   either error (const $ return ()) res
 c True lang opts file = do
-  res <- compileAndRunNativeFile   lang opts (getDir file) file
+  res <- compileFileAndRunNative   lang (opts & outputDir %~ (<|> (Just $ getDir file))) file
   either error putStrLn res
-

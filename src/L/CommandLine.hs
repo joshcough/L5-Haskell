@@ -9,9 +9,21 @@ addInfo desc p =
        (fullDesc <> progDesc desc <> 
        (header "The L Programming Language"))
 
+osParser :: Parser String
+osParser = strOption (
+  long "os" <>
+  metavar "operating system"
+  <> help "darwin|linux")
+
+outputDirParser :: Parser String
+outputDirParser = strOption (
+  long "outputDir" <>
+  short 'o' <>
+  metavar "outputDir" <>
+  help "the directory to write output files")
+
 compileOptionsParser :: Parser CompilationOptions
-compileOptionsParser = compOpts <$> (optional $ strOption
-  (long "os" <> short 'o' <> metavar "operating system" <> help "darwin|linux"))
+compileOptionsParser = compOpts <$> optional osParser <*> optional outputDirParser
 
 -- TODO: for many files later, use:
 -- some (argument str (metavar "..."))

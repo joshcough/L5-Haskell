@@ -9,7 +9,7 @@ module L.Compiler (
   ,compileFile
   ,compileAndRunNative
   ,compileAndRunNativeString
-  ,compileAndRunNativeFile
+  ,compileFileAndRunNative
   ,compileAndWriteResult
   ,compileFileAndWriteResult
   ,interpret
@@ -146,8 +146,8 @@ compileAndRunNativeString :: Language i o -> String -> FilePath -> String -> IO 
 compileAndRunNativeString lang name outputDir input =
   munge (compileAndRunNative lang name outputDir) (parseString lang input)
 
-compileAndRunNativeFile :: Language i o -> FilePath -> FilePath -> IO (Val String)
-compileAndRunNativeFile lang outputDir inputFile = do
+compileFileAndRunNative :: Language i o -> FilePath -> FilePath -> IO (Val String)
+compileFileAndRunNative lang outputDir inputFile = do
   code <- readFile inputFile
   compileAndRunNativeString lang (getFileName inputFile) outputDir code
 -}
