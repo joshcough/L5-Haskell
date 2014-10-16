@@ -26,7 +26,7 @@ defaultSpillPrefix = "spilled_var_"
 -- the last is the spill prefix
 -- returns a list of instructions (printed), after spilling.
 spillTest :: String -> String
-spillTest input = case (sreadWithRest input) of 
+spillTest input = case sreadWithRest input of
   (program, rest) -> 
     let w = words rest
         var = w !! 0

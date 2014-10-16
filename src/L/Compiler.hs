@@ -148,7 +148,7 @@ writeOutput :: Show o =>
   IO ()
 writeOutput l inputFile outputDir code = do
   writeFile outputFile $ showOutput l code where
-    outputFile = changeDir (changeExt inputFile (outputExtension l)) outputDir
+    outputFile = inputFile & extension .~ (outputExtension l) & directory .~ outputDir
 
 compileFileAndWriteResult :: Show o => 
   Language i o       -> 
@@ -157,7 +157,7 @@ compileFileAndWriteResult :: Show o =>
   IO (Val o)
 compileFileAndWriteResult l opts inputFile = do
   i <- parseFile l inputFile
-  munge (compileAndWriteResult l opts (getFileName inputFile)) i
+  munge (compileAndWriteResult l opts (inputFile^.filename)) i
 
 -- interpretation
 interpret :: Language i o -> Interpreter i
@@ -235,7 +235,7 @@ compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile input = do
   code <- compileAndWriteResult l opts inputFile input
   munge (recur subLang) code where
   recur Nothing    _    = Right <$> runSFileNative sFile (sFile^.directory) where
-    sFile = changeDir (changeExt inputFile (outputExtension l)) (getOutputDirOrElse opts inputFile)
+    sFile = inputFile & extension .~ (outputExtension l) & directory .~ (getOutputDirOrElse opts inputFile)
   recur (Just sub) code = compileAndRunNative sub opts inputFile code
 
 compileFileAndRunNative ::

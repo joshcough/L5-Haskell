@@ -30,8 +30,8 @@ turtlesMode = switch
    help "Write all intermediate languages" )
 
 main' :: (Bool, Bool, CompilationOptions, FilePath) -> IO ()
-main' (exec, turtles, opts, file) = case (getExtension file) of
-  "S" -> runSFileNative (getFileName file) (file^.directory) >>= putStrLn
+main' (exec, turtles, opts, file) = case (file^.extension) of
+  "S" -> runSFileNative (file^.filename) (file^.directory) >>= putStrLn
   ext -> g ext where
     go lang = c exec lang opts file
     g "L1" = go l1Language

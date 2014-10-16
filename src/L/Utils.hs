@@ -5,8 +5,6 @@ module L.Utils
    ,extract
    ,mkString
    ,strip
-   ,traceA
-   ,traceSA
    ,zipWithIndex
   ) where
 
@@ -27,12 +25,6 @@ extract = either error id
 
 zipWithIndex :: [a] -> [(a, Int)]
 zipWithIndex as = zip as [0..]
-
-traceA :: Show a => a -> a
-traceA a = traceShow a a
-
-traceSA :: Show a => String -> a -> a
-traceSA s a = trace (s ++ " " ++ show a) a
 
 wschars :: String
 wschars = " \t\r\n"

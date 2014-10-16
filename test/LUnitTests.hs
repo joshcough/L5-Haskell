@@ -15,6 +15,7 @@ import Prelude hiding (sequence)
 import System.FilePath.Find hiding (extension)
 import System.IO.Unsafe
 import System.Info as Info
+import System.FilePath.Lens
 
 import L.Compiler
 import L.IOHelpers
@@ -155,7 +156,7 @@ tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   testFiles :: IO [FilePath]
   testFiles = concat <$> sequence (findFiles <$> dirs def)
   mkTest inputFile = testCase (name def ++ " " ++ inputFile) $ do
-    compute def inputFile (changeExt inputFile <$> outputFileExt def)
+    compute def inputFile (extension (const (outputFileExt def)) inputFile)
 
 assertList :: (Eq a, Show a) => [a] -> IO ()
 assertList (x1:x2:xs) = (x1 @?= x2) >> assertList xs

@@ -1,11 +1,13 @@
 module L.NativeRunner where
 
+import Control.Lens
 import L.IOHelpers
 import System.Process
+import System.FilePath.Lens
 
 runSFileNative :: FilePath -> FilePath -> IO String
 runSFileNative sFile outputDir = 
-  let f newExt = changeDir (changeExt sFile newExt) outputDir
+  let f newExt = sFile & extension .~ newExt & directory .~ outputDir
       oFile   = f "o"
       outFile = f "out"
       resFile = f "res"

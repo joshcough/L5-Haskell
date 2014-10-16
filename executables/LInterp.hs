@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Lens
 import L.CommandLine
 import L.Compiler
 import L.IOHelpers
@@ -9,6 +10,7 @@ import L.L2.L2
 import L.L3.L3
 import L.L4.L4
 import Options.Applicative
+import System.FilePath.Lens
 
 main :: IO ()
 main = execParser commandLineParser >>= main'
@@ -22,7 +24,7 @@ turtlesMode = switch
    help "Interpret all intermediate languages" )
 
 main' :: (Bool, CompilationOptions, FilePath) -> IO ()
-main' (turtles, opts, file) = g (getExtension file) where
+main' (turtles, opts, file) = g (file^.extension) where
   go lang = 
     if turtles
     then interpretTurtlesFile lang opts file >>= putStrLn . show
