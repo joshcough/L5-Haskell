@@ -10,7 +10,6 @@ module L.L2.L2Interp (interpL2, runL2Computation) where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
-import Control.Lens.Operators
 import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
@@ -20,11 +19,7 @@ import Data.List.NonEmpty hiding (length)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import qualified Data.Vector as Vector
 import Data.Vector.Generic.Mutable (length)
-import Data.Vector.Mutable (STVector)
-import qualified Data.Vector.Mutable as MV
---import Debug.Trace
 import L.Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster 
@@ -36,17 +31,16 @@ interpL2 :: L2 -> String
 interpL2 p = runST $ handleResult <$> runL2Computation p
 
 handleResult :: ComputationResult FrozenL2Computer -> String
-handleResult (ComputationResult output (Halted Normal) _) =
-  concat $ fmap outputText output
+handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the following error cases
-handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
-  error msg -- todo: maybe show output thus far
-handleResult (ComputationResult output Running c) =
-  error $ "computer still running "
+handleResult (ComputationResult _ (Halted (Exceptional msg)) _) = error msg
+handleResult (ComputationResult _ Running _) = error $ "computer still running "
 
 -- Env, and some Env operations
 type Env = Map Variable Int64
+replaceHeadEnv :: MonadState (NonEmpty a, t) m => a -> m ()
 replaceHeadEnv e = do (es, c) <- get; put $ (e :| tail es, c)
+addEnv :: MonadState (NonEmpty a, t) m => a -> m ()
 addEnv e = do (es, c) <- get; put $ (cons e es, c)
 
 type RunningL2Computer m = RunningComputer m L2Instruction
@@ -56,10 +50,11 @@ type CE m = (NonEmpty Env, RunningL2Computer m)
 instance HasComputer r t a => HasComputer (l, r) t a where
   computer = _2.computer
 
+runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult FrozenL2Computer)
 runL2Computation p = do
   c   <- (newComputer $ adjustMain p)
   let ce = (Map.empty :| [], c)
-  blah@(output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runComputer step) ce
+  (output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runComputer step) ce
   fzc <- freezeComputer comp
   return $ mkComputationResult (output, (haltEither, fzc))
 

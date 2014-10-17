@@ -4,10 +4,7 @@ module L.IOHelpers
    ,withFileArg
   ) where
 
-import Control.Applicative
-import Data.Foldable hiding (concat, notElem)
-import System.Environment 
-import System.Directory
+import System.Environment
 
 withFileArg :: (FilePath -> IO a) -> IO a
 withFileArg f = fmap (!! 0) getArgs >>= f

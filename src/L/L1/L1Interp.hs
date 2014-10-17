@@ -5,12 +5,10 @@ module L.L1.L1Interp (interpL1) where
 
 import Control.Applicative
 import Control.Lens hiding (set)
-import Control.Lens.Operators
 import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
-import Control.Monad.Trans.Identity
 import Data.Int
 import Data.Vector.Generic.Mutable (length)
 import L.Computer
@@ -27,13 +25,10 @@ interpL1 p = runST $ handleResult <$> runL1Computation p
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
 handleResult :: ComputationResult (Computer s L1Instruction) -> String
-handleResult (ComputationResult output (Halted Normal) c) =
-  concat $ fmap outputText output
+handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the follow error cases
-handleResult (ComputationResult output (Halted (Exceptional msg)) c) =
-  error msg
-handleResult (ComputationResult output Running c) =
-  error $ "computer still running: " -- ++ show c
+handleResult (ComputationResult _ (Halted (Exceptional msg)) _) = error msg
+handleResult (ComputationResult _ Running _) = error $ "computer still running"
 
 runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenComputer L1Instruction))
 runL1Computation p = do

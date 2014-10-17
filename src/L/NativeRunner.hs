@@ -1,7 +1,6 @@
 module L.NativeRunner where
 
 import Control.Lens
-import L.IOHelpers
 import System.Process
 import System.FilePath.Lens
 

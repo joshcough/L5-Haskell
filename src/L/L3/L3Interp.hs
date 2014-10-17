@@ -76,6 +76,8 @@ interpL3 p = unsafePerformIO $ do
   o <- getL3Output p
   return $ mkString "" $ reverse o
 
+{-
+--TODO: these were just for testing. should they be removed?
 interpL3_ :: L3 -> String
 interpL3_ p = unsafePerformIO $ do
   (_, c) <- runInterpL3 defaultHeapSize p
@@ -90,6 +92,7 @@ showArr :: IOArray Int64 Runtime -> IO String
 showArr arr = do
   rs <- IOArray.getElems arr
   return $ mkString ", " $ fmap showRuntimeSimple rs
+-}
 
 getL3Output :: L3 -> IO Output
 getL3Output p = output . snd <$> runInterpL3 defaultHeapSize p

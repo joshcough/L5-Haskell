@@ -9,7 +9,6 @@ module L.Utils
   ) where
 
 import Data.List
-import Debug.Trace
 
 (|>) :: (a -> b) -> (b -> c) -> a -> c
 (|>) = flip (.)
