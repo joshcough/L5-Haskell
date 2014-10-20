@@ -14,6 +14,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Traversable
+import L.L1L2AST (Variable)
 import L.L5.L5AST
 import Data.Array.IO (IOArray)
 import qualified Data.Array.IO as IOArray

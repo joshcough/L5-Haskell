@@ -1,6 +1,8 @@
 module L.L5.L5AST where
 
-type Variable = String
+import L.L1L2AST (Variable)
+
+type L5 = E
 
 data PrimFun = 
     Add      E E 

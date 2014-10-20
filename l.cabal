@@ -74,15 +74,16 @@ library
     L.L5.L5AST
     --L.L5.L5Core
     L.L5.L5Interp
+    L.L5.LambdaLifter
 
   build-depends:
-    array                     >= 0.3.0.2 && < 0.6,
-    base                      >= 4       && < 5,
+    array                     >= 0.3.0.2   && < 0.6,
+    base                      >= 4         && < 5,
     bifunctors                >= 4.1.1.1,
     bound                     >= 1.0.3,
     bytestring                >= 0.10.4.0,
-    charset                   >= 0.3     && < 1,
-    containers                >= 0.3     && < 0.6,
+    charset                   >= 0.3       && < 1,
+    containers                >= 0.3       && < 0.6,
     data-default              >= 0.5.3,
     directory                 >= 1.2.0.1,
     either                    >= 4.3.1,
@@ -95,11 +96,11 @@ library
     primitive                 >= 0.5.3.0,
     process                   >= 1.1.0.2,
     text                      >= 1.1.1.1,
-    transformers              >= 0.2     && < 0.5,
+    transformers              >= 0.2       && < 0.5,
     trifecta                  >= 1.5.1,
-    semigroups                >= 0.8.3.1 && < 1,
+    semigroups                >= 0.8.3.1   && < 1,
     unordered-containers      >= 0.2.5.0,
-    utf8-string               >= 0.3.6   && < 0.4,
+    utf8-string               >= 0.3.6     && < 0.4,
     utility-ht                >= 0.0.10,
     vector                    >= 0.10.0.1,
     void                      >= 0.6.1
