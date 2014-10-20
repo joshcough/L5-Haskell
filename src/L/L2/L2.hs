@@ -34,5 +34,5 @@ compileL2ToL1 (Program main fs) =
   Program (allocate mainWithRet) $ (allocate <$> fs) where 
   mainWithRet = Func (body main ++ [Return])
 
-l2Compiler :: CompilerMonad m => LCompiler (m L2) (m L1)
-l2Compiler = LCompiler $ \opts name m -> m >>= return . compileL2ToL1
+l2Compiler :: Monad m => LCompiler m L2 L1
+l2Compiler = LCompiler $ \_ _ -> return . compileL2ToL1
