@@ -1,7 +1,10 @@
-module L.L2.L2 (l2Language, interpL2) where
+{-# LANGUAGE FlexibleContexts #-}
+
+module L.L2.L2 (l2Compiler, l2Language, interpL2) where
 
 import Control.Applicative
 import L.Compiler
+import L.LCompiler
 import L.L1L2AST
 import L.L1L2Parser
 import L.L1.L1 
@@ -31,3 +34,5 @@ compileL2ToL1 (Program main fs) =
   Program (allocate mainWithRet) $ (allocate <$> fs) where 
   mainWithRet = Func (body main ++ [Return])
 
+l2Compiler :: CompilerMonad m => LCompiler (m L2) (m L1)
+l2Compiler = LCompiler $ \opts name m -> m >>= return . compileL2ToL1

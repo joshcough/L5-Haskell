@@ -11,6 +11,7 @@ module L.ReplTools (
 import Control.Lens
 import Data.Default
 import L.Compiler
+import L.LCompiler
 import L.L1.L1
 import L.L2.L2
 import L.L3.L3

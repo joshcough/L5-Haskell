@@ -32,8 +32,10 @@ library
     -- Common Code
     L.CommandLine
     L.Compiler
+    L.CompilerWithThrists
     L.Computer
     L.IOHelpers
+    L.LCompiler
     L.L1L2AST
     L.L1L2MainAdjuster
     L.L1L2Parser
@@ -98,6 +100,7 @@ library
     transformers              >= 0.2     && < 0.5,
     trifecta                  >= 1.5.1,
     semigroups                >= 0.8.3.1 && < 1,
+    thrist                    >= 0.3.0.2,
     unordered-containers      >= 0.2.5.0,
     utf8-string               >= 0.3.6   && < 0.4,
     utility-ht                >= 0.0.10,

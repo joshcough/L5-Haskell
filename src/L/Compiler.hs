@@ -4,8 +4,6 @@
 
 module L.Compiler (
    Val 
-  ,ProgramName
-  ,CompilationOptions(..), os, outputDir
   ,Language(..)
   ,compile
   ,compileString
@@ -34,34 +32,15 @@ import Control.Category
 import Control.Lens
 import Data.Default
 import Data.Maybe
-import L.IOHelpers
+import L.LCompiler
 import L.OS
 import L.Read
 import L.NativeRunner
 import Prelude hiding ((.),id)
 import System.FilePath.Lens
 
-data CompilationOptions = CompilationOptions {
-  _os :: OS,
-  _outputDir :: Maybe FilePath
-} deriving (Show, Eq)
-makeLenses ''CompilationOptions
-
-compOpts :: Maybe String -> Maybe FilePath -> CompilationOptions
-compOpts mOs mOutputDir =
-  CompilationOptions (osFromMaybeString mOs) mOutputDir
-
--- this sets it only if it isnt there
-getOutputDirOrElse :: CompilationOptions -> FilePath -> FilePath
-getOutputDirOrElse opts inputFile = fromJust $ setIfAbsent^.outputDir where
-  setIfAbsent :: CompilationOptions
-  setIfAbsent = opts & outputDir %~ (<|> (Just $ inputFile^.directory))
-
-instance Default CompilationOptions where
-  def = CompilationOptions systemOS Nothing
 
 type Output           = String
-type ProgramName      = String
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
 type Compiler     i o = CompilationOptions -> ProgramName -> i -> Val o

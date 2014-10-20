@@ -1,6 +1,7 @@
 module L.CommandLine where
 
 import L.Compiler
+import L.LCompiler
 import Options.Applicative
 
 addInfo :: String -> Parser a -> ParserInfo a
