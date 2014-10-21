@@ -39,8 +39,6 @@ import L.NativeRunner
 import Prelude hiding ((.),id)
 import System.FilePath.Lens
 
-
-type Output           = String
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
 type Compiler     i o = CompilationOptions -> ProgramName -> i -> Val o

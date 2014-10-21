@@ -6,6 +6,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+{-
+Links to libs:
+http://hackage.haskell.org/package/thrist-0.3.0.2
+https://hackage.haskell.org/package/mtl-1.1.0.2/docs/Control-Monad-Reader.html
+http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Arrow.html
+http://hackage.haskell.org/package/profunctors-4.2.0.1
+http://hackage.haskell.org/package/profunctors-4.2.0.1/docs/Data-Profunctor-Monad.html
+-}
+
 module L.LCompiler where
 
 import Control.Applicative
@@ -23,6 +32,8 @@ import Prelude hiding ((.),id)
 import System.FilePath.Lens
 
 type ProgramName = String
+type Output      = String
+
 
 type CompilerMonad m = (MonadError CompileError m)
 
@@ -38,16 +49,36 @@ data LCompiler m a b = LCompiler {
    _runLCompiler :: CompilationOptions -> ProgramName -> a -> m b
 } deriving Functor
 
+
+data Lang m a b = Lang {
+   _compile   :: CompilationOptions -> ProgramName -> a -> m b,
+   _interpret :: a -> Output
+} deriving Functor
+
+
 -- instances we can build if we have
--- (Either (Compiler, Interpreter, Ext) (Compiler, Interpreter)) -- adding in parser loses Profunctor stuff
+-- (Either (Compiler, Interpreter, Ext) (Compiler, Interpreter)) -- additionally, adding in parser loses Profunctor stuff
 -- False, True
-instance Applicative m => Applicative (LCompiler m i) where
+instance Applicative m => Applicative (LCompiler m a) where
   pure a = LCompiler $ \_ _ _ -> pure a
+  (<*>) :: LCompiler m a (b -> c) -> LCompiler m a b -> LCompiler m a c
   LCompiler f <*> LCompiler a = LCompiler $ \opts name i ->
     f opts name i <*> a opts name i
 
+{-
+instance Applicative m => Applicative (Lang m a) where
+  pure a = Lang (\_ _ _ -> pure a) (\_ -> [])
+  (<*>) :: Lang m a (b -> c) -> Lang m a b -> Lang m a c
+  Lang compf interpf <*> Lang compa interpa = Lang (f compf compa) (i interpf interpa) where
+    f compf compa = \opts name a -> compf opts name a <*> compa opts name a
+    i interpf interpa a =
+      let x = interpf a in
+      _wat
+-}
+
 -- False, False
 instance Monad m => Monad (LCompiler m i) where
+  return :: a -> LCompiler m i a
   return a = LCompiler $ \_ _ _ -> return a
   (>>=) :: LCompiler m i a -> (a -> LCompiler m i b) -> LCompiler m i b
   m >>= k = LCompiler $ \opts name i -> do
