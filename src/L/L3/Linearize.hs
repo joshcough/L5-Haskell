@@ -87,20 +87,20 @@ compileE (DE (FunCall v vs)) = return $ compileFunCall v vs Nothing
 compileE (DE d) = (\d' -> d' ++ [Return]) <$> compileD d (RegL2X rax)
 
 compileD :: D -> L2X -> State Int [L2Instruction]
-compileD (L3.Print v) dest = 
+compileD (PrimApp L3.Print [v]) dest =
   return [toLHS rax <~ (L2.Print $ compileV v), dest <~ regRHS rax]
 -- TODO...tail-call if last d in the tree??
 compileD (FunCall v vs) dest = return $ compileFunCall v vs (Just dest)
 -- biop ::= + | - | * | < | <= | =
-compileD (BiopD Add l r) dest = return $ 
+compileD (PrimApp Add [l, r]) dest = return $
   [dest <~ compileVRHS l,
    dest += compileV r,
    dest -= num 1]
-compileD (BiopD Sub l r) dest = return $ 
+compileD (PrimApp Sub [l, r]) dest = return $
   [dest <~ compileVRHS l,
    dest -= compileV r,
    dest += num 1]
-compileD (BiopD Mult l r) dest = do { tmp <- newTemp; return
+compileD (PrimApp Mult [l, r]) dest = do { tmp <- newTemp; return
   [tmp  <~ compileVRHS l,
    tmp >> num 1,
    dest <~ compileVRHS r,
@@ -108,25 +108,25 @@ compileD (BiopD Mult l r) dest = do { tmp <- newTemp; return
    dest *= XL2S tmp,
    dest << num 1,
    dest += num 1]}
-compileD (BiopD LessThan l r) dest = return $ compileComp l r dest LT 
-compileD (BiopD LTorEq l r)   dest = return $ compileComp l r dest LTEQ
-compileD (BiopD Eq l r)       dest = return $ compileComp l r dest EQ
-compileD (PredD IsNum   v) dest = return $
+compileD (PrimApp LessThan [l, r]) dest = return $ compileComp l r dest LT
+compileD (PrimApp LTorEQ   [l, r]) dest = return $ compileComp l r dest LTEQ
+compileD (PrimApp EqualTo  [l, r]) dest = return $ compileComp l r dest EQ
+compileD (PrimApp IsNumber [v])    dest = return $
   [dest <~ compileVRHS v,
    dest &  num 1,
    dest << num 1,
    dest += num 1]
-compileD (PredD IsArray v) dest = return $
+compileD (PrimApp IsArray [v]) dest = return $
   [dest <~ compileVRHS v,
    dest &  num 1,
    dest *= num (-2),
    dest += num 3]
-compileD (NewArray size init) dest = return $
+compileD (PrimApp NewArray [size, init]) dest = return $
   [toLHS rax <~ Allocate (compileV size) (compileV init),
    dest <~ regRHS rax]
 -- (x <- (mem s n4))
 -- TODO: does v have to be a var? why?
-compileD (ARef (VarV v) loc) dest = do
+compileD (PrimApp ARef [VarV v, loc]) dest = do
   let index          = dest
   size               <- newTemp
   boundsFailLabel    <- newLabel
@@ -148,14 +148,14 @@ compileD (ARef (VarV v) loc) dest = do
     index *= num 8, --todo: check that this 8 is correct, i think it is,
     index += (XL2S $ VarL2X v),
     dest  <~ MemRead (MemLoc index 0)]
-compileD (ALen (VarV v)) dest = return $ [
+compileD (PrimApp ALen [VarV v]) dest = return $ [
   dest <~ MemRead (MemLoc (VarL2X v) 0),
   dest << num 1,
   dest += num 1 ]
 -- ((mem x n4) <- s)
 -- (let ([x (aset v1 v2 v3)]) ...)
 -- TODO: this is exactly the same as ARef, refactor.
-compileD (ASet (VarV v) loc newVal) dest = do
+compileD (PrimApp ASet [VarV v, loc, newVal]) dest = do
   let index          = dest
   size               <- newTemp
   boundsFailLabel    <- newLabel
@@ -184,8 +184,8 @@ compileD (MakeClosure l v) dest = do
   let assignment = temp <~ SRHS (LabelL2S l)
   return $ assignment : newTuple [XL2S temp, compileV v] dest
 
-compileD (ClosureProc v)   dest = compileD (ARef v (NumV 0)) dest
-compileD (ClosureVars v)   dest = compileD (ARef v (NumV 1)) dest
+compileD (ClosureProc v)   dest = compileD (PrimApp ARef [v, NumV 0]) dest
+compileD (ClosureVars v)   dest = compileD (PrimApp ARef [v, NumV 1]) dest
 compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
 
 compileD bad dest = error $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest

@@ -53,28 +53,34 @@ biop ::= + | - | * | < | <= | =
 pred ::= number? | a?
  -}
 parseD :: SExpr -> ParseResult D
-parseD (List [AtomSym "+",    l, r]) = parseBiop Add l r
-parseD (List [AtomSym "-",    l, r]) = parseBiop Sub l r
-parseD (List [AtomSym "*",    l, r]) = parseBiop Mult l r
-parseD (List [AtomSym "<",    l, r]) = parseBiop LessThan l r
-parseD (List [AtomSym "<=",   l, r]) = parseBiop LTorEq l r
-parseD (List [AtomSym "=",    l, r]) = parseBiop Eq l r
-parseD (List [AtomSym "number?", v]) = parsePred IsNum v
-parseD (List [AtomSym "a?",      v]) = parsePred IsArray v
-parseD (List [AtomSym "new-array", s, v])    = liftM2 NewArray (parseV s) (parseV v)
-parseD (List (AtomSym "new-tuple" : vs))     = liftM  NewTuple (traverse parseV vs)
-parseD (List [AtomSym "aref", a, loc])       = liftM2 ARef  (parseV a) (parseV loc)
-parseD (List [AtomSym "aset", a, loc, v])    = liftM3 ASet  (parseV a) (parseV loc) (parseV v)
-parseD (List [AtomSym "alen", v])            = liftM  ALen  (parseV v)
-parseD (List [AtomSym "print", v])           = liftM  Print (parseV v)
 parseD (List [AtomSym "make-closure", l, v]) = liftM2 MakeClosure (parseLabel l) (parseV v)
 parseD (List [AtomSym "closure-proc", v])    = liftM  ClosureProc (parseV v)
 parseD (List [AtomSym "closure-vars", v])    = liftM  ClosureVars (parseV v)
-parseD (List (v : vs)) = liftM2 FunCall (parseV v) (traverse parseV vs)
+-- TODO: this is bad because if they give the wrong number of args to a prim,
+-- TODO: it'll parse a FunCall
+parseD (List [AtomSym "+",    l, r])         = parsePrimApp2 Add      l r
+parseD (List [AtomSym "-",    l, r])         = parsePrimApp2 Sub      l r
+parseD (List [AtomSym "*",    l, r])         = parsePrimApp2 Mult     l r
+parseD (List [AtomSym "<",    l, r])         = parsePrimApp2 LessThan l r
+parseD (List [AtomSym "<=",   l, r])         = parsePrimApp2 LTorEQ   l r
+parseD (List [AtomSym "=",    l, r])         = parsePrimApp2 EqualTo  l r
+parseD (List [AtomSym "number?", v])         = parsePrimApp1 IsNumber v
+parseD (List [AtomSym "a?",      v])         = parsePrimApp1 IsArray  v
+parseD (List [AtomSym "new-array", s, v])    = parsePrimApp2 NewArray s v
+parseD (List (AtomSym "new-tuple" : vs))     = liftM  NewTuple (traverse parseV vs)
+parseD (List [AtomSym "aref", a, loc])       = parsePrimApp2 ARef a loc
+parseD (List [AtomSym "aset", a, loc, v])    = parsePrimApp3 ASet a loc v
+parseD (List [AtomSym "alen", v])            = parsePrimApp1 ALen  v
+parseD (List [AtomSym "print", v])           = parsePrimApp1 Print v
+parseD (List (v : vs))                       = liftM2 FunCall (parseV v) (traverse parseV vs)
 parseD v = VD <$> parseV v
 
-parseBiop :: Biop -> SExpr -> SExpr -> ParseResult D
-parseBiop b l r = liftM2 (BiopD b) (parseV l) (parseV r)
+parsePrimApp1 :: PrimName -> SExpr -> ParseResult D
+parsePrimApp1 p v = liftM (PrimApp p . return) (parseV v)
 
-parsePred :: Pred -> SExpr -> ParseResult D
-parsePred p v = liftM (PredD p) (parseV v)
+parsePrimApp2 :: PrimName -> SExpr -> SExpr -> ParseResult D
+parsePrimApp2 b l r = liftM2 (\v1 v2 -> PrimApp b [v1,v2]) (parseV l) (parseV r)
+
+parsePrimApp3 :: PrimName -> SExpr -> SExpr -> SExpr -> ParseResult D
+parsePrimApp3 b e1 e2 e3 =
+  liftM3 (\v1 v2 v3 -> PrimApp b [v1,v2,v3]) (parseV e1) (parseV e2) (parseV e3)

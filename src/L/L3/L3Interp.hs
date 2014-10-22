@@ -16,7 +16,7 @@ import Data.Maybe
 import Data.Traversable
 import Debug.Trace
 import L.L1L2AST hiding (Func)
-import L.L3.L3AST
+import L.L3.L3AST as L3
 import L.Utils
 import System.IO.Unsafe
 
@@ -125,28 +125,29 @@ interpE (IfStatement v te fe) = do
 interpE (DE d) = interpD d
 
 interpD :: D -> M Runtime
-interpD (BiopD b l r) = 
-  do l' <- interpV l; r' <- interpV r; return $ mathOp l' b r'
-interpD (PredD IsNum (NumV _  )) = return $ lTrue
-interpD (PredD IsNum v@(VarV _)) =
+-- Regular L3 Level stuff
+interpD (FunCall v vs)    = interpApp v vs
+interpD (NewTuple vs)     = traverse interpV vs >>= makeHeapArray (fromIntegral $ length vs)
+interpD (MakeClosure l v) = interpD (NewTuple [LabelV l, v])
+interpD (ClosureProc c)   = arrayRef c (NumV 0)
+interpD (ClosureVars c)   = arrayRef c (NumV 1)
+interpD (VD v)            = interpV v
+-- Primitive applications (built in functions)
+interpD (PrimApp b [l, r]) | isBiop b = liftM2 (mathOp b) (interpV l) (interpV r)
+interpD (PrimApp IsNumber [(NumV _  )]) = return $ lTrue
+interpD (PrimApp IsNumber [v@(VarV _)]) =
   do rv <- interpV v; return $ case rv of (Num _) -> lTrue; _ -> lFalse
 -- labels act like arrays, it's weird, but true.
-interpD (PredD IsNum   _       ) = return $ lFalse
-interpD (PredD IsArray v@(VarV _)) =
+interpD (PrimApp IsNumber _         )   = return $ lFalse
+interpD (PrimApp IsArray  [v@(VarV _)]) =
   do rv <- interpV v; return $ case rv of (Pointer _) -> lTrue; _ -> lFalse
-interpD (PredD IsArray _       ) = return $ lTrue
-interpD (NewArray s d)           = newArray s d
-interpD (FunCall v vs)           = interpApp v vs
-interpD (NewTuple vs)            =
-  traverse interpV vs >>= makeHeapArray (fromIntegral $ length vs)
-interpD (ARef a loc)             = arrayRef a loc
-interpD (ASet a loc v)           = arraySet a loc v
-interpD (ALen a)                 = arrayLength a
-interpD (L.L3.L3AST.Print v)     = interpPrint v
-interpD (MakeClosure l v)        = interpD (NewTuple [LabelV l, v])
-interpD (ClosureProc c)          = arrayRef c (NumV 0)
-interpD (ClosureVars c)          = arrayRef c (NumV 1)
-interpD (VD v)                   = interpV v
+interpD (PrimApp IsArray _) = return $ lTrue
+interpD (PrimApp NewArray [s, d])  = newArray s d
+interpD (PrimApp ARef [a, loc])    = arrayRef a loc
+interpD (PrimApp ASet [a, loc, v]) = arraySet a loc v
+interpD (PrimApp ALen [a])         = arrayLength a
+interpD (PrimApp L3.Print [v])     = interpPrint v
+interpD (PrimApp p vs) = runtimeError $ show p ++ " applied to wrong arguments: " ++ show vs
 
 interpV :: V -> M Runtime
 interpV (VarV v)   = envLookup v <$> getEnv
@@ -255,14 +256,14 @@ forceLookup :: (Show k, Ord k) => String -> k -> Map k v -> v
 forceLookup kName k m =
   fromMaybe (runtimeError $ concat ["unbound ", kName, ": ", show k]) (Map.lookup k m)
 
-mathOp :: Runtime -> Biop -> Runtime -> Runtime  
-mathOp (Num l) Add      (Num r) = Num    $ l +  r
-mathOp (Num l) Sub      (Num r) = Num    $ l -  r
-mathOp (Num l) Mult     (Num r) = Num    $ l *  r
-mathOp (Num l) LessThan (Num r) = boolToNum $ l <  r
-mathOp (Num l) LTorEq   (Num r) = boolToNum $ l <= r
-mathOp (Num l) Eq       (Num r) = boolToNum $ l == r
-mathOp l b r = error $
+mathOp :: PrimName -> Runtime -> Runtime -> Runtime
+mathOp Add      (Num l) (Num r) = Num $ l +  r
+mathOp Sub      (Num l) (Num r) = Num $ l -  r
+mathOp Mult     (Num l) (Num r) = Num $ l *  r
+mathOp LessThan (Num l) (Num r) = boolToNum $ l <  r
+mathOp LTorEQ   (Num l) (Num r) = boolToNum $ l <= r
+mathOp EqualTo  (Num l) (Num r) = boolToNum $ l == r
+mathOp b l r = error $
   concat ["invalid arguments to ", show b, " :", showRuntimeSimple l, ", " , showRuntimeSimple r]
 
 boolToNum :: Bool -> Runtime

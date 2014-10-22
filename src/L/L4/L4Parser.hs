@@ -5,7 +5,7 @@ import Control.Monad
 import Data.Traversable hiding (sequence)
 import L.L1L2AST (Variable, Label)
 import L.Read
-import L.L3.L3AST (Biop(..), Pred(..), V(..))
+import L.L3.L3AST (PrimName(..), V(..))
 import L.L4.L4AST
 
 l4ParseError :: String -> SExpr -> Either String a
@@ -20,7 +20,7 @@ parseLabel :: SExpr -> ParseResult Label
 parseLabel (AtomSym l@(':' : _)) = Right $ l
 parseLabel bad = l4ParseError "bad L4-label" bad
 
--- (l (x ...) e)
+-- (l (x ...) e)PrimName
 parseFunction :: SExpr -> ParseResult Func
 parseFunction (List [l, args, e]) = liftM3 Func (parseLabel l) (parseArgs args) (parseE e) where
   parseArgs :: SExpr -> ParseResult [Variable]
@@ -42,29 +42,35 @@ parseV bad         = l4ParseError "bad L4-V" bad
 parseE :: SExpr -> ParseResult E
 parseE (List [AtomSym "let", List [List [arg, e]], b]) = liftM3 Let (parseArg arg) (parseE e) (parseE b)
 parseE (List [AtomSym "if", pe, te, fe])     = liftM3 IfStatement (parseE pe) (parseE te) (parseE fe)
-parseE (List [AtomSym "new-array", s, e])    = liftM2 NewArray (parseE s) (parseE e)
 parseE (List (AtomSym "new-tuple" : es))     = liftM  NewTuple (traverse parseE es)
-parseE (List [AtomSym "aref", a, loc])       = liftM2 ARef  (parseE a) (parseE loc)
-parseE (List [AtomSym "aset", a, loc, e])    = liftM3 ASet  (parseE a) (parseE loc) (parseE e)
-parseE (List [AtomSym "alen", e])            = liftM  ALen  (parseE e)
-parseE (List [AtomSym "print", e])           = liftM  Print (parseE e)
 parseE (List [AtomSym "begin", e1, e2])      = liftM2 Begin (parseE e1) (parseE e2)
 parseE (List [AtomSym "make-closure", l, e]) = liftM2 MakeClosure (parseLabel l) (parseE e)
 parseE (List [AtomSym "closure-proc", e])    = liftM  ClosureProc (parseE e)
 parseE (List [AtomSym "closure-vars", e])    = liftM  ClosureVars (parseE e)
-parseE (List [AtomSym "+",    l, r])         = parseBiop Add l r
-parseE (List [AtomSym "-",    l, r])         = parseBiop Sub l r
-parseE (List [AtomSym "*",    l, r])         = parseBiop Mult l r
-parseE (List [AtomSym "<",    l, r])         = parseBiop LessThan l r
-parseE (List [AtomSym "<=",   l, r])         = parseBiop LTorEq l r
-parseE (List [AtomSym "=",    l, r])         = parseBiop Eq l r
-parseE (List [AtomSym "number?", e])         = parsePred IsNum e
-parseE (List [AtomSym "a?",      e])         = parsePred IsArray e
+-- TODO: this is bad because if they give the wrong number of args to a prim,
+-- TODO: it'll parse a FunCall
+parseE (List [AtomSym "new-array", s, e])    = parsePrimApp2 NewArray s e
+parseE (List [AtomSym "aref", a, loc])       = parsePrimApp2 ARef a loc
+parseE (List [AtomSym "aset", a, loc, e])    = parsePrimApp3 ASet a loc e
+parseE (List [AtomSym "alen", e])            = parsePrimApp1 ALen e
+parseE (List [AtomSym "print", e])           = parsePrimApp1 Print e
+parseE (List [AtomSym "+",    l, r])         = parsePrimApp2 Add l r
+parseE (List [AtomSym "-",    l, r])         = parsePrimApp2 Sub l r
+parseE (List [AtomSym "*",    l, r])         = parsePrimApp2 Mult l r
+parseE (List [AtomSym "<",    l, r])         = parsePrimApp2 LessThan l r
+parseE (List [AtomSym "<=",   l, r])         = parsePrimApp2 LTorEQ l r
+parseE (List [AtomSym "=",    l, r])         = parsePrimApp2 EqualTo l r
+parseE (List [AtomSym "number?", e])         = parsePrimApp1 IsNumber e
+parseE (List [AtomSym "a?",      e])         = parsePrimApp1 IsArray e
 parseE (List (e : es)) = liftM2 FunCall (parseE e) (traverse parseE es)
 parseE v = VE <$> parseV v
 
-parseBiop :: Biop -> SExpr -> SExpr -> ParseResult E
-parseBiop b l r = liftM2 (BiopE b) (parseE l) (parseE r)
+parsePrimApp1 :: PrimName -> SExpr -> ParseResult E
+parsePrimApp1 p e = liftM (PrimApp p . return) (parseE e)
 
-parsePred :: Pred -> SExpr -> ParseResult E
-parsePred p e = liftM (PredE p) (parseE e)
+parsePrimApp2 :: PrimName -> SExpr -> SExpr -> ParseResult E
+parsePrimApp2 b l r = liftM2 (\v1 v2 -> PrimApp b [v1,v2]) (parseE l) (parseE r)
+
+parsePrimApp3 :: PrimName -> SExpr -> SExpr -> SExpr -> ParseResult E
+parsePrimApp3 b e1 e2 e3 =
+  liftM3 (\v1 v2 v3 -> PrimApp b [v1,v2,v3]) (parseE e1) (parseE e2) (parseE e3)

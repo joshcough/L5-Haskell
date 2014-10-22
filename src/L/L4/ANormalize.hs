@@ -42,34 +42,24 @@ l4Find e c = go e c where
   go (L4.Begin e1 e2)        k = do { v <- newVar; go (L4.Let v e1 e2) k }
   go (L4.NewTuple [])        k = fill (L3.NewTuple []) k -- special case
   go (L4.FunCall f args)     k = go f  (FunCallContext args Nothing [] k)
-  go (L4.NewArray e1 e2)     k = go e1 (FunCallContext [e2]    (jw2 L3.NewArray) [] k)
-  go (L4.NewTuple (e1:es))   k = go e1 (FunCallContext es      (Just $ L3.NewTuple) [] k)
-  go (L4.ARef e1 e2)         k = go e1 (FunCallContext [e2]    (jw2 L3.ARef)  [] k)
-  go (L4.ASet e1 e2 e3)      k = go e1 (FunCallContext [e2,e3] (jw3 L3.ASet)  [] k)
-  go (L4.ALen e1)            k = go e1 (FunCallContext []      (jw1 L3.ALen)  [] k)
-  go (L4.Print e1)           k = go e1 (FunCallContext []      (jw1 L3.Print) [] k)
-  go (L4.MakeClosure lbl e1) k = go e1 (FunCallContext []      (jw1 (L3.MakeClosure lbl)) [] k)
-  go (L4.ClosureProc e1)     k = go e1 (FunCallContext []      (jw1 L3.ClosureProc) [] k)
-  go (L4.ClosureVars e1)     k = go e1 (FunCallContext []      (jw1 L3.ClosureVars) [] k)
-  go (L4.BiopE b e1 e2)      k = go e1 (FunCallContext [e2]    (jw2 (L3.BiopD b)) [] k)
-  go (L4.PredE p e1)         k = go e1 (FunCallContext []      (jw1 (L3.PredD p)) [] k)
+  go (L4.PrimApp p (e:es))   k = go e  (FunCallContext es (Just $ wranglePrim p)  [] k)
+  go (L4.PrimApp p [])       k = error $ show p ++ " given 0 arguments"
+  go (L4.NewTuple (e1:es))   k = go e1 (FunCallContext es (Just $ L3.NewTuple) [] k)
+  go (L4.MakeClosure lbl e1) k = go e1 (FunCallContext [] (Just $ wrangle1 (L3.MakeClosure lbl)) [] k)
+  go (L4.ClosureProc e1)     k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureProc) [] k)
+  go (L4.ClosureVars e1)     k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureVars) [] k)
   go (VE v)                  k = fill (VD v) k
 
-  jw1 f = Just (wrangle1 f)
-  jw2 f = Just (wrangle2 f)
-  jw3 f = Just (wrangle3 f)
+  wranglePrim :: PrimName -> [V] -> D
+  wranglePrim pn = f (arityByName pn) where
+    f 1 [v]        = L3.PrimApp pn [v]
+    f 2 [v1,v2]    = L3.PrimApp pn [v1,v2]
+    f 3 [v1,v2,v3] = L3.PrimApp pn [v1,v2,v3]
+    f n args = error $ "expected " ++ show n ++ " arg(s), but got: " ++ show args
 
   wrangle1 :: Show a => (a -> b) -> [a] -> b
   wrangle1 f (a:[]) = f a
   wrangle1 _ as = error $ "expected 1 arg, but got: " ++ show as
-
-  wrangle2 :: Show a => (a -> a -> b) -> [a] -> b
-  wrangle2 f (a1:a2:[]) = f a1 a2
-  wrangle2 _ as = error $ "expected 2 args, but got: " ++ show as
-
-  wrangle3 :: Show a => (a -> a -> a -> b) -> [a] -> b
-  wrangle3 f (a1:a2:a3:[]) = f a1 a2 a3
-  wrangle3 _ as = error $ "expected 3 args, but got: " ++ show as
 
 -- TODO: doing some bad appending onto back of lists here...
 -- should probably reverse the vs.
@@ -99,7 +89,7 @@ fill d = fill' where
     let frees = filter (/=fArg) (freeVars fBody)
         freesTup = "frees"
         fBodyWithFrees = foldr f fBody (zip frees [0..]) where
-          f (v,i) b = L3.Let v (L3.ARef (VarV freesTup) (NumV i)) b
+          f (v,i) b = L3.Let v (L3.PrimApp ARef [VarV freesTup, NumV i]) b
         func = L3.Func fLabel [fArg, freesTup] fBodyWithFrees
         tup  = L4.NewTuple (VE . VarV <$> frees)
     (tt, tef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [t, tup]) NoContext
@@ -121,16 +111,10 @@ freeVars e = nub $ f e [] where
   f (L3.IfStatement e a b)       bv = f (ve e) bv ++ f a bv ++  f b bv
   f (DE (VD (L3.VarV v)))        bv = maybe [v] (const []) $ Data.List.find (v==) bv
   f (DE (VD _))                  _  = []
-  f (DE (BiopD _ l r))           bv = f (ve l) bv ++ f (ve r) bv
-  f (DE (PredD _ l))             bv = f (ve l) bv
-  f (DE (L3.FunCall v vs))       bv = f (ve v) bv ++ (ve <$> vs >>= flip f bv)
-  f (DE (L3.NewArray size init)) bv = f (ve size) bv ++ f (ve init) bv
-  f (DE (L3.NewTuple vs))        bv = ve <$> vs >>= flip f bv
-  f (DE (L3.ARef arr loc))       bv = f (ve arr) bv ++ f (ve loc) bv
-  f (DE (L3.ASet arr loc v))     bv = f (ve arr) bv ++ f (ve loc) bv ++ f (ve v) bv
-  f (DE (L3.ALen arr))           bv = f (ve arr) bv
   f (DE (L3.MakeClosure _ v))    bv = f (ve v) bv
   f (DE (L3.ClosureProc v))      bv = f (ve v) bv
   f (DE (L3.ClosureVars v))      bv = f (ve v) bv
-  f (DE (L3.Print v))            bv = f (ve v) bv
+  f (DE (L3.FunCall v vs))       bv = f (ve v) bv ++ (ve <$> vs >>= flip f bv)
+  f (DE (L3.NewTuple vs))        bv = ve <$> vs >>= flip f bv
+  f (DE (L3.PrimApp _ vs))       bv = ve <$> vs >>= flip f bv
 

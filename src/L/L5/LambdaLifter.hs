@@ -13,7 +13,7 @@ import L.L5.L5AST as L5
 L5Compiler is a lambda lifter (http://en.wikipedia.org/wiki/Lambda_lifting).
 
 L5 is the language being compiled. It contains one top level expression only.
-The grammar for L5 can be found in the same directory as this file, L5Grammar.txt.
+The grammar for L5 can be found in the same directory as this file, L5-Grammar.txt.
 
 The L5 compiler produces L4 expressions. One top expression ('main') and
 a list of L4 procedures. These procedures are the lambdas in the L5 expression
@@ -46,61 +46,30 @@ The remainder of the cases are each documented in place.
 -}
 
 {-
-module L.L5.L5AST where
-
-type Variable = String
-
-type L5 = E
-
-data PrimFun =
-    Add      E E
-  | Sub      E E
-  | Mult     E E
-  | LessThan E E
-  | LTorEQ E E
-  | EqualTo  E E
-  | IsNumber E
-  | IsArray  E
-  | Print    E
-  | NewArray E E
-  | ARef     E E
-  | ASet     E E E
-  | ALen     E
-  deriving Eq
-
+data PrimName =
+    Add | Sub | Mult | LessThan | LTorEQ   | EqualTo
+  | IsNumber  | IsArray | Print | NewArray | ARef | ASet | ALen
+  deriving (Show,Eq)
+data Prim = Prim PrimName Arity deriving (Show,Eq)
+add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen :: E
 data E =
     Lambda [Variable] E
-  | Var Variable
-  | Let [(Variable, E)] E
-  | LetRec [(Variable, E)] E
-  | IfStatement E E E
   | NewTuple [E]
-  | Begin E E
   | App E [E]
-  | LitInt Int
-  | PrimFunE PrimFun
+  | PrimE Prim
   deriving Eq
-
-instance Show E where
-  show e = "todo"
-
-data L4   = L4 E [Func]
-
-data V    = VarV Variable | NumV Int64 | LabelV Label
 -}
 
 simple :: L4.E -> L4
 simple e = L4 e []
 
 compile :: L5 -> L4
-compile (LitInt i) = simple $ VE . NumV $ fromIntegral i
-compile (Var v)     = simple $ VE $ VarV v
-compile (L5.IfStatement e t f) = compileSubExprs [e,t,f] $ \es -> L4.IfStatement (es !! 0)  (es !! 1) (es !! 2)
-compile (L5.Begin e1 e2) = compileSubExprs [e1,e2] $ \es -> L4.Begin (es !! 0) (es !! 1)
-compile (L5.NewTuple es) = compileSubExprs es $ \es' -> L4.NewTuple es'
-compile (L5.Let x e1 e2) = compileSubExprs [e1,e2] $ \es -> L4.Let x (es !!0) (es !! 1)
-
-
+compile (LitInt i)             = simple $ VE . NumV $ fromIntegral i
+compile (Var v)                = simple $ VE $ VarV v
+compile (L5.IfStatement e t f) = compileSubExprs [e,t,f] $ \es  -> L4.IfStatement (es !! 0) (es !! 1) (es !! 2)
+compile (L5.Begin e1 e2)       = compileSubExprs [e1,e2] $ \es  -> L4.Begin (es !! 0) (es !! 1)
+compile (L5.NewTuple es)       = compileSubExprs es      $ \es' -> L4.NewTuple es'
+compile (L5.Let v e b)         = compileSubExprs [e,b]   $ \es  -> L4.Let v (es !! 0) (es !! 1)
 {-
  letrec doesn't exist in L4, so we do this simple transformation.
  (letrec ([x e1]) e2)
@@ -108,28 +77,18 @@ compile (L5.Let x e1 e2) = compileSubExprs [e1,e2] $ \es -> L4.Let x (es !!0) (e
  (let ([x (new-tuple 0)])
    (begin (aset x 0 e1[x:=(aref x 0)])
           e2[x:=(aref x 0)]))
- -}
-{-
-case LetRec(x, e1, e2) => compile(
-  Let(x, NewTuple(List(Num(0))),
-    Begin(
-      App(ASet, List(x, Num(0), sub(x, App(ARef, List(x, Num(0))), e1))),
-      sub(x, App(ARef, List(x, Num(0))), e2)
-    )
-  )
-)
 -}
-
-
+compile (LetRec v e b) = compile $
+  L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
+    (App (PrimE aset) [Var v, LitInt 0, subst v (App (PrimE aref) [Var v, LitInt 0]) e])
+    (subst v (App (PrimE aref) [Var v, LitInt 0]) b)
+  )
 {-
  We Turn (f +) => (f (lambda (x y) (+ x y)))
  So when we see a primitive function by itself,
  turn it into a lambda expression, and then compile that expression.
  -}
---case p:Prim => compile(Lambda(p.vars, App(p, p.vars)))
-
-
-
+compile pe@(PrimE (Prim p _ _)) = compile $ Lambda (primVars p) (App pe (Var <$> primVars p))
 {-
  Here is where we actually do the lambda lifting.
 
@@ -208,6 +167,7 @@ case Lambda(args, body) => {
  (+ x y z)  => (+ x y z)
  also a trivial case, but I wanted to keep this case close to the other App case.
  -}
+--compile (App (Prim p) args) = compileSubExprs args $ \es  -> L4.IfStatement (es !! 0) (es !! 1) (es !! 2)
 --case App(p:Prim, args) =>
 --  compileSubExprs(args:_*){ es => L4.FunCall(L4.keywordsMap(p.name), es) }
 
@@ -295,19 +255,17 @@ inner(e, Nil).distinct
 }
 -}
 
+{- Replace all occurrences of x for y in e. -}
+subst :: Variable -> L5.E -> L5.E -> L5.E
+subst x y = f where
+  f (Lambda vs e)    = if x `elem` vs then e else f e
+  f (Var v)          = if v == x then y else (Var v)
+  f (L5.Let v e1 b)  = L5.Let v (f e1) (if v == x then b else f b)
 
-{-
-Replace all occurrences of x for y in e.
-@param x The variable to be replaced
-@param y The expression to replace x with
-@param e The expression to do the replacing in
-@return A new expression with all x's replaced by y
--}
+
 {-
 def sub(x:Variable, y:E, e:E): E = {
     def inner(e:E): E = e match {
-      case Lambda(args, body) => Lambda(args, if(args.contains(x)) body else inner(body))
-      case v:Variable => if(v==x) y else v
       case Let(v, e1, body) => Let(v, inner(e1), if(v==x) body else inner(body))
       case LetRec(v, e1, body) => LetRec(v, if(v==x) e1 else inner(e1), if(v==x) body else inner(body))
       case IfStatement(e, t, f) => IfStatement(inner(e), inner(t), inner(f))

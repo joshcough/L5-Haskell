@@ -15,6 +15,8 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Traversable
 import L.L1L2AST (Variable)
+import L.L3.L3AST (Prim(..), PrimName(..))
+import L.Utils
 import L.L5.L5AST
 import Data.Array.IO (IOArray)
 import qualified Data.Array.IO as IOArray
@@ -70,37 +72,39 @@ runInterpH heapSize e = do
 interp :: E -> M Runtime
 interp (Lambda vs e)       = Closure vs e <$> getEnv
 interp (Var v)             = envLookup  v <$> getEnv
-interp (Let ves body)      = interp $ App (Lambda (fst <$> ves) body) (snd <$> ves) 
-interp (LetRec ves body)   = locally newEnv (interp body) where
-  newEnv old = new where new = Map.union (Map.fromList (toClosure <$> ves)) old 
+interp (Let v e body)      = interp $ App (Lambda [v] body) [e]
+interp (LetRec v e body)   = locally newEnv (interp body) where
+  -- todo: this is all weird now that letrec doesnt have a list of functions...
+  newEnv old = new where new = Map.union (Map.fromList ([toClosure (v, e)])) old
                          toClosure (v, Lambda vs e) = (v, Closure vs e new)
                          toClosure (v, e) = error $ "non-lambda in letrec: " ++ show (v, e)
 interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t else f
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
 interp (LitInt i)          = return $ Num i
-interp (PrimFunE p)        = interpPrim p
+interp (App (PrimE (Prim p _ _)) es)  = interpPrim p es
 interp (App f es)          = interpApp f es
 
 -- | interpret a Primitive function
-interpPrim :: PrimFun -> M Runtime
-interpPrim (Print    e)        = interpPrint e
-interpPrim (Add      e1 e2)    = intBinOp  (+) e1 e2
-interpPrim (Sub      e1 e2)    = intBinOp  (-) e1 e2
-interpPrim (Mult     e1 e2)    = intBinOp  (*) e1 e2
-interpPrim (LessThan e1 e2)    = boolBinOp (<) e1 e2
-interpPrim (LTorEQ   e1 e2)    = boolBinOp (<=) e1 e2
-interpPrim (EqualTo  e1 e2)    = boolBinOp (==) e1 e2
-interpPrim (IsNumber e)        = isNumber <$> interp e
-interpPrim (IsArray  e)        = isArray  <$> interp e
-interpPrim (NewArray e1 e2)    = newArray e1 e2
-interpPrim (ARef     e1 e2)    = arrayRef e1 e2
-interpPrim (ASet     e1 e2 e3) = arraySet e1 e2 e3
-interpPrim (ALen     e)        = arrayLength e
+interpPrim :: PrimName -> [E] -> M Runtime
+interpPrim Print    [e]          = interpPrint e
+interpPrim Add      [e1, e2]     = intBinOp  (+) e1 e2
+interpPrim Sub      [e1, e2]     = intBinOp  (-) e1 e2
+interpPrim Mult     [e1, e2]     = intBinOp  (*) e1 e2
+interpPrim LessThan [e1, e2]     = boolBinOp (<) e1 e2
+interpPrim LTorEQ   [e1, e2]     = boolBinOp (<=) e1 e2
+interpPrim EqualTo  [e1, e2]     = boolBinOp (==) e1 e2
+interpPrim IsNumber [e]          = isNumber <$> interp e
+interpPrim IsArray  [e]          = isArray  <$> interp e
+interpPrim NewArray [e1, e2]     = newArray e1 e2
+interpPrim ARef     [e1, e2]     = arrayRef e1 e2
+interpPrim ASet     [e1, e2, e3] = arraySet e1 e2 e3
+interpPrim ALen     [e]          = arrayLength e
+interpPrim p args = error $ "wrong arguments to prim: " ++ show p ++ mkString "," (show <$> args)
 
 -- | prints the given E. (print e)
 interpPrint :: E -> M Runtime
-interpPrint e = do r <- interp e; (showRuntime r >>= lift . print) >> return lTrue
+interpPrint e = do r <- interp e; (showRuntime r >>= lift . Prelude.print) >> return lTrue
 
 -- | function application (f e...)
 interpApp :: E -> [E] -> M Runtime
