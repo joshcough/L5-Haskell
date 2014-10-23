@@ -37,18 +37,18 @@ l4FindF (L4.Func name args body) = do
 
 l4Find :: L4.E -> Context -> State Int (L3.E, [L3.Func])
 l4Find e c = go e c where 
-  go (L4.Let v e body)       k = go e $ LetContext v body k
-  go (L4.IfStatement c t f)  k = go c $ IfContext t f k
-  go (L4.Begin e1 e2)        k = do { v <- newVar; go (L4.Let v e1 e2) k }
-  go (L4.NewTuple [])        k = fill (L3.NewTuple []) k -- special case
-  go (L4.FunCall f args)     k = go f  (FunCallContext args Nothing [] k)
-  go (L4.PrimApp p (e:es))   k = go e  (FunCallContext es (Just $ wranglePrim p)  [] k)
-  go (L4.PrimApp p [])       k = error $ show p ++ " given 0 arguments"
-  go (L4.NewTuple (e1:es))   k = go e1 (FunCallContext es (Just $ L3.NewTuple) [] k)
-  go (L4.MakeClosure lbl e1) k = go e1 (FunCallContext [] (Just $ wrangle1 (L3.MakeClosure lbl)) [] k)
-  go (L4.ClosureProc e1)     k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureProc) [] k)
-  go (L4.ClosureVars e1)     k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureVars) [] k)
-  go (VE v)                  k = fill (VD v) k
+  go (L4.Let v e body)      k = go e $ LetContext v body k
+  go (L4.IfStatement c t f) k = go c $ IfContext t f k
+  go (L4.Begin e1 e2)       k = do { v <- newVar; go (L4.Let v e1 e2) k }
+  go (L4.NewTuple [])       k = fill (L3.NewTuple []) k -- special case
+  go (L4.FunCall f args)    k = go f  (FunCallContext args Nothing [] k)
+  go (L4.PrimApp p (e:es))  k = go e  (FunCallContext es (Just $ wranglePrim p)  [] k)
+  go (L4.PrimApp p [])      _ = error $ show p ++ " given 0 arguments"
+  go (L4.NewTuple (e1:es))  k = go e1 (FunCallContext es (Just $ L3.NewTuple) [] k)
+  go (L4.MakeClosure l e1)  k = go e1 (FunCallContext [] (Just $ wrangle1 (L3.MakeClosure l)) [] k)
+  go (L4.ClosureProc e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureProc)    [] k)
+  go (L4.ClosureVars e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureVars)    [] k)
+  go (VE v)                 k = fill (VD v) k
 
   wranglePrim :: PrimName -> [V] -> D
   wranglePrim pn = f (arityByName pn) where
@@ -103,18 +103,19 @@ fill d = fill' where
     (letBody, extraFuns) <- f $ VarV x
     return (L3.Let x d letBody, extraFuns) 
 
+-- TODO: replace with set
 freeVars :: L3.E -> [Variable]
 freeVars e = nub $ f e [] where
   ve = DE . VD
   f :: L3.E -> [Variable] -> [Variable]
-  f (L3.Let x r body)            bv = f (DE r) bv ++ f body (x : bv)
-  f (L3.IfStatement e a b)       bv = f (ve e) bv ++ f a bv ++  f b bv
-  f (DE (VD (L3.VarV v)))        bv = maybe [v] (const []) $ Data.List.find (v==) bv
-  f (DE (VD _))                  _  = []
-  f (DE (L3.MakeClosure _ v))    bv = f (ve v) bv
-  f (DE (L3.ClosureProc v))      bv = f (ve v) bv
-  f (DE (L3.ClosureVars v))      bv = f (ve v) bv
-  f (DE (L3.FunCall v vs))       bv = f (ve v) bv ++ (ve <$> vs >>= flip f bv)
-  f (DE (L3.NewTuple vs))        bv = ve <$> vs >>= flip f bv
-  f (DE (L3.PrimApp _ vs))       bv = ve <$> vs >>= flip f bv
+  f (L3.Let x r body)         bv = f (DE r) bv ++ f body (x : bv)
+  f (L3.IfStatement e a b)    bv = f (ve e) bv ++ f a bv ++  f b bv
+  f (DE (VD (L3.VarV v)))     bv = maybe [v] (const []) $ Data.List.find (v==) bv
+  f (DE (VD _))               _  = []
+  f (DE (L3.MakeClosure _ v)) bv = f (ve v) bv
+  f (DE (L3.ClosureProc v))   bv = f (ve v) bv
+  f (DE (L3.ClosureVars v))   bv = f (ve v) bv
+  f (DE (L3.FunCall v vs))    bv = f (ve v) bv ++ (ve <$> vs >>= flip f bv)
+  f (DE (L3.NewTuple vs))     bv = ve <$> vs >>= flip f bv
+  f (DE (L3.PrimApp _ vs))    bv = ve <$> vs >>= flip f bv
 

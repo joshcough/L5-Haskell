@@ -2,7 +2,7 @@ module L.L5.LambdaLifter where
 
 import Control.Applicative
 import Control.Monad.State
-import Data.List
+import qualified Data.Set as Set
 import Data.Traversable
 import L.L1L2AST (Variable, Label)
 import L.L3.L3AST as L3
@@ -23,13 +23,6 @@ The L4 grammar can be found in the L4Compiler directory, a sibling of
 the L5Compiler directory where this file (L5Compiler.scala) lives.
 -}
 
-newVar :: State Int Variable
-newVar = incState "__L5_gen_var"
-newLabel :: State Int Label
-newLabel = incState ":__L5_gen_label"
-incState :: String -> State Int String
-incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }
-
 {-
 The main compile function.
 
@@ -44,28 +37,9 @@ The remainder of the cases are each documented in place.
 @return - a tuple containing one top level L4 expression and a list of L4 functions
          the functions are the lifted lambdas.
 -}
-
-{-
-data PrimName =
-    Add | Sub | Mult | LessThan | LTorEQ   | EqualTo
-  | IsNumber  | IsArray | Print | NewArray | ARef | ASet | ALen
-  deriving (Show,Eq)
-data Prim = Prim PrimName Arity deriving (Show,Eq)
-add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen :: E
-data E =
-    Lambda [Variable] E
-  | NewTuple [E]
-  | App E [E]
-  | PrimE Prim
-  deriving Eq
--}
-
-simple :: L4.E -> L4
-simple e = L4 e []
-
-compile :: L5 -> L4
-compile (LitInt i)             = simple $ VE . NumV $ fromIntegral i
-compile (Var v)                = simple $ VE $ VarV v
+compile :: L5 -> State Int L4
+compile (LitInt i)             = return $ L4 (VE . NumV $ fromIntegral i) []
+compile (Var v)                = return $ L4 (VE $ VarV v) []
 compile (L5.IfStatement e t f) = compileSubExprs [e,t,f] $ \es  -> L4.IfStatement (es !! 0) (es !! 1) (es !! 2)
 compile (L5.Begin e1 e2)       = compileSubExprs [e1,e2] $ \es  -> L4.Begin (es !! 0) (es !! 1)
 compile (L5.NewTuple es)       = compileSubExprs es      $ \es' -> L4.NewTuple es'
@@ -130,48 +104,33 @@ compile pe@(PrimE (Prim p _ _)) = compile $ Lambda (primVars p) (App pe (Var <$>
  If we need to use a tuple for the remaining arguments, we create lets
  in the very same way.
  -}
- {-
-case Lambda(args, body) => {
-  val usingArgsTuple = args.size > 2
-  val (freesVar, argsVar) = (L4.Variable("frees"), L4.Variable("args"))
-  // the arguments to the new function
-  val fArgs: List[L4.Variable] =
-    if(usingArgsTuple) List(freesVar, argsVar) else freesVar :: args.map(convertVar)
-  // the free variables in the lambda
-  val frees = freeVars(e)
-  // the body for the new function
-  val (fBody, moreFunctions) = {
-    // compile the body of the lambda
-    val (compiledLambdaBody, funcs) = compile(body)
-    // then wrap it with the required let statements
-    val lets = {
-      def wrapWithLets(tup: L4.Variable, vars: List[L4.Variable], e: L4.E) =
-        vars.zipWithIndex.foldRight(e) {
-          case ((v, i), b) => L4.Let(v, L4.ARef(tup, L4.Num(i)), b)
-        }
-      val freeLets = wrapWithLets(freesVar, frees, compiledLambdaBody)
-      if(! usingArgsTuple) freeLets else wrapWithLets(argsVar, args, freeLets)
-    }
-    (lets, funcs)
-  }
-  val label = newLabel()
-  // finally, the closure, and the new function
-  // (and any other functions lifted from compiling the body of the lambda)
-  (L4.MakeClosure(label, L4.NewTuple(frees)), L4.Func(label, fArgs, fBody) :: moreFunctions)
-}
--}
-
+compile lam@(Lambda args body) = do
+  let usingArgsTuple = length args > 2
+      freesVar = "frees"
+      argsVar  = "args"
+      -- the arguments to the new function
+      fArgs = if usingArgsTuple then [freesVar, argsVar] else freesVar : args
+      -- the free variables in the lambda
+      frees = freeVars lam
+  {- build the body of the new function -}
+  -- compile the body of the lambda
+  (L4 compiledLambdaBody moreFunctions) <- compile body
+  -- then wrap it with the required let statements
+  let wrapWithLets tup vars e = foldr f e (zip vars [0..]) where
+        f (v, i) b = L4.Let v (L4.PrimApp ARef [VE $ VarV tup, VE $ NumV i]) b
+      freeLets = wrapWithLets freesVar frees compiledLambdaBody
+      liftedFunctionBody = if usingArgsTuple then wrapWithLets argsVar args freeLets else freeLets where
+  label <- newLabel
+  let closure = L4.MakeClosure label $ L4.NewTuple (VE . VarV <$> frees)
+      liftedFunction = L4.Func label fArgs $ liftedFunctionBody
+  return $ L4 closure (liftedFunction : moreFunctions)
 
 {-
  Primitive function application
  (+ x y z)  => (+ x y z)
  also a trivial case, but I wanted to keep this case close to the other App case.
  -}
---compile (App (Prim p) args) = compileSubExprs args $ \es  -> L4.IfStatement (es !! 0) (es !! 1) (es !! 2)
---case App(p:Prim, args) =>
---  compileSubExprs(args:_*){ es => L4.FunCall(L4.keywordsMap(p.name), es) }
-
-
+compile (App (PrimE (Prim p _ _)) args) = compileSubExprs args $ \es  -> L4.PrimApp p es
 
 {-
  In this case, we know we don't have a primitive function
@@ -181,24 +140,21 @@ case Lambda(args, body) => {
  (e0 e1 ... en) =>
  (let ([f e0]) ((closure-proc f) (closure-vars f) e1 ... en))
  -}
-{-
-case App(f, args) => {
-  val v = newVar()
-  // compile the function position
-  val (compiledF, extraFunctions) = compile(f)
-  // compile all of the arguments
-  val (compiledArgs, moreExtraFunctions) = compileEs(args)
-  //
-  (L4.Let(v, compiledF,
-    // free variables go in the first argument.
-    L4.FunCall(L4.ClosureProc(v), L4.ClosureVars(v) ::
-    // if we can fit the rest of the arguments in, then great
-    // if not, they must also go into another tuple.
-    (if (compiledArgs.size <= 2) compiledArgs else List(L4.NewTuple(compiledArgs))))),
-  extraFunctions ::: moreExtraFunctions)
-}
--}
-
+compile (App f args) = do
+  v <- newVar
+  -- compile the function position
+  (L4 compiledF fs')   <- compile f
+  -- compile all of the arguments
+  (compiledArgs, fs'') <- compileEs args
+  let ve = VE $ VarV v
+  return $ L4 (L4.Let v compiledF (
+    -- free variables go in the first argument.
+    L4.FunCall (L4.ClosureProc $ ve) $
+      -- if we can fit the rest of the arguments in, then great
+      -- if not, they must also go into another tuple.
+      L4.ClosureVars ve :
+        (if length compiledArgs <= 2 then compiledArgs else [L4.NewTuple compiledArgs])
+   )) (fs' ++ fs'')
 
 {-
 This function is used to compile the subexpressions of and L5 e.
@@ -215,9 +171,10 @@ which in turn, get shoved into an L4 if-statement.
 @return  a tuple containing one L4 expression and a list of L4 functions
         the functions are the lambdas lifted when compiling the es.
 -}
-compileSubExprs :: [L5.E] -> ([L4.E] -> L4.E) -> L4
-compileSubExprs es combine = L4 (combine l4es) fs where
-  (l4es, fs) = compileEs es
+compileSubExprs :: [L5.E] -> ([L4.E] -> L4.E) -> State Int L4
+compileSubExprs es combine = do
+  (l4es, fs) <- compileEs es
+  return $ L4 (combine l4es) fs where
 
 {-
 Compile each of the given L5 expressions
@@ -227,53 +184,47 @@ Compile each of the given L5 expressions
   a list of L4 es, one e for each of the incoming L5 es
   a list of L4 functions. the functions are the lambdas lifted when compiling the es.
 -}
-compileEs :: [L5.E] -> ([L4.E], [L4.Func])
-compileEs = error "todo"
-  --(l4es, concat fs) where
-  --  (L4 l4es fs) = unzip $ fmap compile es
-
+compileEs :: [L5.E] -> State Int ([L4.E], [L4.Func])
+compileEs es = do
+  let extract (L4 e fs) = (e, fs)
+  (l4es, fs) <- unzip <$> fmap extract <$> traverse compile es
+  return $ (l4es, concat fs)
 
 {-
 Find all the free vars in an expression.
 @param e  The expression
 @return a list which contains all the free variables in e
 -}
-{-
-def freeVars(e:E): List[Variable] = {
-    def inner(e:E, bound:List[Variable]): List[Variable] = e match {
-      case Lambda(args, body) => inner(body, args ::: bound)
-      case v:Variable => bound.find(_==v) match { case None => List(v); case _ => Nil}
-      case Let(x, r, body) => inner(r, bound) ::: inner(body, x :: bound)
-      case LetRec(x, r, body) => inner(r, x :: bound) ::: inner(body, x :: bound)
-      case IfStatement(e, t, f) => inner(e, bound) ::: inner(t, bound) ::: inner(f, bound)
-      case Begin(e1, e2) => inner(e1, bound) ::: inner(e2, bound)
-      case NewTuple(es) => es.flatMap(e => inner(e, bound))
-      case App(f, args) => inner(f, bound) ::: args.flatMap(e => inner(e, bound))
-      case _ => Nil
-    }
-inner(e, Nil).distinct
-}
--}
+freeVars :: L5.E -> [Variable]
+freeVars e = Set.toList $ f e Set.empty where
+  f (L5.Lambda args e)     bv = f e (Set.union (Set.fromList args) bv)
+  f (Var v)                bv = if Set.member v bv then Set.empty else Set.singleton v
+  f (L5.Let x r body)      bv = Set.union  (f r bv) (f body $ Set.insert x bv)
+  f (L5.LetRec x r body)   bv = Set.union  (f r bv') (f body bv') where bv' = Set.insert x bv
+  f (L5.IfStatement e a b) bv = Set.unions [f e bv, f a bv, f b bv]
+  f (L5.NewTuple es)       bv = Set.unions (flip f bv <$> es)
+  f (L5.Begin e1 e2)       bv = Set.union  (f e1 bv) (f e2 bv)
+  f (L5.App e es)          bv = Set.union (f e bv) (Set.unions (flip f bv <$> es))
+  f (LitInt _)             _  = Set.empty
+  f (PrimE _)              _  = Set.empty
 
 {- Replace all occurrences of x for y in e. -}
 subst :: Variable -> L5.E -> L5.E -> L5.E
 subst x y = f where
-  f (Lambda vs e)    = if x `elem` vs then e else f e
-  f (Var v)          = if v == x then y else (Var v)
-  f (L5.Let v e1 b)  = L5.Let v (f e1) (if v == x then b else f b)
+  f (Lambda vs e)          = if x `elem` vs then e else f e
+  f (Var v)                = if v == x then y else Var v
+  f (L5.Let v e1 b)        = L5.Let v (f e1) (if v == x then b else f b)
+  f (L5.LetRec v r body)   = if v==x then L5.LetRec v r body else L5.LetRec v (f r) (f body)
+  f (L5.IfStatement e a b) = L5.IfStatement (f e) (f a) (f b)
+  f (L5.NewTuple es)       = L5.NewTuple (f <$> es)
+  f (L5.Begin e1 e2)       = L5.Begin (f e1) (f e2)
+  f (L5.App e es)          = L5.App (f e) (f <$> es)
+  f e@(LitInt _)           = e
+  f e@(PrimE _)            = e
 
-
-{-
-def sub(x:Variable, y:E, e:E): E = {
-    def inner(e:E): E = e match {
-      case Let(v, e1, body) => Let(v, inner(e1), if(v==x) body else inner(body))
-      case LetRec(v, e1, body) => LetRec(v, if(v==x) e1 else inner(e1), if(v==x) body else inner(body))
-      case IfStatement(e, t, f) => IfStatement(inner(e), inner(t), inner(f))
-      case Begin(e1, e2) => Begin(inner(e1), inner(e2))
-      case NewTuple(es) => NewTuple(es.map(inner))
-      case App(f, args) => App(inner(f), args.map(inner))
-      case _ => e
-    }
-    inner(e)
-}
--}
+newVar :: State Int Variable
+newVar = incState "__L5_var"
+newLabel :: State Int Label
+newLabel = incState ":__L5_label"
+incState :: String -> State Int String
+incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }
