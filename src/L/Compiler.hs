@@ -34,7 +34,6 @@ import Control.Category
 import Control.Lens
 import Data.Default
 import Data.Maybe
-import L.IOHelpers
 import L.OS
 import L.Read
 import L.NativeRunner

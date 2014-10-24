@@ -10,7 +10,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module L.Memory where
+module L.Interpreter.Memory where
 
 import Control.Applicative
 import Control.Lens hiding (set)

@@ -11,10 +11,10 @@ import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
 import Data.Int
 import Data.Vector.Generic.Mutable (length)
-import L.Computer
-import L.L1L2AST 
+import L.Interpreter.Computer
+import L.Interpreter.Memory
+import L.L1L2AST
 import L.L1L2MainAdjuster (adjustMain)
-import L.Memory
 import Prelude hiding (length, print)
 
 -- run the given L1 program to completion on a new computer

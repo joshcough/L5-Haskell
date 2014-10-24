@@ -20,10 +20,10 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Vector.Generic.Mutable (length)
-import L.Computer
+import L.Interpreter.Computer
+import L.Interpreter.Memory
 import L.L1L2AST
 import L.L1L2MainAdjuster
-import L.Memory
 import Prelude hiding (head, length, print, tail)
 
 -- run the given L2 program to completion on a new computer

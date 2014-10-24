@@ -10,7 +10,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module L.Computer where
+module L.Interpreter.Computer where
 
 import Control.Lens hiding (set)
 import Control.Monad.Error.Class
@@ -25,7 +25,7 @@ import Data.Vector (Vector, freeze)
 import qualified Data.Vector as Vector
 import Prelude hiding (read)
 import L.L1L2AST hiding (registers)
-import L.Memory
+import L.Interpreter.Memory
 
 type RegisterState = Map Register Int64
 type Ip = Int64 -- instruction pointer
