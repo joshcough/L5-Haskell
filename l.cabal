@@ -37,6 +37,7 @@ library
     L.L1L2AST
     L.L1L2MainAdjuster
     L.L1L2Parser
+    L.Memory
     L.NativeRunner
     L.OS
     L.Read

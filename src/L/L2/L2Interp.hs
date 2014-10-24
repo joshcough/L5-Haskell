@@ -22,7 +22,8 @@ import Data.Maybe
 import Data.Vector.Generic.Mutable (length)
 import L.Computer
 import L.L1L2AST
-import L.L1L2MainAdjuster 
+import L.L1L2MainAdjuster
+import L.Memory
 import Prelude hiding (head, length, print, tail)
 
 -- run the given L2 program to completion on a new computer
@@ -30,7 +31,7 @@ import Prelude hiding (head, length, print, tail)
 interpL2 :: L2 -> String
 interpL2 p = runST $ handleResult <$> runL2Computation p
 
-handleResult :: ComputationResult FrozenL2Computer -> String
+handleResult :: ComputationResult FrozenComputer -> String
 handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the following error cases
 handleResult (ComputationResult _ (Halted (Exceptional msg)) _) = error msg
@@ -43,14 +44,15 @@ replaceHeadEnv e = do (es, c) <- get; put $ (e :| tail es, c)
 addEnv :: MonadState (NonEmpty a, t) m => a -> m ()
 addEnv e = do (es, c) <- get; put $ (cons e es, c)
 
-type RunningL2Computer m = RunningComputer m L2Instruction
-type FrozenL2Computer    = FrozenComputer L2Instruction
-type CE m = (NonEmpty Env, RunningL2Computer m)
+type CE m = (NonEmpty Env, Computer (World m) L2Instruction)
 
 instance HasComputer r t a => HasComputer (l, r) t a where
   computer = _2.computer
 
-runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult FrozenL2Computer)
+instance HasMemory r a => HasMemory (l, r) a where
+  memory = _2.memory
+
+runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult FrozenComputer)
 runL2Computation p = do
   c   <- (newComputer $ adjustMain p)
   let ce = (Map.empty :| [], c)
@@ -91,7 +93,7 @@ step (TailCall s) = do
   goto loc
 step Return = do
   rspVal <- readReg rsp
-  memLength <- liftM (8*) $ uses memory (fromIntegral . length)
+  memLength <- liftM (8*) $ uses memory (fromIntegral . length . _runMemory)
   (_:|es, c) <- get
   let done = rspVal >= memLength
   case (done, es) of

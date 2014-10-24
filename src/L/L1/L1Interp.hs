@@ -14,6 +14,7 @@ import Data.Vector.Generic.Mutable (length)
 import L.Computer
 import L.L1L2AST 
 import L.L1L2MainAdjuster (adjustMain)
+import L.Memory
 import Prelude hiding (length, print)
 
 -- run the given L1 program to completion on a new computer
@@ -24,13 +25,13 @@ interpL1 p = runST $ handleResult <$> runL1Computation p
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
-handleResult :: ComputationResult (Computer s L1Instruction) -> String
+handleResult :: ComputationResult FrozenComputer -> String
 handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the follow error cases
 handleResult (ComputationResult _ (Halted (Exceptional msg)) _) = error msg
 handleResult (ComputationResult _ Running _) = error $ "computer still running"
 
-runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenComputer L1Instruction))
+runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult FrozenComputer)
 runL1Computation p = do
   c    <- newComputer $ adjustMain p
   (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runComputer step) c
@@ -67,7 +68,7 @@ step (Call s) = do
 step (TailCall s) = readS s >>= goto
 step Return = do
   rspVal    <- readReg rsp
-  memLength <- liftM (8*) $ uses memory length
+  memLength <- liftM (8*) $ uses memory (length . _runMemory)
   writeReg rsp (rspVal + 8)
   let done = rspVal >= fromIntegral memLength
   if done then halt else readMem "step Return" rspVal >>= goto
