@@ -8,8 +8,8 @@ the program. Each function's body is just a series of
 instructions. Here are the instructions:
 
 i ::= (x <- s)            ;; assign to a register
-    | (x <- (mem x n4))   ;; read from memory @ x+n4
-    | ((mem x n4) <- s)   ;; update memory @ x+n4
+    | (x <- (mem x n4))   ;; read from memory @ x+n8
+    | ((mem x n8) <- s)   ;; update memory @ x+n8
 
     | (x aop= s)          ;; update x with an arith op and s.
     | (x sop= sx)         ;; update x with a shifting op and sx.
@@ -45,8 +45,8 @@ cmp   ::= < | <= | =
 label ::= sequence of alpha-numeric characters or underscore,
           but starting with a colon and a non-digit, i.e.,
           matching this regexp: #rx"^:[a-zA-Z_][a-zA-Z_0-9]*$"
-num   ::= number between (inclusive) -2^31 and (2^31)-1
-n4    ::= number between (inclusive) -2^31 and (2^31)-1
+num   ::= number between (inclusive) -2^63 and (2^63)-1
+n4    ::= number between (inclusive) -2^63 and (2^63)-1
           that is divisble by 4
 
   
