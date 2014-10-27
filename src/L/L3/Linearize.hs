@@ -48,9 +48,7 @@ linearizeS (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
   callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__", Return]
   l2MainInsts = (LabelDeclaration ":__L3main__" :) <$> compileE e
   l2Funcs :: State Int [L2.L2Func]
-  l2Funcs  = liftM2 (:) 
-              (L2.Func <$> l2MainInsts) 
-              (Data.Traversable.traverse compileFunction funcs)
+  l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (traverse compileFunction funcs)
 
 -- (l (x ...) e)
 -- there is an implicit assertion here that L3 functions
@@ -79,10 +77,9 @@ compileE (IfStatement v t f) = do
       thenDec = LabelDeclaration thenLabel
       elseDec = LabelDeclaration elseLabel
   return $ concat [v', [test], [thenDec], t', [elseDec], f']
---3) the e is a d:
--- if it is an application, make a tail call
--- otherwise, compile the d, store the result in rax, and return.
+-- if it is an function call, make a tail call
 compileE (DE (FunCall v vs)) = return $ compileFunCall v vs Nothing
+-- otherwise, compile the d, store the result in rax, and return.
 compileE (DE d) = (\d' -> d' ++ [Return]) <$> compileD d (RegL2X rax)
 
 compileD :: D -> L2X -> State Int [L2Instruction]
@@ -92,45 +89,29 @@ compileD (PrimApp L3.Print [v]) dest =
 compileD (FunCall v vs) dest = return $ compileFunCall v vs (Just dest)
 -- biop ::= + | - | * | < | <= | =
 compileD (PrimApp Add [l, r]) dest = return $
-  [dest <~ compileVRHS l,
-   dest += compileV r,
-   dest -= num 1]
+  [dest <~ compileVRHS l, dest += compileV r, dest -= num 1]
 compileD (PrimApp Sub [l, r]) dest = return $
-  [dest <~ compileVRHS l,
-   dest -= compileV r,
-   dest += num 1]
+  [dest <~ compileVRHS l, dest -= compileV r, dest += num 1]
 compileD (PrimApp Mult [l, r]) dest = do { tmp <- newTemp; return
-  [tmp  <~ compileVRHS l,
-   tmp >> num 1,
-   dest <~ compileVRHS r,
-   dest >> num 1,
-   dest *= XL2S tmp,
-   dest << num 1,
-   dest += num 1]}
+  [tmp  <~ compileVRHS l, tmp >> num 1, dest <~ compileVRHS r,
+   dest >> num 1, dest *= XL2S tmp, dest << num 1, dest += num 1]}
 compileD (PrimApp LessThan [l, r]) dest = return $ compileComp l r dest LT
 compileD (PrimApp LTorEQ   [l, r]) dest = return $ compileComp l r dest LTEQ
 compileD (PrimApp EqualTo  [l, r]) dest = return $ compileComp l r dest EQ
 compileD (PrimApp IsNumber [v])    dest = return $
-  [dest <~ compileVRHS v,
-   dest &  num 1,
-   dest << num 1,
-   dest += num 1]
+  [dest <~ compileVRHS v, dest &  num 1, dest << num 1, dest += num 1]
 compileD (PrimApp IsArray [v]) dest = return $
-  [dest <~ compileVRHS v,
-   dest &  num 1,
-   dest *= num (-2),
-   dest += num 3]
+  [dest <~ compileVRHS v, dest &  num 1, dest *= num (-2), dest += num 3]
 compileD (PrimApp NewArray [size, init]) dest = return $
-  [toLHS rax <~ Allocate (compileV size) (compileV init),
-   dest <~ regRHS rax]
-
+  [toLHS rax <~ Allocate (compileV size) (compileV init), dest <~ regRHS rax]
+compileD (PrimApp ALen [VarV v]) dest = return [ dest <~ memRead v, dest << num 1, dest += num 1 ]
 {-
   (x <- (mem s n4))
   NOTE: s/basePointer must be a Var, because NumVs and LabelVs can't be arrays.
   TODO: if indexV is a NumV, we can definitely handle things more efficiently.
 -}
-compileD (PrimApp ARef [NumV   n, _]) _ = compileError $ "aref called with a number: " ++ show n
-compileD (PrimApp ARef [LabelV l, _]) _ = compileError $ "aref called with a label: "  ++ l
+compileD (PrimApp ARef (NumV   n : _)) _ = compileError $ "aref called with a number: " ++ show n
+compileD (PrimApp ARef (LabelV l : _)) _ = compileError $ "aref called with a label: "  ++ l
 compileD (PrimApp ARef [VarV basePointer, indexV]) dest = do
   -- Instead of creating a fresh variable to store the mem pointer,
   -- just store it in the destination instead. The let is only for clarity.
@@ -138,53 +119,28 @@ compileD (PrimApp ARef [VarV basePointer, indexV]) dest = do
   compileIndexInsts <- return $ compileIndex indexV index
   boundsCheckInsts  <- checkArrayBounds basePointer index
   addressCalcInsts  <- return $ calculateAddress basePointer index
-  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts ]
-
-compileD (PrimApp ALen [VarV v]) dest = return $ [
-  dest <~ memRead v,
-  dest << num 1,
-  dest += num 1 ]
-
+  let aref  = dest  <~ MemRead (MemLoc index 0) -- no offset needed, because we have the exact address.
+  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts, [aref] ]
 -- ((mem x n4) <- s)
 -- (let ([x (aset v1 v2 v3)]) ...)
--- TODO: this is exactly the same as ARef, refactor.
-compileD (PrimApp ASet [VarV v, loc, newVal]) dest = do
-  let index          = dest
-  size               <- newTemp
-  boundsFailLabel    <- newLabel
-  boundsPassLabel    <- newLabel
-  checkNegativeLabel <- newLabel
-  return [
-    index <~ compileVRHS loc,
-    index >> num 1,
-    size  <~ memRead v,
-    CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
-    LabelDeclaration boundsFailLabel,
-    index << num 1,
-    index += num 1,
-    rax   <~ ArrayError (XL2S $ VarL2X v) (XL2S index),
-    LabelDeclaration checkNegativeLabel,
-    CJump (Comp (XL2S index) LT (num 0)) boundsFailLabel boundsPassLabel,
-    LabelDeclaration boundsPassLabel,
-    index += num 1,
-    index *= num 8,
-    index += (XL2S $ VarL2X v),
-    MemWrite (MemLoc index 0) (compileV newVal),
-    dest  <~ SRHS (num 1)]
-compileD (NewTuple vs) dest = newTupleFromVs vs dest
+compileD (PrimApp ASet (NumV   n : _)) _ = compileError $ "aref called with a number: " ++ show n
+compileD (PrimApp ASet (LabelV l : _)) _ = compileError $ "aref called with a label: "  ++ l
+compileD (PrimApp ASet [VarV basePointer, indexV, newVal]) dest = do
+  let index = dest
+  compileIndexInsts <- return $ compileIndex indexV index
+  boundsCheckInsts  <- checkArrayBounds basePointer index
+  addressCalcInsts  <- return $ calculateAddress basePointer index
+  let aset = [ MemWrite (MemLoc index 0) (compileV newVal), dest  <~ SRHS (num 1) ]
+  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts, aset ]
+compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
+compileD (NewTuple vs)     dest = return $ newTuple (fmap compileV vs) dest
+compileD (ClosureProc v)   dest = compileD (PrimApp ARef [v, NumV 0]) dest
+compileD (ClosureVars v)   dest = compileD (PrimApp ARef [v, NumV 1]) dest
 compileD (MakeClosure l v) dest = do
   temp <- newTemp
   let assignment = temp <~ SRHS (LabelL2S l)
   return $ assignment : newTuple [XL2S temp, compileV v] dest
-
-compileD (ClosureProc v)   dest = compileD (PrimApp ARef [v, NumV 0]) dest
-compileD (ClosureVars v)   dest = compileD (PrimApp ARef [v, NumV 1]) dest
-compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
-
 compileD bad dest = compileError $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest
-
-newTupleFromVs :: [V] -> L2X -> State Int [L2Instruction]
-newTupleFromVs vs dest = return $ newTuple (fmap compileV vs) dest
 
 newTuple :: [L2S] -> L2X -> [L2Instruction]
 newTuple as dest =
@@ -239,12 +195,7 @@ compileIndex indexV index = [index <~ compileVRHS indexV, index >> num 1]
 -}
 calculateAddress :: Variable -> L2X -> [L2Instruction]
 calculateAddress basePointer index =
-  let dest = index
-  in [
-    index += num 1,
-    index *= num 8,
-    index += (XL2S $ VarL2X basePointer), -- add basePointer to the index to calculate the exact address.
-    dest  <~ MemRead (MemLoc index 0) ]   -- no offset needed, because we have the exact address.
+  [ index += num 1, index *= num 8, index += (XL2S $ VarL2X basePointer) ]
 
 checkArrayBounds :: Variable -> L2X -> State Int [L2Instruction]
 checkArrayBounds basePointer index = do
