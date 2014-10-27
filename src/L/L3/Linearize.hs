@@ -13,10 +13,8 @@ linearize l3 = fst $ runState (linearizeM l3) 0
 
 linearizeM :: L3 -> State Int L2
 linearizeM (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
-  callMain :: L2.L2Func
   callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__", Return]
   l2MainInsts = (LabelDeclaration ":__L3main__" :) <$> compileE e
-  l2Funcs :: State Int [L2.L2Func]
   l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (traverse compileFunction funcs)
 
 -- (l (x ...) e)
@@ -95,7 +93,7 @@ compileD (ClosureVars v)        _    = arrayCallError "closure-proc" [v]
 compileD (MakeClosure l v)      dest = do
   temp <- newTemp
   return $ (temp <~ SRHS (LabelL2S l)) : newTuple [XL2S temp, compileV v] dest
-compileD bad dest = compileError $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest
+compileD bad dest = compileError $ concat ["bad L3-D: ", show bad, ", dest: ", show dest]
 
 newTuple :: [L2S] -> L2X -> [L2Instruction]
 newTuple as dest = concat [[arr], writes, [dest <~ regRHS rax]] where
@@ -158,11 +156,10 @@ withArrayIndex basePointer indexV dest finalInstsFromIndex = do
   -}
   checkArrayBounds :: Variable -> L2X -> State Int [L2Instruction]
   checkArrayBounds basePointer index = do
-    size               <- newTemp
-    (boundsFailLabel,boundsPassLabel,checkNegativeLabel) <- liftM3 (,,) newLabel newLabel newLabel
+    (size,boundsFailLabel,boundsPassLabel,checkNegativeLabel) <- liftM4 (,,,) newTemp newLabel newLabel newLabel
     return [
       -- Read the size out of the array - notice that it's in the 0 position.
-      size  <~ memRead basePointer,
+      size <~ memRead basePointer,
       {-
         Check to see if the index is in bounds
         if so, jump to boundsFailLabel,
