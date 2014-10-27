@@ -46,6 +46,11 @@ primByName n = fromJust $ Map.lookup n primsByName
 arityByName :: PrimName -> Int
 arityByName = f . primByName where f (Prim _ _ a) = a
 
+foldV :: (Variable -> a) -> (Int64 -> a) -> (Label -> a) -> V -> a
+foldV f _ _ (VarV v)   = f v
+foldV _ f _ (NumV v)   = f v
+foldV _ _ f (LabelV v) = f v
+
 isBiop :: PrimName -> Bool
 isBiop p = p `elem` [Add, Sub, Mult, LessThan, LTorEQ, EqualTo]
 
