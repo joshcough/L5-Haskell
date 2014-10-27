@@ -19,17 +19,12 @@ toLHS :: Register -> L2X
 toLHS = RegL2X
 (<~) :: x -> AssignRHS x s -> Instruction x s
 (<~) = Assign
-(+=) :: x -> s -> Instruction x s
+(+=), (-=), (*=), (>>), (<<), (&) :: x -> s -> Instruction x s
 (+=) x s = MathInst x Increment  s
-(-=) :: x -> s -> Instruction x s
 (-=) x s = MathInst x Decrement  s
-(*=) :: x -> s -> Instruction x s
 (*=) x s = MathInst x Multiply   s
-(>>) :: x -> s -> Instruction x s
 (>>) x s = MathInst x RightShift s
-(<<) :: x -> s -> Instruction x s
 (<<) x s = MathInst x LeftShift  s
-(&)  :: x -> s -> Instruction x s
 (&)  x s = MathInst x BitwiseAnd s
 num :: Int64 -> L2S
 num = NumberL2S
@@ -39,6 +34,10 @@ newLabel :: State Int String
 newLabel = (':':) <$> newId
 newId :: State Int String
 newId = do { n <- get; put (n + 1); return $ "_tempL3_" ++ show n }
+memRead :: Variable -> AssignRHS L2X L2S
+memRead v = MemRead (MemLoc (VarL2X v) 0)
+compileError :: String -> a
+compileError msg = error $ "L3 compile error: " ++ msg
 
 linearize :: L3 -> L2
 linearize l3 = fst $ runState (linearizeS l3) 0
@@ -127,76 +126,25 @@ compileD (PrimApp NewArray [size, init]) dest = return $
 
 {-
   (x <- (mem s n4))
-
-   Q: the s above has to be a Var? why?
-   A: well, we have Vars, Nums, and Labels.
-      the only one that makes sense for arrays is Var.
-
-  TODO: if index is a NumV, we can definitely handle things more efficiently.
+  NOTE: s/basePointer must be a Var, because NumVs and LabelVs can't be arrays.
+  TODO: if indexV is a NumV, we can definitely handle things more efficiently.
 -}
-compileD (PrimApp ARef [VarV v, loc]) dest = do
-  let index          = dest
-  size               <- newTemp
-  boundsFailLabel    <- newLabel
-  boundsPassLabel    <- newLabel
-  checkNegativeLabel <- newLabel
-  return [
-    {-
-      In L3, index is any arbitrary v, we need to compile it
-      * if its a variable, it just stays a variable
-          and presumably that variable had already been encoded at some point
-      * if its a number, we encodes it so that it's consistent with a variable
-    -}
-    index <~ compileVRHS loc,
-    {-
-      But our checks are going to be against regular (non-encoded) numbers,
-      because the size stored in the array is regular number.
-      (TODO - Question: does that have to be the case?)
-      So, we unencode the number by shifting it right by 1 here.
-    -}
-    index >> num 1,
-    {-
-      This just reads the size out of the array - notice that it's in the 0 position.
-    -}
-    size  <~ MemRead (MemLoc (VarL2X v) 0),
-    {-
-      Check to see if the index is in bounds
-      if so, jump to boundsFailLabel,
-      if not jump to checkNegativeLabel, which is where we check if the index is negative.
-    -}
-    CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
-    {-
-      This is where we handle an index out of bounds error.
-    -}
-    LabelDeclaration boundsFailLabel,
-    index << num 1,
-    index += num 1,
-    rax   <~ ArrayError (XL2S $ VarL2X v) (XL2S index),
-    {-
-      This is where we check if the index is negative
-    -}
-    LabelDeclaration checkNegativeLabel,
-    CJump (Comp (XL2S index) LT (num 0)) boundsFailLabel boundsPassLabel,
-    {-
-      This is where we actually access the array
-    -}
-    LabelDeclaration boundsPassLabel,
-    {-
-      * The index is currently a regular number, because we shifted it as explained above.
-        When indexing into an array, we always have to add 1, because the size is at 0.
-        (index 0 -> 1, index 1 -> 2, ... index n -> n + 1)
-      * We multiply the index by 8 because we are storing 8 byte integers
-      * We then add the base pointer to it to get the exact memory location.
-    -}
-    index += num 1,
-    index *= num 8,
-    index += (XL2S $ VarL2X v),
-    dest  <~ MemRead (MemLoc index 0)]
+compileD (PrimApp ARef [NumV   n, _]) _ = compileError $ "aref called with a number: " ++ show n
+compileD (PrimApp ARef [LabelV l, _]) _ = compileError $ "aref called with a label: "  ++ l
+compileD (PrimApp ARef [VarV basePointer, indexV]) dest = do
+  -- Instead of creating a fresh variable to store the mem pointer,
+  -- just store it in the destination instead. The let is only for clarity.
+  let index = dest
+  compileIndexInsts <- return $ compileIndex indexV index
+  boundsCheckInsts  <- checkArrayBounds basePointer index
+  addressCalcInsts  <- return $ calculateAddress basePointer index
+  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts ]
 
 compileD (PrimApp ALen [VarV v]) dest = return $ [
-  dest <~ MemRead (MemLoc (VarL2X v) 0),
+  dest <~ memRead v,
   dest << num 1,
   dest += num 1 ]
+
 -- ((mem x n4) <- s)
 -- (let ([x (aset v1 v2 v3)]) ...)
 -- TODO: this is exactly the same as ARef, refactor.
@@ -209,7 +157,7 @@ compileD (PrimApp ASet [VarV v, loc, newVal]) dest = do
   return [
     index <~ compileVRHS loc,
     index >> num 1,
-    size  <~ MemRead (MemLoc (VarL2X v) 0),
+    size  <~ memRead v,
     CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
     LabelDeclaration boundsFailLabel,
     index << num 1,
@@ -219,7 +167,7 @@ compileD (PrimApp ASet [VarV v, loc, newVal]) dest = do
     CJump (Comp (XL2S index) LT (num 0)) boundsFailLabel boundsPassLabel,
     LabelDeclaration boundsPassLabel,
     index += num 1,
-    index *= num 8, --todo: check that this 8 is correct, i think it is,
+    index *= num 8,
     index += (XL2S $ VarL2X v),
     MemWrite (MemLoc index 0) (compileV newVal),
     dest  <~ SRHS (num 1)]
@@ -233,7 +181,7 @@ compileD (ClosureProc v)   dest = compileD (PrimApp ARef [v, NumV 0]) dest
 compileD (ClosureVars v)   dest = compileD (PrimApp ARef [v, NumV 1]) dest
 compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
 
-compileD bad dest = error $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest
+compileD bad dest = compileError $ "bad L3-D: " ++ show bad ++ ", dest: " ++ show dest
 
 newTupleFromVs :: [V] -> L2X -> State Int [L2Instruction]
 newTupleFromVs vs dest = return $ newTuple (fmap compileV vs) dest
@@ -269,4 +217,56 @@ compileFunCall v vs dest = regAssignments ++ call where
   v'   = compileV v
   call = maybe ([TailCall v']) (\d -> [Call v', Assign d $ regRHS rax]) dest
 
+{-
+  indexV is any arbitrary v, we need to compile it
+  * if its a variable, it just stays a variable
+      and presumably that variable had already been encoded at some point
+  * if its a number, we encode it so that it's consistent with a variable
 
+  But our checks are going to be against regular (non-encoded) numbers,
+  because the size stored in the array is regular number.
+  So, we unencode the number by shifting it right by 1 here.
+-}
+compileIndex :: V -> L2X -> [L2Instruction]
+compileIndex indexV index = [index <~ compileVRHS indexV, index >> num 1]
+
+{-
+  * The index is currently a regular number, because we shifted it as explained above.
+    When indexing into an array, we always have to add 1, because the size is at 0.
+    (index 0 -> 1, index 1 -> 2, ... index n -> n + 1)
+  * We multiply the index by 8 because we are storing 8 byte integers
+  * Finally, we then add the base pointer to it to get the exact memory location.
+-}
+calculateAddress :: Variable -> L2X -> [L2Instruction]
+calculateAddress basePointer index =
+  let dest = index
+  in [
+    index += num 1,
+    index *= num 8,
+    index += (XL2S $ VarL2X basePointer), -- add basePointer to the index to calculate the exact address.
+    dest  <~ MemRead (MemLoc index 0) ]   -- no offset needed, because we have the exact address.
+
+checkArrayBounds :: Variable -> L2X -> State Int [L2Instruction]
+checkArrayBounds basePointer index = do
+  size               <- newTemp
+  boundsFailLabel    <- newLabel
+  boundsPassLabel    <- newLabel
+  checkNegativeLabel <- newLabel
+  return [
+    -- Read the size out of the array - notice that it's in the 0 position.
+    size  <~ memRead basePointer,
+    {-
+      Check to see if the index is in bounds
+      if so, jump to boundsFailLabel,
+      if not jump to checkNegativeLabel, which is where we check if the index is negative.
+    -}
+    CJump (Comp (XL2S size) LTEQ (XL2S index)) boundsFailLabel checkNegativeLabel,
+    -- This is where we handle an index out of bounds error.
+    LabelDeclaration boundsFailLabel,
+    index << num 1,
+    index += num 1,
+    rax   <~ ArrayError (XL2S $ VarL2X basePointer) (XL2S index),
+    -- This is where we check if the index is negative
+    LabelDeclaration checkNegativeLabel,
+    CJump (Comp (XL2S index) LT (num 0)) boundsFailLabel boundsPassLabel,
+    LabelDeclaration boundsPassLabel ]
