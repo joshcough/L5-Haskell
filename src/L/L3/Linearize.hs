@@ -104,34 +104,25 @@ compileD (PrimApp IsArray [v]) dest = return $
   [dest <~ compileVRHS v, dest &  num 1, dest *= num (-2), dest += num 3]
 compileD (PrimApp NewArray [size, init]) dest = return $
   [toLHS rax <~ Allocate (compileV size) (compileV init), dest <~ regRHS rax]
-compileD (PrimApp ALen [VarV v]) dest = return [ dest <~ memRead v, dest << num 1, dest += num 1 ]
-{-
-  (x <- (mem s n4))
-  NOTE: s/basePointer must be a Var, because NumVs and LabelVs can't be arrays.
-  TODO: if indexV is a NumV, we can definitely handle things more efficiently.
--}
+ -- NOTE: for alen, aref, aset, basePointer must be a Var, because NumVs and LabelVs can't be arrays.
+compileD (PrimApp ALen (NumV   n : _)) _ = compileError $ "alen called with a number: " ++ show n
+compileD (PrimApp ALen (LabelV l : _)) _ = compileError $ "alen called with a label: "  ++ l
+compileD (PrimApp ALen [VarV basePointer]) dest =
+  return [ dest <~ memRead basePointer, dest << num 1, dest += num 1 ]
+-- (x <- (mem s n4))
+-- TODO: if indexV is a NumV, we can definitely handle things more efficiently.
 compileD (PrimApp ARef (NumV   n : _)) _ = compileError $ "aref called with a number: " ++ show n
 compileD (PrimApp ARef (LabelV l : _)) _ = compileError $ "aref called with a label: "  ++ l
-compileD (PrimApp ARef [VarV basePointer, indexV]) dest = do
-  -- Instead of creating a fresh variable to store the mem pointer,
-  -- just store it in the destination instead. The let is only for clarity.
-  let index = dest
-  compileIndexInsts <- return $ compileIndex indexV index
-  boundsCheckInsts  <- checkArrayBounds basePointer index
-  addressCalcInsts  <- return $ calculateAddress basePointer index
-  let aref  = dest  <~ MemRead (MemLoc index 0) -- no offset needed, because we have the exact address.
-  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts, [aref] ]
+compileD (PrimApp ARef [VarV basePointer, indexV]) dest =
+  -- no offset needed, because we have the exact address.
+  withArrayIndex basePointer indexV dest $ \index -> [dest  <~ MemRead (MemLoc index 0)]
 -- ((mem x n4) <- s)
 -- (let ([x (aset v1 v2 v3)]) ...)
 compileD (PrimApp ASet (NumV   n : _)) _ = compileError $ "aref called with a number: " ++ show n
 compileD (PrimApp ASet (LabelV l : _)) _ = compileError $ "aref called with a label: "  ++ l
-compileD (PrimApp ASet [VarV basePointer, indexV, newVal]) dest = do
-  let index = dest
-  compileIndexInsts <- return $ compileIndex indexV index
-  boundsCheckInsts  <- checkArrayBounds basePointer index
-  addressCalcInsts  <- return $ calculateAddress basePointer index
-  let aset = [ MemWrite (MemLoc index 0) (compileV newVal), dest  <~ SRHS (num 1) ]
-  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts, aset ]
+compileD (PrimApp ASet [VarV basePointer, indexV, newVal]) dest =
+  withArrayIndex basePointer indexV dest $ \index ->
+    [ MemWrite (MemLoc index 0) (compileV newVal), dest  <~ SRHS (num 1) ]
 compileD (VD v)            dest = return $ [dest <~ compileVRHS v]
 compileD (NewTuple vs)     dest = return $ newTuple (fmap compileV vs) dest
 compileD (ClosureProc v)   dest = compileD (PrimApp ARef [v, NumV 0]) dest
@@ -163,15 +154,28 @@ compileV (LabelV l) = LabelL2S l
 
 compileVRHS :: V -> AssignRHS L2X L2S
 compileVRHS = SRHS . compileV
--- if there is a destination (L2X) then make a regular Call
--- storing the result of the call (which is in rax) into the destination
--- otherwise, make a TailCall
+{-
+  if there is a destination (L2X)
+   * then make a regular Call storing the result of the call (which is in rax) into the destination
+   * otherwise, make a TailCall
+-}
 compileFunCall :: V -> [V] -> Maybe L2X -> [L2Instruction] 
 compileFunCall v vs dest = regAssignments ++ call where
   -- on a function call, we need to put the arguments into the registers
   regAssignments = zipWith Assign (RegL2X <$> argRegisters) (SRHS . compileV <$> vs)
-  v'   = compileV v
-  call = maybe ([TailCall v']) (\d -> [Call v', Assign d $ regRHS rax]) dest
+  call = maybe ([TailCall $ compileV v]) (\d -> [Call $ compileV v, Assign d $ regRHS rax]) dest
+
+-- Used to do array bounds checking in aref and aset.
+withArrayIndex :: Variable -> V -> L2X -> (L2X -> [L2Instruction]) -> State Int [L2Instruction]
+withArrayIndex basePointer indexV dest f = do
+  -- Instead of creating a fresh variable to store the mem pointer,
+  -- just store it in the destination instead. The let is only for clarity.
+  let index = dest
+  compileIndexInsts <- return $ compileIndex indexV index
+  boundsCheckInsts  <- checkArrayBounds basePointer index
+  addressCalcInsts  <- return $ calculateAddress basePointer index
+  let finalInsts    =  f index
+  return $ concat [ compileIndexInsts, boundsCheckInsts, addressCalcInsts, finalInsts ]
 
 {-
   indexV is any arbitrary v, we need to compile it
