@@ -74,9 +74,11 @@ library
     L.L4.L4Parser
 
     -- L5
+    L.L5.L5
     L.L5.L5AST
     --L.L5.L5Core
     L.L5.L5Interp
+    L.L5.L5Parser
     L.L5.LambdaLifter
 
   build-depends:

@@ -9,6 +9,7 @@ import L.L1.L1
 import L.L2.L2
 import L.L3.L3
 import L.L4.L4
+import L.L5.L5
 import Options.Applicative
 import System.FilePath.Lens
 
@@ -33,5 +34,6 @@ main' (turtles, opts, file) = g (file^.extension) where
   g ".L2" = go l2Language
   g ".L3" = go l3Language
   g ".L4" = go l4Language
+  g ".L5" = go l5Language
   g bad  = error $ "LInterp: bad input file: " ++ file
 

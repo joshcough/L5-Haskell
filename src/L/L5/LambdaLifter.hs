@@ -1,4 +1,4 @@
-module L.L5.LambdaLifter where
+module L.L5.LambdaLifter (lambdaLift) where
 
 import Control.Applicative
 import Control.Monad.State
@@ -8,6 +8,10 @@ import L.L1L2AST (Variable, Label)
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
+
+
+lambdaLift :: L5 -> L4
+lambdaLift l5 = fst $ runState (compile l5) 0
 
 {-
 L5Compiler is a lambda lifter (http://en.wikipedia.org/wiki/Lambda_lifting).
@@ -54,15 +58,15 @@ compile (L5.Let v e b)         = compileSubExprs [e,b]   $ \es  -> L4.Let v (es 
 -}
 compile (LetRec v e b) = compile $
   L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
-    (App (PrimE aset) [Var v, LitInt 0, subst v (App (PrimE aref) [Var v, LitInt 0]) e])
-    (subst v (App (PrimE aref) [Var v, LitInt 0]) b)
+    (App (PrimE ASet) [Var v, LitInt 0, subst v (App (PrimE ARef) [Var v, LitInt 0]) e])
+    (subst v (App (PrimE ARef) [Var v, LitInt 0]) b)
   )
 {-
  We Turn (f +) => (f (lambda (x y) (+ x y)))
  So when we see a primitive function by itself,
  turn it into a lambda expression, and then compile that expression.
  -}
-compile pe@(PrimE (Prim p _ _)) = compile $ Lambda (primVars p) (App pe (Var <$> primVars p))
+compile pe@(PrimE p) = compile $ Lambda (primVars p) (App pe (Var <$> primVars p))
 {-
  Here is where we actually do the lambda lifting.
 
@@ -130,7 +134,7 @@ compile lam@(Lambda args body) = do
  (+ x y z)  => (+ x y z)
  also a trivial case, but I wanted to keep this case close to the other App case.
  -}
-compile (App (PrimE (Prim p _ _)) args) = compileSubExprs args $ \es  -> L4.PrimApp p es
+compile (App (PrimE p) args) = compileSubExprs args $ \es  -> L4.PrimApp p es
 
 {-
  In this case, we know we don't have a primitive function

@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Traversable
 import L.L1L2AST (Variable)
-import L.L3.L3AST (Prim(..), PrimName(..))
+import L.L3.L3AST (PrimName(..))
 import L.Utils
 import L.L5.L5AST
 import Data.Array.IO (IOArray)
@@ -82,8 +82,9 @@ interp (IfStatement p t f) = do r <- interp p; interp $ if r == lTrue then t els
 interp (NewTuple es)       = traverse interp es >>= makeHeapArray (length es)
 interp (Begin e1 e2)       = interp e1 >> interp e2
 interp (LitInt i)          = return $ Num i
-interp (App (PrimE (Prim p _ _)) es)  = interpPrim p es
+interp (App (PrimE p) es)  = interpPrim p es
 interp (App f es)          = interpApp f es
+interp (PrimE p)           = error "todo L5Interp PrimE " -- interp (Lambda [])
 
 -- | interpret a Primitive function
 interpPrim :: PrimName -> [E] -> M Runtime

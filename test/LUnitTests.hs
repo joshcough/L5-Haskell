@@ -27,6 +27,7 @@ import L.L2.Liveness
 import L.L2.Spill
 import L.L3.L3
 import L.L4.L4
+import L.L5.L5
 import L.OS as OS
 import L.Read
 import L.Utils
@@ -49,7 +50,9 @@ allTests = [
  ,l3Tests
  ,l3TurtlesTests
  ,l4Tests
- ,l4TurtlesTests ]
+ ,l4TurtlesTests
+ ,l5Tests
+ ,l5TurtlesTests ]
 
 opts :: CompilationOptions
 opts = def & outputDir .~ (Just "./tmp")
@@ -121,6 +124,8 @@ l4Dirs = [testDir ++ "4-test",
 l4Tests        = oneLevelTestDef l4Language l4Dirs
 l4TurtlesTests = turtlesTestDef  l4Language l4Dirs
 
+l5Tests        = oneLevelTestDef l5Language [testDir ++ "L5-tests-from-2010/"]
+l5TurtlesTests = turtlesTestDef  l5Language [testDir ++ "L5-tests-from-2010/"]
 
 oneLevelTestDef :: Language i o -> [FilePath] -> TestDef
 oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNative

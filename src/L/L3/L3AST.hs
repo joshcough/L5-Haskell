@@ -19,7 +19,23 @@ data D    = FunCall V [V] | PrimApp PrimName [V] | VD V |
 data PrimName =
     Add | Sub | Mult | LessThan | LTorEQ   | EqualTo
   | IsNumber  | IsArray | Print | NewArray | ARef | ASet | ALen
-  deriving (Eq,Ord,Show)
+  deriving (Eq,Ord)
+
+instance Show PrimName where
+  show Add      = "+"
+  show Sub      = "-"
+  show Mult     = "*"
+  show LessThan = "<"
+  show LTorEQ   = "<="
+  show EqualTo  = "="
+  show IsNumber = "number?"
+  show IsArray  = "a?"
+  show Print    = "print"
+  show NewArray = "new-array"
+  show ARef     = "aref"
+  show ASet     = "aset"
+  show ALen     = "alen"
+
 type Arity = Int
 data Prim = Prim PrimName String Arity deriving Eq
 add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen :: Prim

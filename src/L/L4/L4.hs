@@ -1,4 +1,4 @@
-module L.L4.L4 (l4Language) where
+module L.L4.L4 (l4Language, compileL4ToL3) where
 
 import L.Compiler
 import L.L3.L3AST

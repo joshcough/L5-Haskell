@@ -180,7 +180,7 @@ liveRanges iioss =
       inSets = fmap inSet iioss
       varsAndRegisters :: [L2X]
       varsAndRegisters = sort . Set.toList $ foldl f Set.empty inSets where
-        f acc s = error "todo"
+        f acc s = error "todo: live ranges"
 -- val variablesAndRegisters = inSets.foldLeft(Set[X]()){
 --   -      case (acc, s) => acc union s
 --   -      -    }.filterNot(x => x == ebp || x == esp)

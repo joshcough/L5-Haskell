@@ -32,7 +32,7 @@ toCore   (L5.App f [e])    = App C (toCore f) (toCore e)
 toCore a@(L5.App f (e:es)) = toCore $ flatApp a where
   -- | (f a b c d) = ((((f a) b) c) d)
   flatApp (L5.App f (e:es)) = foldl (\e f -> L5.App f [e]) (L5.App f [e]) es
-toCore _ = error "todo"
+toCore _ = error "todo: toCore"
 
 primFunToCore :: PrimFun -> Out
 primFunToCore (Add  e1 e2)     = mkprim "+"     [e1, e2]
