@@ -119,13 +119,20 @@ l4_2010_Dir sub = testDir ++ "L4-tests-from-2010/" ++ sub
 l4Dirs = [testDir ++ "4-test",
           l4_2010_Dir "mcglynn",
           l4_2010_Dir "shawger",
+          --l4_2010_Dir "hartglass", -- 100% cpu
           l4_2010_Dir "kleinfindler",
-          l4_2010_Dir "burgener"] -- TODO: no hartglass yet... 100% cpu usage
+          l4_2010_Dir "burgener"]
 l4Tests        = oneLevelTestDef l4Language l4Dirs
 l4TurtlesTests = turtlesTestDef  l4Language l4Dirs
 
-l5Tests        = oneLevelTestDef l5Language [testDir ++ "L5-tests-from-2010/"]
-l5TurtlesTests = turtlesTestDef  l5Language [testDir ++ "L5-tests-from-2010/"]
+l5_2010_Dir sub = testDir ++ "L5-tests-from-2010/" ++ sub
+l5Dirs = [l5_2010_Dir "burgener",
+          --l5_2010_Dir "mcglynn", -- 100% cpu
+          l5_2010_Dir "hartglass",
+          l5_2010_Dir "kleinfindler",
+          l5_2010_Dir "shawger"]
+l5Tests        = oneLevelTestDef l5Language l5Dirs
+l5TurtlesTests = turtlesTestDef  l5Language l5Dirs
 
 oneLevelTestDef :: Language i o -> [FilePath] -> TestDef
 oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNative

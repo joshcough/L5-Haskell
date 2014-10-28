@@ -141,7 +141,7 @@ interpD (PrimApp IsNumber [v@(VarV _)]) =
 interpD (PrimApp IsNumber _         )   = return $ lFalse
 interpD (PrimApp IsArray  [v@(VarV _)]) =
   do rv <- interpV v; return $ case rv of (Pointer _) -> lTrue; _ -> lFalse
-interpD (PrimApp IsArray _) = return $ lTrue
+interpD (PrimApp IsArray _) = return $ lFalse
 interpD (PrimApp NewArray [s, d])  = newArray s d
 interpD (PrimApp ARef [a, loc])    = arrayRef a loc
 interpD (PrimApp ASet [a, loc, v]) = arraySet a loc v
