@@ -25,6 +25,8 @@ module L.Compiler (
   ,interpretTurtlesString
   ,interpretTurtlesFile
   ,osFromString
+  ,parseFile
+  ,parseString
   ,runVal
   ,munge
 ) where

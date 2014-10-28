@@ -25,7 +25,7 @@ instance Show E where
   show (NewTuple es)         = showAsList ("new-tuple" : fmap show es)
   show (MakeClosure l e)     = showAsList ["make-closure", l, show e]
   show (ClosureProc e)       = showAsList ["closure-proc", show e]
-  show (ClosureVars e)       = showAsList ["closure-ears", show e]
+  show (ClosureVars e)       = showAsList ["closure-vars", show e]
   show (FunCall e es)        = showAsList (show e : fmap show es)
   show (VE v)                = show v
   show (PrimApp p es)        = showAsList (show p : fmap show es)

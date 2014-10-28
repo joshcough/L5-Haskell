@@ -22,22 +22,14 @@ data PrimName =
   deriving (Eq,Ord)
 
 instance Show PrimName where
-  show Add      = "+"
-  show Sub      = "-"
-  show Mult     = "*"
-  show LessThan = "<"
-  show LTorEQ   = "<="
-  show EqualTo  = "="
-  show IsNumber = "number?"
-  show IsArray  = "a?"
-  show Print    = "print"
-  show NewArray = "new-array"
-  show ARef     = "aref"
-  show ASet     = "aset"
-  show ALen     = "alen"
+  show = primText . primByName
 
 type Arity = Int
-data Prim = Prim PrimName String Arity deriving Eq
+data Prim = Prim {
+  primName :: PrimName,
+  primText :: String,
+  primArity :: Arity
+} deriving Eq
 add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen :: Prim
 add    = Prim Add      "+"         2
 sub    = Prim Sub      "-"         2
@@ -57,8 +49,14 @@ prims :: [Prim]
 prims = [add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen]
 primsByName :: Map PrimName Prim
 primsByName = Map.fromList ((\p@(Prim n _ _) -> (n, p)) <$> prims)
+primsByRawName :: Map String Prim
+primsByRawName = Map.fromList ((\p@(Prim n _ _) -> (show n, p)) <$> prims)
+primByRawNameMaybe :: String -> Maybe Prim
+primByRawNameMaybe n = Map.lookup n primsByRawName
+primByNameMaybe :: PrimName -> Maybe Prim
+primByNameMaybe n = Map.lookup n primsByName
 primByName :: PrimName -> Prim
-primByName n = fromJust $ Map.lookup n primsByName
+primByName = fromJust . primByNameMaybe
 arityByName :: PrimName -> Int
 arityByName = f . primByName where f (Prim _ _ a) = a
 
