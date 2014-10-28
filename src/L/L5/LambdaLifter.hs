@@ -215,7 +215,7 @@ freeVars e = Set.toList $ f e Set.empty where
 {- Replace all occurrences of x for y in e. -}
 subst :: Variable -> L5.E -> L5.E -> L5.E
 subst x y = f where
-  f (Lambda vs e)          = if x `elem` vs then e else f e
+  f (Lambda vs e)          = if x `elem` vs then Lambda vs e else Lambda vs (f e)
   f (Var v)                = if v == x then y else Var v
   f (L5.Let v e1 b)        = L5.Let v (f e1) (if v == x then b else f b)
   f (L5.LetRec v r body)   = if v==x then L5.LetRec v r body else L5.LetRec v (f r) (f body)
