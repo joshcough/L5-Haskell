@@ -6,12 +6,13 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import Control.Applicative
-import Control.Lens
 import Control.Exception
+import Control.Lens
 import Data.Default
 import Data.Traversable
 import Debug.Trace
 import Prelude hiding (sequence)
+import System.Directory
 import System.FilePath.Find hiding (extension)
 import System.IO.Unsafe
 import System.Info as Info
@@ -36,23 +37,20 @@ tests = do
   ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
-allL1Tests  = [ l1InterpreterTests, l164Tests ]
-easyL2Tests = [ l2Tests, l2TurtlesTests ]
-easyL1AndL2Tests = concat [ allL1Tests, easyL2Tests ]
+quickTests = [l1Tests, l2Tests, l3Tests, l4Tests, l5Tests]
 
 allTests = [
-  lParsingTests
- ,l1InterpreterTests
- ,l164Tests
- ,l2Tests
- ,l2TurtlesTests
- ,spillTests
- ,l3Tests
- ,l3TurtlesTests
- ,l4Tests
- ,l4TurtlesTests
- ,l5Tests
- ,l5TurtlesTests ]
+  lParsingTests,
+  l1Tests,
+  l2Tests,
+  l2TurtlesTests,
+  spillTests,
+  l3Tests,
+  l3TurtlesTests,
+  l4Tests,
+  l4TurtlesTests,
+  l5Tests,
+  l5TurtlesTests ]
 
 opts :: CompilationOptions
 opts = def & outputDir .~ (Just "./tmp")
@@ -72,31 +70,11 @@ data TestDef = TestDef
 lParsingTests = TestDef {
   name = "L Parsing Tests"
  ,dirs = ["test"]
- ,inputFileSearch = "*.L[0-4]"
+ ,inputFileSearch = "*.L[0-5]"
  ,outputFileExt   = Nothing
- ,compute = \lFile _ -> do 
+ ,compute = \lFile _ -> do
    lCode <- readFile lFile
    sread lCode @?= (sread . show $ sread lCode)
-}
-l1InterpreterTests = TestDef {
-  name = "L1 Interpreter"
- ,dirs = ["test/x86-64-tests"]
- ,inputFileSearch = "*.L1"
- ,outputFileExt   = Just "res"
- ,compute = \l1f (Just resFile) -> do
-   actual   <- runInterp l1Language l1f
-   expected <- readFile resFile
-   strip actual @?= strip expected
-}
-l164Tests = TestDef { 
-  name = "L1" 
- ,dirs = ["test/x86-64-tests"]
- ,inputFileSearch = "*.L1"
- ,outputFileExt   = Just "res"
- ,compute = \l1File (Just resFile) -> do 
-   actual   <- runVal <$> compileFileAndRunNative l1Language opts l1File
-   expected <- readFile resFile
-   strip actual @?= strip expected
 }
 spillTests = TestDef {
   name = "Spill"
@@ -108,6 +86,8 @@ spillTests = TestDef {
     expected <- readFile resFile
     sread (spillTest s) @?= sread expected
 }
+
+l1Tests        = oneLevelTestDef l1Language ["test/x86-64-tests"]
 
 l2Tests        = oneLevelTestDef l2Language [testDir ++ "2-test"]
 l2TurtlesTests = turtlesTestDef  l2Language [testDir ++ "2-test"]
@@ -126,40 +106,50 @@ l4Tests        = oneLevelTestDef l4Language l4Dirs
 l4TurtlesTests = turtlesTestDef  l4Language l4Dirs
 
 l5_2010_Dir sub = testDir ++ "L5-tests-from-2010/" ++ sub
-l5Dirs = [l5_2010_Dir "burgener",
+l5Dirs = [--l5_2010_Dir "burgener",
           --l5_2010_Dir "mcglynn", -- 100% cpu
-          l5_2010_Dir "hartglass",
-          l5_2010_Dir "kleinfindler",
-          l5_2010_Dir "shawger"]
+          --l5_2010_Dir "hartglass",
+          l5_2010_Dir "kleinfindler"]--,
+          --l5_2010_Dir "shawger"]
 l5Tests        = oneLevelTestDef l5Language l5Dirs
 l5TurtlesTests = turtlesTestDef  l5Language l5Dirs
 
 oneLevelTestDef :: Language i o -> [FilePath] -> TestDef
-oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNative
+oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNativeVsRes
 
 turtlesTestDef :: Language i o -> [FilePath] -> TestDef
 turtlesTestDef lang dirs' = langTestDef lang "Turtles" dirs' runAndCompareInterpTurtlesVsNative
 
-langTestDef :: Language i o -> String -> [FilePath] -> (Language i o -> FilePath -> IO ()) -> TestDef
+langTestDef :: Language i o  ->
+               String        ->
+               [FilePath]    ->
+               (Language i o -> FilePath -> FilePath -> IO ()) ->
+               TestDef
 langTestDef lang name dirs' runFunction = TestDef {
   name = ext lang ++ " " ++ name
  ,dirs  = dirs'
  ,inputFileSearch = "*." ++ (ext lang)
- ,outputFileExt   = Nothing
- ,compute = \file _ -> runFunction lang file
+ ,outputFileExt   = Just "res"
+ ,compute = \inputFile (Just resFile) -> runFunction lang inputFile resFile
 }
 
-runAndCompareInterpVsNative :: Language i o -> FilePath -> IO ()
-runAndCompareInterpVsNative lang inputFile = do
-  nativeRes <- strip . runVal <$> compileFileAndRunNative lang opts inputFile
-  interpRes <- strip  <$> runInterp lang inputFile
-  nativeRes @?= interpRes
+runAndCompareInterpVsNativeVsRes :: Language i o -> FilePath -> FilePath -> IO ()
+runAndCompareInterpVsNativeVsRes lang inputFile resFile = do
+  nativeRes     <- runVal <$> compileFileAndRunNative lang opts inputFile
+  interpRes     <- runInterp lang inputFile
+  resFileExists <- doesFileExist resFile
+  expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
+  let resultList = fmap strip $ [nativeRes, interpRes] ++ if resFileExists then [expectedRes] else []
+  assertList resultList
 
-runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> IO ()
-runAndCompareInterpTurtlesVsNative lang inputFile = do
+runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> FilePath -> IO ()
+runAndCompareInterpTurtlesVsNative lang inputFile resFile = do
   nativeRes     <- Right . strip . runVal <$> compileFileAndRunNative lang opts inputFile
-  interpResList <- (fmap (fmap strip)) <$> (interpretTurtlesFile lang opts inputFile)
-  assertList $ nativeRes : interpResList
+  interpResList <- (fmap $ fmap strip) <$> (interpretTurtlesFile lang opts inputFile)
+  resFileExists <- doesFileExist resFile
+  expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
+  let resultList = nativeRes : interpResList ++ if resFileExists then [Right expectedRes] else []
+  assertList $ resultList
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   findFiles :: FilePath -> IO [FilePath]
@@ -171,7 +161,7 @@ tree def = testGroup (name def) . fmap mkTest <$> testFiles where
     compute def inputFile (extension (const (outputFileExt def)) inputFile)
 
 assertList :: (Eq a, Show a) => [a] -> IO ()
-assertList (x1:x2:xs) = (x1 @?= x2) >> assertList xs
+assertList (x1:x2:xs) = (x1 @?= x2) >> assertList (x2:xs)
 assertList _          = return ()
 
 {-
