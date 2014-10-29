@@ -121,7 +121,7 @@ interpE (Let v d e) = do
   locally (Map.insert v d') (interpE e)
 interpE (IfStatement v te fe) = do
   v' <- interpV v
-  interpE $ if v' == lTrue then te else fe
+  interpE $ if v' /= lFalse then te else fe
 interpE (DE d) = interpD d
 
 interpD :: D -> M Runtime

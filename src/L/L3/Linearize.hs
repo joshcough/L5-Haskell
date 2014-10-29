@@ -35,7 +35,7 @@ compileE (Let v d e) = liftM2 (++) (compileD d (VarL2X v)) (compileE e)
 compileE (IfStatement v t f) = do
   (temp,thenLabel,elseLabel) <- liftM3 (,,) newTemp newLabel newLabel
   (v',t',f') <- liftM3 (,,) (compileD (VD v) temp) (compileE t) (compileE f)
-  let test = CJump (Comp (compileV v) L2.EQ l2True) thenLabel elseLabel
+  let test = CJump (Comp (compileV v) L2.EQ l2False) elseLabel thenLabel
   return $ concat [v', [test], [LabelDeclaration thenLabel], t', [LabelDeclaration elseLabel], f']
 -- if it is an function call, make a tail call
 compileE (DE (FunCall v vs)) = return $ compileFunCall v vs Nothing
@@ -179,8 +179,8 @@ withArrayIndex basePointer indexV dest finalInstsFromIndex = do
 -- TODO: some of these are also in other code.
 argRegisters :: [Register]
 argRegisters = [rdi, rsi, rdx, rcx, r8, r9]
-l2True :: L2S
-l2True = NumberL2S 3
+l2False :: L2S
+l2False = NumberL2S 1
 regRHS :: Register -> AssignRHS x L2S
 regRHS = SRHS . XL2S . RegL2X
 toLHS :: Register -> L2X
