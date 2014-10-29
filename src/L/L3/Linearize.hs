@@ -13,8 +13,8 @@ linearize l3 = fst $ runState (linearizeM l3) 0
 
 linearizeM :: L3 -> State Int L2
 linearizeM (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
-  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":__L3main__", Return]
-  l2MainInsts = (LabelDeclaration ":__L3main__" :) <$> compileE e
+  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":_L3main_", Return]
+  l2MainInsts = (LabelDeclaration ":_L3main_" :) <$> compileE e
   l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (traverse compileFunction funcs)
 
 -- (l (x ...) e)
@@ -201,7 +201,7 @@ newTemp  = VarL2X <$> newId
 newLabel :: State Int String
 newLabel = (':':) <$> newId
 newId :: State Int String
-newId = do { n <- get; put (n + 1); return $ "_tempL3_" ++ show n }
+newId = do { n <- get; put (n + 1); return $ "_l3_" ++ show n }
 memRead :: Variable -> AssignRHS L2X L2S
 memRead v = MemRead (MemLoc (VarL2X v) 0)
 compileError :: String -> a

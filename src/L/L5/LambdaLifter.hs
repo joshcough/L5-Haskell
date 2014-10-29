@@ -227,8 +227,8 @@ subst x y = f where
   f e@(PrimE _)            = e
 
 newVar :: State Int Variable
-newVar = incState "__L5_var"
+newVar = incState "_l5_"
 newLabel :: State Int Label
-newLabel = incState ":__L5_label"
+newLabel = incState ":l5_"
 incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }

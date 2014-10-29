@@ -15,9 +15,9 @@ import L.L4.L4AST as L4
 freshenVar :: Variable -> State Int Variable
 freshenVar = incState
 newVar :: State Int Variable
-newVar = freshenVar "l4"
+newVar = freshenVar "_l4_"
 newLabel :: State Int Label
-newLabel = freshenVar ":l4"
+newLabel = freshenVar ":l4_"
 incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ "_" ++  show n }
 
@@ -116,7 +116,7 @@ freeVars e = nub $ f e [] where
   ve = DE . VD
   f :: L3.E -> [Variable] -> [Variable]
   f (L3.Let x r body)         bv = f (DE r) bv ++ f body (x : bv)
-  f (L3.IfStatement e a b)    bv = f (ve e) bv ++ f a bv ++  f b bv
+  f (L3.IfStatement e a b)    bv = f (ve e) bv ++ f a bv ++ f b bv
   f (DE (VD (L3.VarV v)))     bv = maybe [v] (const []) $ Data.List.find (v==) bv
   f (DE (VD _))               _  = []
   f (DE (L3.MakeClosure _ v)) bv = f (ve v) bv
