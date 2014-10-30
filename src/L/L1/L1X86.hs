@@ -106,10 +106,9 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   
   genCompInst cx l r x = [
     triple "cmp" (genS l) (genS r),
-    x ++ " " ++ (low8 cx),
-    triple "movzbq" (low8 cx) (genReg cx) ]
-    where low8 cx = "%" ++ [show cx !! 1] ++ "l"
-  
+    x ++ " %" ++ (low8 cx),
+    triple "movzbq" ("%" ++ low8 cx) (genReg cx) ]
+
   declare (':' : label) = showLabel label ++ ":"
   declare l = badLabel l
   triple op s1 s2 = op ++ " " ++ s1 ++ ", " ++ s2

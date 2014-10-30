@@ -29,7 +29,7 @@ allocate f = Func finalL1Body where
           This represents where those variables will live.
       - The number of variables in the original function that were spilled.
    -}
-  (allocatedBody, allocs, nrVarsSpilled) = allocateCompletely (body f)
+  (Allocation allocatedBody allocs nrVarsSpilled liveRangesList) = allocateCompletely (body f)
   {-
     L2 requires that all functions have labels (names), except for main.
     Later, when decrement the stack, we need it to come after the label.
@@ -41,16 +41,18 @@ allocate f = Func finalL1Body where
     _ -> LabelDeclaration ":main"
 
   {-
+    TODO: re-document what is going on here...
+
+    some of the old documentation:
+
     Make sure the stack is always aligned to 16 bytes, which is an x86-64 requirement.
     on any call to a function, an 8 byte address is put on the stack.
     so right off the bat we need to decrement the stack pointer by 8.
     after that, the number of vars spilled determines how much more stack space we use.
     currently, 8 bytes is used for each variable, L2 doesn't yet support any data types
     (hopefully that will change in the future)
-    so, to keep the stack 16 byte aligned under the current scheme
-    if the number of vars spilled is odd, we have to decrement by 8 more bytes.
    -}
-  offset = 8 + (if even nrVarsSpilled then nrVarsSpilled * 8 else nrVarsSpilled * 8 + 8)
+  offset = nrVarsSpilled * 16 + 8
   decEsp = MathInst (RegL2X rsp) decrement (NumberL2S (fromIntegral offset))
   incEsp = MathInst (RegL2X rsp) increment (NumberL2S (fromIntegral offset))
 
@@ -75,37 +77,33 @@ allocate f = Func finalL1Body where
   {- Finally, we replace all the variables with the registers they will live in. -}
   finalL1Body = replaceVarsWithRegisters allocs finalL2Body
 
+data Allocation = Allocation {
+  instructions       :: [L2Instruction]
+ ,registerMappings   :: Map Variable Register
+ ,nrVariablesSpilled :: Int
+ ,liveRangesList     :: [[LiveRange]]
+}
 
-allocateCompletely :: [L2Instruction] -> ([L2Instruction], Map Variable Register, Int)
+
+allocateCompletely :: [L2Instruction] -> Allocation
 allocateCompletely body = evalState (go 0 body) 0
   where
-    go :: Int -> [L2Instruction] -> State Int ([L2Instruction], Map Variable Register, Int)
+    go :: Int -> [L2Instruction] -> State Int Allocation
     go offset insts =
-      let (Interference g) = buildInterferenceGraph $ liveness insts
+      let instsLiveness    = liveness insts
+          instsLiveRanges  = liveRanges instsLiveness
+          (Interference g) = buildInterferenceGraph instsLiveness
       in case attemptAllocation (Interference g) of
-        Just registerMap -> return (insts, registerMap, offset)
+        Just registerMap -> return $ Allocation insts registerMap offset instsLiveRanges
         Nothing ->
           -- find the next variable to spill by figuring out which one has the most connections
           -- TODO: tie should go to the one with the longest liverange.
           let vs = Set.toList $ vars g
-              s (v1, n1) (v2, n2) = compare n1 n2
+              s (_, n1) (_, n2) = compare n1 n2
               f (v, _) = not $ isPrefixOf defaultSpillPrefix v
-              conns = filter f $ reverse $ sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
+              conns = filter f . sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
               v = fst $ head conns
           in spillDef (v, offset * 16) insts >>= go (offset + 1)
-
-{-
-  OLD STUFF THAT USED foldM.
-  --nrVarsToSpill = length varsToSpill
-  --rspOffset = (- nrVarsToSpill * 8) - (if even nrVarsToSpill then 0 else 8)
-  --finalState = runState (foldM (flip spillDef) (body originalF) (zipWithIndex varsToSpill)) 0
-  --finalBody = fst runState
-  --finalOffset = snd runState
-  --g = buildInterferenceGraph $ liveness finalBody
-  --in case attemptAllocation g of
-  --  Just registerMap -> traceA ((Func newBody, registerMap), rspOffset)
-  --  Nothing -> error "allocation impossible"
- -}
 
 -- TODO: this stuff should be someplace better than this
 regSet :: Set Register

@@ -166,7 +166,7 @@ inout is =
   in inout_ [emptyStartSet]
 
 -- TODO: not using usages just yet, but it should be used in ties.
-data LiveRange = LiveRange { x :: L2X, range :: Int, usages :: Int }
+data LiveRange = LiveRange { l2x :: L2X, range :: Int, usages :: Int } deriving Show
 lr :: L2X -> Int -> LiveRange
 lr x r = LiveRange x r 0
 instance Eq LiveRange where
@@ -180,11 +180,7 @@ liveRanges iioss =
       inSets = fmap inSet iioss
       varsAndRegisters :: [L2X]
       varsAndRegisters = sort . Set.toList $ foldl f Set.empty inSets where
-        f acc s = error "todo: live ranges"
--- val variablesAndRegisters = inSets.foldLeft(Set[X]()){
---   -      case (acc, s) => acc union s
---   -      -    }.filterNot(x => x == ebp || x == esp)
---   -
+        f acc s = Set.union acc s
       liveRanges1 :: L2X -> [Set L2X] -> [LiveRange]
       liveRanges1 _ [] = []
       liveRanges1 x sets@(s:_)
