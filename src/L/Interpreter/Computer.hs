@@ -12,10 +12,10 @@
 
 module L.Interpreter.Computer where
 
+import Control.Applicative
 import Control.Lens hiding (set)
 import Control.Monad.Error.Class
 import Control.Monad.Reader
-import Control.Monad.State
 import Control.Monad.ST.Class
 import Data.Int
 import Data.Map (Map)
@@ -24,10 +24,12 @@ import Data.Monoid()
 import Data.Vector (Vector, freeze)
 import qualified Data.Vector as Vector
 import Prelude hiding (read)
-import L.L1L2AST hiding (registers)
+import L.L1L2AST
 import L.Interpreter.Memory
+import L.Interpreter.Output
+import L.Interpreter.Runtime
 
-type RegisterState = Map Register Int64
+type RegisterState = Map Register Runtime
 type Ip = Int64 -- instruction pointer
 
 data ComputationResult a = ComputationResult {
@@ -51,9 +53,34 @@ makeClassy ''Computer
 
 data FrozenComputer = FrozenComputer {
   frozenRegisters :: RegisterState
- ,frozenMemory    :: Vector Int64
- ,frozenHeap      :: Int64
+ ,frozenMemory    :: Vector Runtime
+ ,frozenHeapP     :: Int64
 }
+
+data ShownComputer = ShownComputer {
+  runStateS         :: String
+ ,nonZeroregistersS :: String
+ ,memoryS           :: String
+ ,heapPS            :: String
+ ,outputS           :: String
+} deriving Show
+
+-- TODO: we have the ability to distinguish between stdout and stderr
+--       we shold be able to use that
+--       but forcing us into a string here makes this difficult.
+instance Show (ComputationResult FrozenComputer) where
+  -- no need to show anything other than the output, if halted normally.
+  show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
+  show c = error $ showCRFC c where
+    showCRFC :: ComputationResult FrozenComputer -> String
+    showCRFC (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
+    showCRFC (ComputationResult output rs c) = show $
+      ShownComputer
+        (show rs)
+        (show . Map.map showRuntime . Map.filter ((/=) (Num 0)) $ frozenRegisters c)
+        (show . map showRuntime . take 10 . Vector.toList $ frozenMemory c)
+        (show   $ frozenHeapP  c)
+        (concat $ fmap outputText output)
 
 instance HasMemory (Computer s a) s where memory = computerMem
 
@@ -62,7 +89,7 @@ freezeComputer c = do
   m <- liftST $ freeze (_runMemory $ _computerMem c)
   return $ FrozenComputer (_registers c) m (_heapP $ _computerMem c)
 
-type MonadComputer c m a = (HasComputer c (World m) a, MonadMemory c m a)
+type MonadComputer c m a = (HasComputer c (World m) a, MonadMemory c m)
 
 bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
 bind2 f ma mb = do a <- ma; b <- mb; f a b
@@ -70,46 +97,30 @@ bind2 f ma mb = do a <- ma; b <- mb; f a b
 rspStart :: Int64
 rspStart = fromIntegral memSize * 8
 
-registerStartState :: Map Register Int64
-registerStartState = Map.fromList [
- (rax, zero),
- (rbx, zero),
- (rcx, zero),
- (rdx, zero),
- (rdi, zero),
- (r8 , zero),
- (r9 , zero),
- (r10, zero),
- (r11, zero),
- (r12, zero),
- (r13, zero),
- (r14, zero),
- (r15, zero),
- (rsi, zero),
- (rbp, zero),
- (rsp, rspStart) ]
+registerStartState :: Map Register Runtime
+registerStartState = Map.insert rsp (Num rspStart) $ Map.fromList $ zip registersList (repeat $ Num 0)
 
 newComputer :: (MonadST m, Show x, Show s) => Program x s -> m (Computer (World m) (Instruction x s))
 newComputer p = do
   m <-  newMem
   return $ Computer {
-            _registers   = registerStartState,
-            _computerMem = m,
-            _program     = Vector.fromList insts,
-            _labels      = Map.map fromIntegral $ labelIndices insts,
-            _ip          = 0
-          } where insts = programToList p
+    _registers   = registerStartState,
+    _computerMem = m,
+    _program     = Vector.fromList insts,
+    _labels      = Map.map fromIntegral $ labelIndices insts,
+    _ip          = 0
+  } where insts = programToList p
 
 -- set the value of a register to an int value
-writeReg :: (MonadState c m, HasComputer c v a) => Register -> Int64 -> m ()
+writeReg :: MonadComputer c m a => Register -> Runtime -> m ()
 writeReg reg newValue = registers.at reg ?= newValue
 
 -- set the value of r1 to the value of r2
-set :: (MonadState c m, HasComputer c v a) => Register -> Register -> m ()
+set :: MonadComputer c m a => Register -> Register -> m ()
 set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
-readReg :: MonadComputer c m a => Register -> m Int64
+readReg :: MonadComputer c m a => Register -> m Runtime
 readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: unitialized register: " ++ show r) return
 
 -- push the given int argument onto the top of the stack
@@ -117,46 +128,50 @@ readReg r = use (registers.at r) >>= maybe (throwError . Exceptional $ "error: u
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: MonadComputer c m a => Int64 -> m ()
+push :: MonadComputer c m a => Runtime -> m ()
 push value = do
-  rspVal <- readReg rsp
-  writeReg rsp (rspVal - 8)
-  writeMem "push" (rspVal - 8) value
+  rspVal  <- readReg rsp
+  rspVal' <- expectNum rspVal
+  writeReg rsp (Num $ rspVal' - 8)
+  writeMem "push" (Num $ rspVal' - 8) value
 
 -- pop the top value off the stack into the given register
 -- adjust rsp accordingly.
 pop :: MonadComputer c m a => Register -> m ()
 pop r = do
-  rspVal <- readReg rsp
+  rspVal  <- readReg rsp
+  rspValN <- expectNum rspVal
   s      <- readMem "pop" rspVal
   writeReg r s
-  writeReg rsp (rspVal + 8)
+  writeReg rsp (Num $ rspValN + 8)
 
 findLabelIndex :: MonadComputer c m a => Label -> m Int64
 findLabelIndex l = use (labels.at l) >>= maybe (exception $ "no such label: " ++ l) return
 
-goto :: (MonadState c m, HasComputer c v a) => Ip -> m ()
-goto i = ip .= i
+goto :: MonadComputer c m a => Runtime -> m ()
+goto (Num i) = ip .= i
+goto (Pointer p) = exception $ "goto called with pointer: " ++ show p
+goto (FunctionPointer l) = do i <- findLabelIndex l; ip .= i
 
 currentInst :: MonadComputer c m a => m a
 currentInst = do
   ip' <- uses ip fromIntegral
   p   <- use program
   when (ip' >= memSize || ip' < 0) halt
-  return $ p Vector.! ip'
+  return $ p Vector.! (fromIntegral ip')
 
-hasNextInst :: (MonadState c m, HasComputer c v a) => m Bool
+hasNextInst :: MonadComputer c m a => m Bool
 hasNextInst = do
   ip' <- use ip
   p   <- use program
   return $ ip' < (fromIntegral $ Vector.length p)
 
 -- advance the computer to the next instruction
-nextInst :: (MonadState c m, HasComputer c v a) => m ()
+nextInst :: MonadComputer c m a => m ()
 nextInst = ip += 1
 
 -- goto the next instruction after writing a register
-nextInstWR :: MonadComputer c m a => Register -> Int64 -> m ()
+nextInstWR :: MonadComputer c m a => Register -> Runtime -> m ()
 nextInstWR r i = writeReg r i >> nextInst
 
 -- the main loop, runs a computer until completion

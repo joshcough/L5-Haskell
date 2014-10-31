@@ -167,15 +167,15 @@ instance (Show x) => Show (MemLoc x) where
 instance (Show s) => Show (Comp s) where
   show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]
 
-registers :: [Register]
-registers      = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
+registersList :: [Register]
+registersList   = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
 -- saving r15 for storing labels into memory
 allocatableRegisters :: AsRegister t => [t]
 allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14]
 registerNames :: [String]
-registerNames  = fmap show registers
+registerNames  = fmap show registersList
 registerNamesMap :: Map String Register
-registerNamesMap = Map.fromList (zip registerNames registers)
+registerNamesMap = Map.fromList (zip registerNames registersList)
 
 registerFromName :: String -> Either String Register
 registerFromName s = maybe 

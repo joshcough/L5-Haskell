@@ -13,6 +13,8 @@ import Data.Int
 import Data.Vector.Generic.Mutable (length)
 import L.Interpreter.Computer
 import L.Interpreter.Memory
+import L.Interpreter.Output
+import L.Interpreter.Runtime
 import L.L1L2AST
 import L.L1L2MainAdjuster (adjustMain)
 import Prelude hiding (length, print)
@@ -20,16 +22,7 @@ import Prelude hiding (length, print)
 -- run the given L1 program to completion on a new computer
 -- return the computer as the final result.
 interpL1 :: L1 -> String
-interpL1 p = runST $ handleResult <$> runL1Computation p
-
--- TODO: we have the ability to distinguish between stdout and stderr
---       we shold be able to use that
---       but forcing us into a string here makes this difficult.
-handleResult :: ComputationResult FrozenComputer -> String
-handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
--- todo: maybe show output thus far for the follow error cases
-handleResult (ComputationResult _ (Halted (Exceptional msg)) _) = error msg
-handleResult (ComputationResult _ Running _) = error $ "computer still running"
+interpL1 p = runST $ show <$> runL1Computation p
 
 runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult FrozenComputer)
 runL1Computation p = do
@@ -39,41 +32,50 @@ runL1Computation p = do
   return $ mkComputationResult (output, (haltEither, fzc))
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
-step (Assign r (CompRHS (Comp s1 op s2))) =
-  bind2 (\s1' s2' -> nextInstWR r $ if cmp op s1' s2' then 1 else 0) (readS s1) (readS s2)
+step (Assign r (CompRHS (Comp s1 op s2))) = do
+  s1' <- readNum s1
+  s2' <- readNum s2
+  nextInstWR r $ if cmp op s1' s2' then Num 1 else Num 0
 step (Assign r (MemRead (MemLoc x offset))) = do
-  index <- readReg x <&> (+ fromIntegral offset)
+  x'    <- readReg x
+  index <- addRuntimes x' (Num $ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWR r
 step (Assign r (Allocate size datum)) = do
   hp <- bind2 allocate (readS size) (readS datum)
   nextInstWR r hp
-step (Assign r (Print s)) = (readS s >>= print) >> nextInstWR r 1
+step (Assign r (Print s)) = (readS s >>= print) >> nextInstWR r (Num 1)
 step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
 step (Assign r (SRHS s)) = readS s >>= nextInstWR r
 step (MathInst r op s) =
-  bind2 (\v s' -> nextInstWR r $ runOp op v s') (readReg r) (readS s)
+  bind2 (\v s' -> nextInstWR r $ Num $ runOp op v s') (readReg r >>= expectNum) (readS s >>= expectNum)
 step (CJump (Comp s1 op s2) l1 l2) = do
-  li <- bind2 (\s1 s2 -> findLabelIndex $ if cmp op s1 s2 then l1 else l2) (readS s1) (readS s2)
-  goto li
+  s1' <- readNum s1
+  s2' <- readNum s2
+  goto (FunctionPointer $ if cmp op s1' s2' then l1 else l2)
 step (MemWrite (MemLoc x offset) s) = do
-  index <- readReg x <&> (+ fromIntegral offset)
+  x'    <- readReg x
+  index <- addRuntimes x' (Num $ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
-step (Goto l) = findLabelIndex l >>= goto
+step (Goto l) = goto (FunctionPointer l)
 step (LabelDeclaration _) = nextInst
 step (Call s) = do
   func <- readS s
-  use ip >>= push . (1+)
+  use ip >>= push . Num . (1+)
   goto func
 step (TailCall s) = readS s >>= goto
 step Return = do
-  rspVal    <- readReg rsp
+  rspVal    <- readReg rsp >>= expectNum
   memLength <- liftM (8*) $ uses memory (length . _runMemory)
-  writeReg rsp (rspVal + 8)
+  newRspVal <- addRuntimes (Num rspVal) (Num 8)
+  writeReg rsp newRspVal
   let done = rspVal >= fromIntegral memLength
-  if done then halt else readMem "step Return" rspVal >>= goto
+  if done then halt else readMem "step Return" (Num rspVal) >>= goto
 
-readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
-readS (NumberL1S n) = return n
+readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Runtime
+readS (NumberL1S n) = return $ Num n
 readS (RegL1S r)    = readReg r
-readS (LabelL1S l)  = findLabelIndex l
+readS (LabelL1S l)  = return $ FunctionPointer l
+
+readNum :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
+readNum s = readS s >>= expectNum

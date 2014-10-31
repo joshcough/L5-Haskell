@@ -6,7 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module L.L2.L2Interp (interpL2, runL2Computation) where
+module L.L2.L2Interp where --(interpL2, runL2Computation) where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
@@ -29,8 +29,8 @@ import Prelude hiding (head, length, print, tail)
 -- run the given L2 program to completion on a new computer
 -- return the computer as the final result.
 interpL2 :: L2 -> String
-interpL2 p = runST $ handleResult <$> runL2Computation p
-
+interpL2 p = error "todo" --runST $ handleResult <$> runL2Computation p
+{-
 handleResult :: ComputationResult FrozenComputer -> String
 handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the following error cases
@@ -139,3 +139,4 @@ readX (VarL2X v) = do
 writeX :: MonadComputer (CE m) m a => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
+-}
