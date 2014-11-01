@@ -50,10 +50,11 @@ quickRunNative inputFile = g $ inputFile^.extension where
   g ".L2" = compileFileAndRunNative l2Language opts inputFile >>= return . show
   g ".L3" = compileFileAndRunNative l3Language opts inputFile >>= return . show
   g ".L4" = compileFileAndRunNative l4Language opts inputFile >>= return . show
+  g ".L5" = compileFileAndRunNative l5Language opts inputFile >>= return . show
   g _    = error $ "Error: bad L file: " ++ inputFile
 
-quickInterp :: Show o => FilePath -> IO (Either String String)
-quickInterp inputFile = g $ inputFile^.extension where
+quickInterp :: Show o => FilePath -> IO ()
+quickInterp inputFile = either id id <$> (g $ inputFile^.extension) >>= putStrLn where
   g ".L1" = interpretFile l1Language inputFile
   g ".L2" = interpretFile l2Language inputFile
   g ".L3" = interpretFile l3Language inputFile

@@ -18,6 +18,7 @@ import Control.Monad.Error.Class
 import Control.Monad.Reader
 import Control.Monad.ST.Class
 import Data.Int
+import Data.List (intersperse)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Monoid()
@@ -57,30 +58,18 @@ data FrozenComputer = FrozenComputer {
  ,frozenHeapP     :: Int64
 }
 
-data ShownComputer = ShownComputer {
-  runStateS         :: String
- ,nonZeroregistersS :: String
- ,memoryS           :: String
- ,heapPS            :: String
- ,outputS           :: String
-} deriving Show
-
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
 instance Show (ComputationResult FrozenComputer) where
   -- no need to show anything other than the output, if halted normally.
   show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
-  show c = error $ showCRFC c where
-    showCRFC :: ComputationResult FrozenComputer -> String
-    showCRFC (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
-    showCRFC (ComputationResult output rs c) = show $
-      ShownComputer
-        (show rs)
-        (show . Map.map showRuntime . Map.filter ((/=) (Num 0)) $ frozenRegisters c)
-        (show . map showRuntime . take 10 . Vector.toList $ frozenMemory c)
-        (show   $ frozenHeapP  c)
-        (concat $ fmap outputText output)
+  show (ComputationResult output rs c) = concat $ intersperse "\n" [
+    "Output:    " ++ (concat $ fmap outputText output),
+    "Run State: " ++ (show rs),
+    "Registers: " ++ (show . Map.map showRuntime . Map.filter ((/=) (Num 0)) $ frozenRegisters c),
+    "Memory:    " ++ (show . map showRuntime . take 10 . Vector.toList $ frozenMemory c),
+    "Heap Ptr:  " ++ (show $ frozenHeapP c)]
 
 instance HasMemory (Computer s a) s where memory = computerMem
 
