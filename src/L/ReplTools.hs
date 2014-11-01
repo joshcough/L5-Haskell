@@ -1,18 +1,14 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-
 module L.ReplTools (
-   quickCompile
+   cat
+  ,quickCompile
   ,quickCompileTurtles
   ,quickInterp
   ,quickRunNative
-  ,showFile
 ) where
 
 import Control.Applicative
 import Control.Lens
+import Control.Monad
 import Data.Default
 import L.Compiler
 import L.L1.L1
@@ -26,41 +22,50 @@ opts :: CompilationOptions
 opts = def
 
 -- TODO: really need a pretty printer for displaying the result in the repl
-quickCompile :: Show o => FilePath -> IO String
-quickCompile inputFile = g $ inputFile^.extension where
-  g ".L1" = compileFileAndWriteResult l1Language opts inputFile >>= return . show
-  g ".L2" = compileFileAndWriteResult l2Language opts inputFile >>= return . show
-  g ".L3" = compileFileAndWriteResult l3Language opts inputFile >>= return . show
-  g ".L4" = compileFileAndWriteResult l4Language opts inputFile >>= return . show
-  g ".L5" = compileFileAndWriteResult l5Language opts inputFile >>= return . show
-  g _    = error $ "Error: bad L file: " ++ inputFile
+quickCompile :: FilePath -> IO ()
+quickCompile inputFile = g $ inputFile^.extension  where
+  f :: Show o => Language i o -> IO ()
+  f l = liftM show (compileFileAndWriteResult l opts inputFile) >>= putStrLn
+  g ".L1" = f l1Language
+  g ".L2" = f l2Language
+  g ".L3" = f l3Language
+  g ".L4" = f l4Language
+  g ".L5" = f l5Language
+  g _     = error $ "Error: bad L file: " ++ inputFile
 
 quickCompileTurtles :: FilePath -> IO ()
 quickCompileTurtles inputFile = g $ inputFile^.extension where
-  g ".L1" = compileTurtlesFile l1Language opts inputFile
-  g ".L2" = compileTurtlesFile l2Language opts inputFile
-  g ".L3" = compileTurtlesFile l3Language opts inputFile
-  g ".L4" = compileTurtlesFile l4Language opts inputFile
-  g ".L5" = compileTurtlesFile l5Language opts inputFile
-  g _    = error $ "Error: bad L file: " ++ inputFile
+  f :: Language i o -> IO ()
+  f l = compileTurtlesFile l opts inputFile
+  g ".L1" = f l1Language
+  g ".L2" = f l2Language
+  g ".L3" = f l3Language
+  g ".L4" = f l4Language
+  g ".L5" = f l5Language
+  g _     = error $ "Error: bad L file: " ++ inputFile
 
-quickRunNative :: Show o => FilePath -> IO String
-quickRunNative inputFile = g $ inputFile^.extension where
-  g ".L1" = compileFileAndRunNative l1Language opts inputFile >>= return . show
-  g ".L2" = compileFileAndRunNative l2Language opts inputFile >>= return . show
-  g ".L3" = compileFileAndRunNative l3Language opts inputFile >>= return . show
-  g ".L4" = compileFileAndRunNative l4Language opts inputFile >>= return . show
-  g ".L5" = compileFileAndRunNative l5Language opts inputFile >>= return . show
-  g _    = error $ "Error: bad L file: " ++ inputFile
+quickRunNative :: FilePath -> IO ()
+quickRunNative inputFile = g $ inputFile^.extension  where
+  f :: Language i o -> IO ()
+  f l = liftM show (compileFileAndRunNative l opts inputFile) >>= putStrLn
+  g ".L1" = f l1Language
+  g ".L2" = f l2Language
+  g ".L3" = f l3Language
+  g ".L4" = f l4Language
+  g ".L5" = f l5Language
+  g _     = error $ "Error: bad L file: " ++ inputFile
 
-quickInterp :: Show o => FilePath -> IO ()
-quickInterp inputFile = either id id <$> (g $ inputFile^.extension) >>= putStrLn where
-  g ".L1" = interpretFile l1Language inputFile
-  g ".L2" = interpretFile l2Language inputFile
-  g ".L3" = interpretFile l3Language inputFile
-  g ".L4" = interpretFile l4Language inputFile
-  g ".L5" = interpretFile l5Language inputFile
-  g _    = error $ "Error: bad L file: " ++ inputFile
+quickInterp :: FilePath -> IO ()
+quickInterp inputFile = g $ inputFile^.extension where
+  f :: Language i o -> IO ()
+  f l = either id id <$> interpretFile l inputFile >>= putStrLn
+  g ".L1" = f l1Language
+  g ".L2" = f l2Language
+  g ".L3" = f l3Language
+  g ".L4" = f l4Language
+  g ".L5" = f l5Language
+  g _     = error $ "Error: bad L file: " ++ inputFile
 
-showFile :: FilePath -> IO ()
-showFile f = lines <$> readFile f >>= mapM_ putStrLn
+cat :: FilePath -> IO ()
+cat f = readFile f >>= putStrLn
+
