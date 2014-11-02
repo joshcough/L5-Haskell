@@ -32,31 +32,30 @@ runL1Computation p = do
   return $ mkComputationResult (output, (haltEither, fzc))
 
 step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
-step (Assign r (CompRHS (Comp s1 op s2))) = do
+step (Assign x (CompRHS (Comp s1 op s2))) = do
   s1' <- readNum s1
   s2' <- readNum s2
-  nextInstWR r $ Num (if cmp op s1' s2' then 1 else 0)
-step (Assign r (MemRead (MemLoc x offset))) = do
-  x'    <- readReg x >>= flip expectPointer "MemRead"
+  nextInstWX x $ Num (if cmp op s1' s2' then 1 else 0)
+step (Assign x1 (MemRead (MemLoc x2 offset))) = do
+  x'    <- readX x2 >>= flip expectPointer "MemRead"
   index <- runOp (Pointer x') Increment (Num $ fromIntegral offset)
-  readMem "MemRead" index >>= nextInstWR r
-step (Assign r (Allocate size datum)) = do
-  hp <- bind2 allocate (readS size) (readS datum)
-  nextInstWR r hp
-step (Assign r (Print s)) = (readS s >>= print) >> nextInstWR r (Num 1)
+  readMem "MemRead" index >>= nextInstWX x1
+step (Assign x (Allocate size datum)) =
+  bind2 allocate (readS size) (readS datum) >>= nextInstWX x
+step (Assign x (Print s)) = (readS s >>= print) >> nextInstWX x (Num 1)
 step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
-step (Assign r (SRHS s)) = readS s >>= nextInstWR r
-step (MathInst r op s) = do
-  rv     <- readReg r
+step (Assign r (SRHS s)) = readS s >>= nextInstWX r
+step (MathInst x op s) = do
+  xv     <- readX x
   sv     <- readS s
-  newVal <- runOp rv op sv
-  nextInstWR r newVal
+  newVal <- runOp xv op sv
+  nextInstWX x newVal
 step (CJump (Comp s1 op s2) l1 l2) = do
   s1' <- readNum s1
   s2' <- readNum s2
   goto (FunctionPointer $ if cmp op s1' s2' then l1 else l2)
 step (MemWrite (MemLoc x offset) s) = do
-  x'    <- readReg x
+  x'    <- readX x
   index <- runOp x' Increment (Num $ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
@@ -68,17 +67,27 @@ step (Call s) = do
   goto func
 step (TailCall s) = readS s >>= goto
 step Return = do
-  rspVal    <- readReg rsp >>= flip expectPointer "Return"
+  rspVal    <- readX rsp >>= flip expectPointer "Return"
   memLength <- liftM (8*) $ uses memory (length . _runMemory)
   newRspVal <- runOp (Pointer rspVal) Increment (Num 8)
   writeReg rsp newRspVal
   let done = rspVal >= fromIntegral memLength
   if done then halt else readMem "Return" (Pointer rspVal) >>= goto
 
+-- goto the next instruction after writing a register
+nextInstWX :: MonadComputer c m a => Register -> Runtime -> m ()
+nextInstWX r i = writeX r i >> nextInst
+
 readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Runtime
 readS (NumberL1S n) = return $ Num n
-readS (RegL1S r)    = readReg r
+readS (RegL1S r)    = readX r
 readS (LabelL1S l)  = return $ FunctionPointer l
+
+readX :: MonadComputer c m a => Register -> m Runtime
+readX = readX
+
+writeX :: MonadComputer c m a => Register -> Runtime -> m ()
+writeX = writeX
 
 readNum :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
 readNum s = readS s >>= expectNum

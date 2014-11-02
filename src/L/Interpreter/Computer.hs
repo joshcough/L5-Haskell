@@ -166,10 +166,6 @@ hasNextInst = do
 nextInst :: MonadComputer c m a => m ()
 nextInst = ip += 1
 
--- goto the next instruction after writing a register
-nextInstWR :: MonadComputer c m a => Register -> Runtime -> m ()
-nextInstWR r i = writeReg r i >> nextInst
-
 -- the main loop, runs a computer until completion
 runComputer :: (MonadOutput m, MonadComputer c m a) => (a -> m ()) -> m ()
 runComputer step = forever $ currentInst >>= step
