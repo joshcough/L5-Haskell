@@ -30,7 +30,7 @@ import Prelude hiding (head, length, print, tail)
 -- return the computer as the final result.
 interpL2 :: L2 -> String
 interpL2 p = error "todo" --runST $ handleResult <$> runL2Computation p
-{-
+
 handleResult :: ComputationResult FrozenComputer -> String
 handleResult (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
 -- todo: maybe show output thus far for the following error cases
@@ -139,4 +139,3 @@ readX (VarL2X v) = do
 writeX :: MonadComputer (CE m) m a => L2X -> Int64 -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
--}
