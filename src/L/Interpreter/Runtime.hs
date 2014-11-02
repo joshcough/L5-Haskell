@@ -23,6 +23,8 @@ runOp (Num l)     Multiply   (Num r)      = return $ Num     (l * r)
 runOp (Num i)     LeftShift  (Num amount) = return $ Num $   shiftL i (fromIntegral amount)
 runOp (Num i)     RightShift (Num amount) = return $ Num $   shiftR i (fromIntegral amount)
 runOp (Num l)     BitwiseAnd (Num r)      = return $ Num     (l .&. r)
+-- If you're going to mess with pointers like this, you're just going to get back a Num.
+runOp (Pointer l) BitwiseAnd (Num r)      = return $ Num     (l .&. r)
 runOp l op r  = exception $
   "cannot do " ++ showRuntime l ++ " " ++ x86OpSymbol op ++ " " ++ showRuntime r
 

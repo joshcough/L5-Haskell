@@ -70,7 +70,7 @@ step Return = do
   rspVal    <- readX rsp >>= flip expectPointer "Return"
   memLength <- liftM (8*) $ uses memory (length . _runMemory)
   newRspVal <- runOp (Pointer rspVal) Increment (Num 8)
-  writeReg rsp newRspVal
+  writeX rsp newRspVal
   let done = rspVal >= fromIntegral memLength
   if done then halt else readMem "Return" (Pointer rspVal) >>= goto
 
@@ -84,10 +84,10 @@ readS (RegL1S r)    = readX r
 readS (LabelL1S l)  = return $ FunctionPointer l
 
 readX :: MonadComputer c m a => Register -> m Runtime
-readX = readX
+readX = readReg
 
 writeX :: MonadComputer c m a => Register -> Runtime -> m ()
-writeX = writeX
+writeX = writeReg
 
 readNum :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
 readNum s = readS s >>= expectNum
