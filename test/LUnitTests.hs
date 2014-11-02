@@ -53,7 +53,7 @@ allTests = [
   l5TurtlesTests ]
 
 opts :: CompilationOptions
-opts = def & outputDir .~ (Just "./tmp")
+opts = def & outputDir .~ Just "./tmp"
 
 testDir = "./test/test-fest/"
 
@@ -128,7 +128,7 @@ langTestDef :: Language i o  ->
 langTestDef lang name dirs' runFunction = TestDef {
   name = ext lang ++ " " ++ name
  ,dirs  = dirs'
- ,inputFileSearch = "*." ++ (ext lang)
+ ,inputFileSearch = "*." ++ ext lang
  ,outputFileExt   = Just "res"
  ,compute = \inputFile (Just resFile) -> runFunction lang inputFile resFile
 }

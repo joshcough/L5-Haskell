@@ -1,5 +1,6 @@
 module L.ReplTools (
    cat
+  ,ls
   ,quickCompile
   ,quickCompileTurtles
   ,quickInterp
@@ -16,6 +17,7 @@ import L.L2.L2
 import L.L3.L3
 import L.L4.L4
 import L.L5.L5
+import System.Directory
 import System.FilePath.Lens
 
 opts :: CompilationOptions
@@ -69,3 +71,5 @@ quickInterp inputFile = g $ inputFile^.extension where
 cat :: FilePath -> IO ()
 cat f = readFile f >>= putStrLn
 
+ls :: FilePath -> IO [FilePath]
+ls = getDirectoryContents

@@ -48,15 +48,13 @@ memSizeAsInt :: Int
 memSizeAsInt = fromIntegral memSize
 
 newMem :: MonadST m => m (Memory (World m))
-newMem = liftST $ Memory <$> (MV.replicate memSizeAsInt $ Num zero) <*> pure 0
+newMem = liftST $ Memory <$> MV.replicate memSizeAsInt (Num zero) <*> pure 0
 
 -- write an int into memory at the given address
 writeMem :: MonadMemory mem m => String -> Runtime -> Runtime -> m ()
 writeMem caller addr value = do
-  p <- expectPointer addr
-  let index :: Int64
-      index = p `div` 8
-      inbounds :: Bool
+  p <- expectPointer addr (caller ++ "/writeMem")
+  let index = (p `div` 8) :: Int64
       inbounds = index < memSize
   if inbounds
     then do m <- use memory; liftST $ write (_runMemory m) (fromIntegral index) value
@@ -65,10 +63,8 @@ writeMem caller addr value = do
 -- read a single int from memory
 readMem :: MonadMemory mem m => String -> Runtime -> m Runtime
 readMem caller addr = do
-  p <- expectPointer addr
-  let index :: Int64
-      index = p `div` 8
-      inbounds :: Bool
+  p <- expectPointer addr (caller ++ "/readMem")
+  let index = (p `div` 8) :: Int64
       inbounds = index < memSize
   if inbounds
     then do m <- use memory; liftST $ read (_runMemory m) (fromIntegral index)
@@ -77,7 +73,7 @@ readMem caller addr = do
 -- read an array from memory
 readArray :: MonadMemory mem m => Runtime -> m (STVector (World m) Runtime)
 readArray addr = do
-  p    <- expectPointer addr
+  p    <- expectPointer addr "readArray"
   size <- evalAddrToNum p
   let startIndex :: Int
       startIndex = fromIntegral p `div` 8 + 1
@@ -96,10 +92,9 @@ encodeNum n = shiftR n 1
 -- TODO: test if heap runs into stack, and vice-versa
 allocate :: (MonadState mem m, MonadMemory mem m) => Runtime -> Runtime -> m Runtime
 allocate size r = do
-  hp <- use heapP
+  hp    <- use heapP
   size' <- encodeNum <$> expectNum size
   let rs      = Prelude.replicate (fromIntegral size') r
-      indices :: [Int]
       indices = [(fromIntegral $ hp `div` 8)..]
       rsWithIndices = Prelude.zip indices $ Num size' : rs
   do m <- use memory; liftST $ update (_runMemory m) (fromList rsWithIndices)
@@ -119,7 +114,7 @@ print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") where
       return $ h : t
   printContent :: Int -> Runtime -> m String
   printContent depth r
-    | depth >= 4   = return $ "..."
+    | depth >= 4   = return "..."
     | otherwise = case r of
       -- TODO: should i make sure that i is odd?
       -- n .&. 1 == 1 = return . show $ shiftR n 1
@@ -128,7 +123,7 @@ print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") where
         size      <- readMem "print" p >>= expectNum
         arr       <- readArray p
         contentsV <- loop arr depth 0
-        return $ "{s:" ++ (mkString ", " $ show size : contentsV) ++ "}"
+        return $ "{s:" ++ mkString ", " (show size : contentsV) ++ "}"
       FunctionPointer bad -> exception $ "cannot print a label, but tried to print: " ++ show bad
 
 -- print an array error

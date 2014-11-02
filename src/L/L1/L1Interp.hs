@@ -24,7 +24,7 @@ import Prelude hiding (length, print)
 interpL1 :: L1 -> String
 interpL1 p = runST $ show <$> runL1Computation p
 
-runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult FrozenComputer)
+runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenComputer L1Instruction))
 runL1Computation p = do
   c    <- newComputer $ adjustMain p
   (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runComputer step) c
@@ -35,10 +35,10 @@ step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m (
 step (Assign r (CompRHS (Comp s1 op s2))) = do
   s1' <- readNum s1
   s2' <- readNum s2
-  nextInstWR r $ if cmp op s1' s2' then Num 1 else Num 0
+  nextInstWR r $ Num (if cmp op s1' s2' then 1 else 0)
 step (Assign r (MemRead (MemLoc x offset))) = do
-  x'    <- readReg x
-  index <- addRuntimes x' (Num $ fromIntegral offset)
+  x'    <- readReg x >>= flip expectPointer "MemRead"
+  index <- runOp (Pointer x') Increment (Num $ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWR r
 step (Assign r (Allocate size datum)) = do
   hp <- bind2 allocate (readS size) (readS datum)
@@ -46,15 +46,18 @@ step (Assign r (Allocate size datum)) = do
 step (Assign r (Print s)) = (readS s >>= print) >> nextInstWR r (Num 1)
 step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
 step (Assign r (SRHS s)) = readS s >>= nextInstWR r
-step (MathInst r op s) =
-  bind2 (\v s' -> nextInstWR r $ Num $ runOp op v s') (readReg r >>= expectNum) (readS s >>= expectNum)
+step (MathInst r op s) = do
+  rv     <- readReg r
+  sv     <- readS s
+  newVal <- runOp rv op sv
+  nextInstWR r newVal
 step (CJump (Comp s1 op s2) l1 l2) = do
   s1' <- readNum s1
   s2' <- readNum s2
   goto (FunctionPointer $ if cmp op s1' s2' then l1 else l2)
 step (MemWrite (MemLoc x offset) s) = do
   x'    <- readReg x
-  index <- addRuntimes x' (Num $ fromIntegral offset)
+  index <- runOp x' Increment (Num $ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
 step (Goto l) = goto (FunctionPointer l)
@@ -65,12 +68,12 @@ step (Call s) = do
   goto func
 step (TailCall s) = readS s >>= goto
 step Return = do
-  rspVal    <- readReg rsp >>= expectNum
+  rspVal    <- readReg rsp >>= flip expectPointer "Return"
   memLength <- liftM (8*) $ uses memory (length . _runMemory)
-  newRspVal <- addRuntimes (Num rspVal) (Num 8)
+  newRspVal <- runOp (Pointer rspVal) Increment (Num 8)
   writeReg rsp newRspVal
   let done = rspVal >= fromIntegral memLength
-  if done then halt else readMem "step Return" (Num rspVal) >>= goto
+  if done then halt else readMem "Return" (Pointer rspVal) >>= goto
 
 readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Runtime
 readS (NumberL1S n) = return $ Num n

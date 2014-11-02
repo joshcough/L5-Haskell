@@ -80,10 +80,10 @@ getLabels is = is^..traverse._LabelDeclaration
 
 labelIndices :: [Instruction x s] -> Map Label Int
 labelIndices is = m where
-  l = swap <$> (zip is [0..])^@..folded.swapped.ifolded._LabelDeclaration
-  m = Map.fromList $ l
+  l = swap <$> zip is [0..]^@..folded.swapped.ifolded._LabelDeclaration
+  m = Map.fromList l
 
-programToList :: (Program x s) -> [Instruction x s]
+programToList :: Program x s -> [Instruction x s]
 programToList (Program main fs) = Prelude.concat $ fmap body $ main : fs
 
 increment, decrement, multiply, leftShift, rightShift, bitwiseAnd :: X86Op 
@@ -110,19 +110,11 @@ x86OpName LeftShift  = "salq"
 x86OpName RightShift = "sarq"
 x86OpName BitwiseAnd = "andq"
 
-runOp :: (Num a, Bits a, Integral a) => X86Op -> a -> a -> a
-runOp Increment  l r = l + r
-runOp Decrement  l r = l - r
-runOp Multiply   l r = l * r
-runOp LeftShift  i amount = shiftL i (fromIntegral amount)
-runOp RightShift i amount = shiftR i (fromIntegral amount)
-runOp BitwiseAnd l r = l .&. r
-
 instance (Show x, Show s) => Show (Program x s) where
   show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
 
 instance (Show x, Show s) => Show (Func x s) where
-  show (Func is) = "(" ++ (is >>= (\i -> (show i ++ "\n\t"))) ++ ")"
+  show (Func is) = "(" ++ (is >>= (\i -> show i ++ "\n\t")) ++ ")"
 
 instance (Show x, Show s) => Show (Instruction x s) where
   show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
@@ -305,4 +297,4 @@ instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
 
 orderedPair :: Ord a => a -> a -> (a, a)
-orderedPair a1 a2 = if (a1 < a2) then (a1, a2) else (a2, a1)
+orderedPair a1 a2 = if a1 < a2 then (a1, a2) else (a2, a1)
