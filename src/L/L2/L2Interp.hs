@@ -26,6 +26,7 @@ import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1L2AST
 import L.L1L2MainAdjuster
+import L.Utils (bind2)
 import Prelude hiding (head, length, print, tail)
 
 -- run the given L2 program to completion on a new computer
@@ -64,12 +65,12 @@ step (Assign x (CompRHS (Comp s1 op s2))) = do
   s2' <- readNum s2
   nextInstWX x $ Num (if cmp op s1' s2' then 1 else 0)
 step (Assign x1 (MemRead (MemLoc x2 offset))) = do
-  x'    <- readX x2 >>= flip expectPointer "MemRead"
+  x'    <- readX x2 >>= expectPointer "MemRead"
   index <- runOp (Pointer x') Increment (Num $ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWX x1
 step (Assign x (Allocate size datum)) =
   bind2 allocate (readS size) (readS datum) >>= nextInstWX x
-step (Assign x (Print s)) = (readS s >>= print) >> nextInstWX x (Num 1)
+step (Assign x (Print s)) = readS s >>= print >>= nextInstWX x
 step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
 step (Assign r (SRHS s)) = readS s >>= nextInstWX r
 step (MathInst x op s) = do
@@ -98,7 +99,7 @@ step (TailCall s) = do
   replaceHeadEnv Map.empty
   goto loc
 step Return = do
-  rspVal     <- readX rsp >>= flip expectPointer "Return"
+  rspVal     <- readX rsp >>= expectPointer "Return"
   memLength  <- liftM (8*) $ uses memory (length . _runMemory)
   (_:|es, c) <- get
   let done = rspVal >= fromIntegral memLength

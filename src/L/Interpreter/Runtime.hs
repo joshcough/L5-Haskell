@@ -37,6 +37,12 @@ expectNum :: MonadRuntime m => Runtime -> m Int64
 expectNum (Num i) = return i
 expectNum r       = exception $ "expected a Num, but got: " ++ showRuntime r
 
-expectPointer :: MonadRuntime m => Runtime -> String -> m Int64
-expectPointer (Pointer i) _ = return i
-expectPointer r caller      = exception $ caller ++ " expected Pointer, but got: " ++ showRuntime r
+expectPointer :: MonadRuntime m => String -> Runtime -> m Int64
+expectPointer _ (Pointer i) = return i
+expectPointer caller r      = exception $ caller ++ " expected Pointer, but got: " ++ showRuntime r
+
+foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
+foldRuntime fn fp fc = f where
+  f n@(Num _)             = fn n
+  f p@(Pointer _)         = fp p
+  f c@(FunctionPointer _) = fc c

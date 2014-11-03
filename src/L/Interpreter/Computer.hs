@@ -87,9 +87,6 @@ freezeComputer c = do
 
 type MonadComputer c m a = (HasComputer c (World m) a, MonadMemory c m)
 
-bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
-bind2 f ma mb = do a <- ma; b <- mb; f a b
-
 rspStart :: Int64
 rspStart = fromIntegral memSize * 8
 
@@ -127,7 +124,7 @@ readReg r = use (registers.at r) >>=
 --  into the contents of the 32-bit location at address [ESP]."
 push :: MonadComputer c m a => Runtime -> m ()
 push value = do
-  rspVal  <- readReg rsp >>= flip expectPointer "push"
+  rspVal  <- readReg rsp >>= expectPointer "push"
   writeReg rsp (Pointer $ rspVal - 8)
   writeMem "push" (Pointer $ rspVal - 8) value
 
@@ -136,7 +133,7 @@ push value = do
 pop :: MonadComputer c m a => Register -> m ()
 pop r = do
   rspVal  <- readReg rsp
-  rspValN <- expectPointer rspVal "pop"
+  rspValN <- expectPointer "pop" rspVal
   s       <- readMem "pop" rspVal
   writeReg r s
   writeReg rsp (Pointer $ rspValN + 8)

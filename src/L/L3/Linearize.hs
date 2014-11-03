@@ -188,12 +188,12 @@ toLHS = RegL2X
 (<~) :: x -> AssignRHS x s -> Instruction x s
 (<~) = Assign
 (+=), (-=), (*=), (>>), (<<), (&) :: x -> s -> Instruction x s
-(+=) x s = MathInst x Increment  s
-(-=) x s = MathInst x Decrement  s
-(*=) x s = MathInst x Multiply   s
-(>>) x s = MathInst x RightShift s
-(<<) x s = MathInst x LeftShift  s
-(&)  x s = MathInst x BitwiseAnd s
+(+=) x = MathInst x Increment
+(-=) x = MathInst x Decrement
+(*=) x = MathInst x Multiply
+(>>) x = MathInst x RightShift
+(<<) x = MathInst x LeftShift
+(&)  x = MathInst x BitwiseAnd
 num :: Int64 -> L2S
 num = NumberL2S
 newTemp  :: State Int L2X

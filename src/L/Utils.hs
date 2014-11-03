@@ -1,6 +1,8 @@
 module L.Utils
   (
     (|>)
+   ,bind2
+   ,bind3
    ,endsWith
    ,extract
    ,mkString
@@ -38,3 +40,9 @@ lstrip s = case s of
 
 rstrip :: String -> String
 rstrip = reverse . lstrip . reverse
+
+bind2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+bind2 f ma mb = do a <- ma; b <- mb; f a b
+
+bind3 :: Monad m => (a -> b -> c -> m d) -> m a -> m b -> m c -> m d
+bind3 f ma mb mc = do a <- ma; b <- mb; c <- mc; f a b c

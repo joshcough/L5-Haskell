@@ -1,11 +1,19 @@
-module L.L3.L3Interp (
-   evalL3
-  ,interpL3
-  ,runInterpL3
-) where
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+
+module L.L3.L3Interp (interpL3) where
 
 import Control.Applicative
+import Control.Arrow (second)
+import Control.Lens
 import Control.Monad.State
+import Control.Monad.ST
+import Control.Monad.ST.Class
+import Control.Monad.Trans.Error
 import Data.Array.IO (IOArray)
 import qualified Data.Array.IO as IOArray
 import Data.Int
@@ -15,280 +23,164 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Traversable
 import Debug.Trace
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
+import L.Interpreter.Computer
+import L.Interpreter.Memory
+import L.Interpreter.Output
+import L.Interpreter.Runtime
 import L.L1L2AST hiding (Func)
-import L.L3.L3AST as L3
+import L.L3.L3AST as L3 hiding (print)
 import L.Utils
+import Prelude hiding (print)
 import System.IO.Unsafe
 
-data Runtime = Num Int64 | Pointer Int64 | FunctionPointer Label deriving Eq
-type Output = [String]
-type Mem = (IOArray Int64 Runtime, Int64) -- heap, and heap pointer
 type Env = Map Variable Runtime
 type Lib = Map Label Func
-type M x = StateT L3Computer IO x
 
-data L3Computer = L3Computer {
-  env    :: Env
- ,mem    :: Mem
- ,output :: Output
- ,lib    :: Lib
+data L3Computer s = L3Computer {
+  _l3Env    :: Env
+ ,_l3Mem    :: Memory s
+ ,_l3Lib    :: Lib
 }
+makeClassy ''L3Computer
 
--- state functions
--- | get the env out of the state
-getEnv :: M Env
-getEnv = env <$> get
--- | get the library out of the state
-getLib :: M Lib
-getLib = lib <$> get
--- | get the memory out of the state
-getMem :: M Mem
-getMem = mem <$> get
--- | write the memory back to the state
-putMem :: Mem -> M ()
-putMem m = do c <- get; put c { mem = m }
--- | add some output
-addOutput :: String -> M ()
-addOutput s = do c <- get; put c { output = s : output c }
+data L3FrozenComputer = L3FrozenComputer {
+  _l3EnvFrozen    :: Env
+ ,_l3MemFrozen    :: Vector Runtime
+ ,_l3LibFrozen    :: Lib
+}
+makeClassy ''L3FrozenComputer
+
+instance HasMemory (L3Computer s) s where memory = l3Mem
+type MonadL3Computer c m = (Applicative m, HasL3Computer c (World m), MonadMemory c m, MonadOutput m)
+
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
-locally :: (Env -> Env) -> M a -> M a
+locally :: MonadL3Computer c m => (Env -> Env) -> m a -> m a
 locally modifyEnv action = do 
-  e   <- getEnv
-  putEnv $ modifyEnv e
+  e   <- use l3Env
+  l3Env .= modifyEnv e
   res <- action
-  putEnv e
-  return res where putEnv e = do c <- get; put c { env = e }
+  l3Env .= e
+  return res
 
 lTrue, lFalse :: Runtime
 lTrue  = Num 1
 lFalse = Num 0
-defaultHeapSize :: Int64
-defaultHeapSize = 1024 * 16 -- with 64 bit ints, i think this is one meg.
-emptyMem :: Int64 -> IO Mem
-emptyMem heapSize = do
-  mem <- IOArray.newArray (0 :: Int64, heapSize - 1) (Num (0 :: Int64))
-  return (mem, 0 :: Int64)
 
--- TODO: change interp in L.Compiler to be an m (Output) or IO (Output)
 interpL3 :: L3 -> String
-interpL3 p = unsafePerformIO $ do
-  o <- getL3Output p
-  return $ mkString "" $ reverse o
+interpL3 p = runST $ show <$> runL3Comp p
 
-{-
---TODO: these were just for testing. should they be removed?
-interpL3_ :: L3 -> String
-interpL3_ p = unsafePerformIO $ do
-  (_, c) <- runInterpL3 defaultHeapSize p
-  showMem (mem c)
+newL3Computer :: MonadST m => L3 -> m (L3Computer (World m))
+newL3Computer (L3 _ fs) = do
+  mem <-  newMem
+  return L3Computer {
+    _l3Env = Map.empty,
+    _l3Mem = mem,
+    _l3Lib = Map.fromList $ fmap (\f -> (name f, f)) fs
+  }
 
-showMem :: (IOArray Int64 Runtime, Int64) -> IO String
-showMem (arr, hp) = do
-  arrS <- showArr arr
-  return $ "heapPointer: " ++ show hp ++ " arr: " ++ arrS
+runL3Comp :: (MonadST m, Functor m) => L3 -> m (ComputationResult L3FrozenComputer)
+runL3Comp p@(L3 e _) = do
+  c <- newL3Computer p
+  (o, e) <- runOutputT $ runErrorT $ runStateT (interpE e) c
+  --mem <- freezeMem $ c'^.l3Mem
+  return $ error "todo" -- $ mkComputationResult (output, (haltEither, L3FrozenComputer (c'^.l3Env) mem (c'^.l3Lib)))
 
-showArr :: IOArray Int64 Runtime -> IO String
-showArr arr = do
-  rs <- IOArray.getElems arr
-  return $ mkString ", " $ fmap showRuntimeSimple rs
--}
-
-getL3Output :: L3 -> IO Output
-getL3Output p = output . snd <$> runInterpL3 defaultHeapSize p
-
--- | top level entry point (interprets e, and runs the monadic action)
-evalL3 :: L3 -> IO Runtime
-evalL3 p = fst <$> runInterpL3 defaultHeapSize p
-
-mkComputer :: L3 -> Mem -> L3Computer
-mkComputer (L3 _ fs) mem = L3Computer {
-  env    = Map.empty
- ,mem    = mem
- ,output = []
- ,lib    = Map.fromList $ fmap (\f -> (name f, f)) fs --(zip fs $ fmap (*2) [0..])
-}
-
-runInterpL3 :: Int64 -> L3 -> IO (Runtime, L3Computer)
-runInterpL3 heapSize p@(L3 e _) = do
-  mem <- emptyMem heapSize
-  runStateT (interpE e) $ mkComputer p mem
+-- TODO: we have the ability to distinguish between stdout and stderr
+--       we shold be able to use that
+--       but forcing us into a string here makes this difficult.
+instance Show (ComputationResult L3FrozenComputer) where
+  -- no need to show anything other than the output, if halted normally.
+  show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
+  show (ComputationResult output rs c) =intercalate "\n" [
+    "Output:     " ++ concat (fmap outputText output),
+    "Run State:  " ++ show rs,
+    "Memory!=0:  " ++ memDisplay ] where
+    --"Heap Ptr:   " ++ show (frozenHeapP c) ] where
+    memDisplay = show . map (second showRuntime) $ memList
+    memList :: [(Int, Runtime)]
+    memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] . Vector.toList $ c^.l3MemFrozen
 
 -- | interpret an E, building a monadic operation to be run.
-interpE :: E -> M Runtime
-interpE (Let v d e) = do
-  d' <- interpD d
-  locally (Map.insert v d') (interpE e)
-interpE (IfStatement v te fe) = do
-  v' <- interpV v
-  interpE $ if v' /= lFalse then te else fe
-interpE (DE d) = interpD d
+interpE :: MonadL3Computer c m => E -> m Runtime
+interpE (Let v d e)           = interpD d >>= \d' -> locally (Map.insert v d') (interpE e)
+interpE (IfStatement v te fe) = interpV v >>= \v' -> interpE $ if v' /= lFalse then te else fe
+interpE (DE d)                = interpD d
 
-interpD :: D -> M Runtime
+interpD :: MonadL3Computer c m => D -> m Runtime
 -- Regular L3 Level stuff
 interpD (FunCall v vs)    = interpApp v vs
-interpD (NewTuple vs)     = traverse interpV vs >>= makeHeapArray (fromIntegral $ length vs)
+interpD (NewTuple vs)     = traverse interpV vs >>= error "todo" --makeHeapArray (fromIntegral $ length vs)
 interpD (MakeClosure l v) = interpD (NewTuple [LabelV l, v])
 interpD (ClosureProc c)   = arrayRef c (NumV 0)
 interpD (ClosureVars c)   = arrayRef c (NumV 1)
 interpD (VD v)            = interpV v
 -- Primitive applications (built in functions)
-interpD (PrimApp b [l, r]) | isBiop b = liftM2 (mathOp b) (interpV l) (interpV r)
-interpD (PrimApp IsNumber [(NumV _  )]) = return $ lTrue
+interpD (PrimApp b [l, r]) | isBiop b = bind2 (mathOp b) (interpV l) (interpV r)
+interpD (PrimApp IsNumber [NumV _  ]) = return lTrue
 interpD (PrimApp IsNumber [v@(VarV _)]) =
   do rv <- interpV v; return $ case rv of (Num _) -> lTrue; _ -> lFalse
 -- labels act like arrays, it's weird, but true.
-interpD (PrimApp IsNumber _         )   = return $ lFalse
+interpD (PrimApp IsNumber _         )   = return lFalse
 interpD (PrimApp IsArray  [v@(VarV _)]) =
   do rv <- interpV v; return $ case rv of (Pointer _) -> lTrue; _ -> lFalse
-interpD (PrimApp IsArray _) = return $ lFalse
-interpD (PrimApp NewArray [s, d])  = newArray s d
+interpD (PrimApp IsArray _)        = return lFalse
+interpD (PrimApp NewArray [s, d])  = bind2 allocate (interpV s) (interpV d)
 interpD (PrimApp ARef [a, loc])    = arrayRef a loc
 interpD (PrimApp ASet [a, loc, v]) = arraySet a loc v
-interpD (PrimApp ALen [a])         = arrayLength a
-interpD (PrimApp L3.Print [v])     = interpPrint v
-interpD (PrimApp p vs) = runtimeError $ show p ++ " applied to wrong arguments: " ++ show vs
+interpD (PrimApp ALen [a])         = interpV a >>= arraySize "L3-alen"
+interpD (PrimApp L3.Print [v])     = interpV v >>= print
+interpD (PrimApp p vs)             = exception $ show p ++ " applied to wrong arguments: " ++ show vs
 
-interpV :: V -> M Runtime
-interpV (VarV v)   = envLookup v <$> getEnv
+interpV :: MonadL3Computer c m => V -> m Runtime
+interpV (VarV v)   = use l3Env >>= envLookup v
 interpV (NumV i)   = return $ Num i
 interpV (LabelV l) = return $ FunctionPointer l
 
-newArray :: V -> V -> M Runtime
-newArray s v = do
-  size <- evalNumber s
-  val  <- interpV v
-  makeHeapArray size $ replicate (fromIntegral size) val
-
--- makes a new array from the given Runtime objects and puts it on the heap
-makeHeapArray :: Int64 -> [Runtime] -> M Runtime
-makeHeapArray size rs = do
-  (mem, hp) <- getMem
-  _         <- lift $ writeArrayIntoHeap mem hp (Num size : rs)
-  _         <- putMem (mem, hp + size + 1)
-  return $ Pointer hp where
-  writeArrayIntoHeap :: IOArray Int64 Runtime -> Int64 -> [Runtime] -> IO [()]
-  writeArrayIntoHeap mem hp rs =
-    Data.Traversable.sequence $ uncurry (IOArray.writeArray mem) <$> zip [hp..] rs
-
--- | prints the given E. (print e)
-interpPrint :: V -> M Runtime
-interpPrint v = do
-  r <- interpV v
-  s <- showRuntime r
-  _ <- addOutput (s ++ "\n")
-  return lFalse
-
 -- | function application (f v...)
-interpApp :: V -> [V] -> M Runtime
+interpApp :: MonadL3Computer c m => V -> [V] -> m Runtime
 interpApp f vs = do
   (FunctionPointer label) <- interpV f
   rs                      <- traverse interpV vs
-  (Func _ args body)      <- libLookup label <$> getLib
-  env                     <- getEnv
+  (Func _ args body)      <- use l3Lib >>= libLookup label
+  env                     <- use l3Env
   locally (\_ -> Map.union (Map.fromList $ zip args rs) env) (interpE body)
 
 -- | array reference (arr[i])
-arrayRef :: V -> V -> M Runtime
-arrayRef arr i = do
-  (mem,_)    <- getMem
-  p          <- evalPointer arr
-  index      <- evalNumber i
-  (Num size) <- lift $ IOArray.readArray mem p
-  if (index < size)
-    then (lift $ IOArray.readArray mem (p + index + 1))
-    else bomb size index where
-      bomb size index = do
-        _ <- addOutput $ concat ["attempted to use position ", show index, " in an array that only has ", show size, " positions"]
-        return $ Num 0 -- TODO: need to stop execution here!!
-
--- | get array length (size arr)
-arrayLength :: V -> M Runtime
-arrayLength arr = do
-  (mem,_) <- getMem
-  p       <- evalPointer arr
-  lift $ IOArray.readArray mem p
+arrayRef :: MonadL3Computer c m =>  V -> V -> m Runtime
+arrayRef arr i = bind2 (safeReadMem "L3-aref") (interpV arr) (interpV i)
 
 -- | sets the (arr[i] = e)
-arraySet :: V -> V -> V -> M Runtime
+arraySet :: MonadL3Computer c m => V -> V -> V -> m Runtime
 arraySet arr i v = do
-  p        <- evalPointer arr
-  index    <- evalNumber i
+  p        <- interpV arr
+  index    <- interpV i
   r        <- interpV v
-  (mem,_)  <- getMem
-  ()       <- lift $ IOArray.writeArray mem (p + index + 1) r
+  safeWriteMem "L3 array set" p index r
   return lTrue
 
-
-evalNumber, evalPointer  :: V -> M Int64
-evalNumber  v = foldRuntime (\(Num i) -> i) evalErrN evalErrN <$> interpV v
-  where evalErrN = evalErr "Num"
-evalPointer v = foldRuntime evalErrP (\(Pointer i) -> i) evalErrP <$> interpV v
-  where evalErrP = evalErr "Pointer"
---evalClosure :: E -> M Runtime
---evalClosure e = foldRuntime evalErrC evalErrC id <$> interp e
---  where evalErrC = evalErr "<function>"
-
-evalErr :: String -> Runtime -> a -- hmm...
-evalErr typ r = runtimeError $ "expected " ++ typ ++ " but got: " ++ showRuntimeSimple r
-
-showRuntimeSimple :: Runtime -> String
-showRuntimeSimple (Num n)     = "Num "     ++ show n
-showRuntimeSimple (Pointer n) = "Pointer " ++ show n
-showRuntimeSimple (FunctionPointer l) = "FunctionPointer " ++ l
-
-runtimeError :: String -> a
-runtimeError msg = error $ "Runtime error: " ++ msg
-
-getHeapList :: M [Runtime]
-getHeapList = fst <$> getMem >>= lift . IOArray.getElems
-
-showRuntime :: Runtime -> M String
-showRuntime r = showRuntimePure <$> getHeapList <*> return r
-
-envLookup :: Variable -> Env -> Runtime
+envLookup :: MonadL3Computer c m => Variable -> Env -> m Runtime
 envLookup = forceLookup "variable"
 
-libLookup :: Variable -> Lib -> Func
+libLookup :: MonadL3Computer c m => Variable -> Lib -> m Func
 libLookup = forceLookup "function"
 
-forceLookup :: (Show k, Ord k) => String -> k -> Map k v -> v
+forceLookup :: (Show k, Ord k, MonadL3Computer c m) => String -> k -> Map k v -> m v
 forceLookup kName k m =
-  fromMaybe (runtimeError $ concat ["unbound ", kName, ": ", show k]) (Map.lookup k m)
+  maybe (exception $ concat ["unbound ", kName, ": ", show k]) return (Map.lookup k m)
 
-mathOp :: PrimName -> Runtime -> Runtime -> Runtime
-mathOp Add      (Num l) (Num r) = Num $ l +  r
-mathOp Sub      (Num l) (Num r) = Num $ l -  r
-mathOp Mult     (Num l) (Num r) = Num $ l *  r
-mathOp LessThan (Num l) (Num r) = boolToNum $ l <  r
-mathOp LTorEQ   (Num l) (Num r) = boolToNum $ l <= r
-mathOp EqualTo  (Num l) (Num r) = boolToNum $ l == r
-mathOp b l r = error $
-  concat ["invalid arguments to ", show b, " :", showRuntimeSimple l, ", " , showRuntimeSimple r]
+mathOp :: MonadL3Computer c m => PrimName -> Runtime -> Runtime -> m Runtime
+mathOp Add      (Num l) (Num r) = return . Num $ l + r
+mathOp Sub      (Num l) (Num r) = return . Num $ l - r
+mathOp Mult     (Num l) (Num r) = return . Num $ l * r
+mathOp LessThan (Num l) (Num r) = return . boolToNum $ l <  r
+mathOp LTorEQ   (Num l) (Num r) = return . boolToNum $ l <= r
+mathOp EqualTo  (Num l) (Num r) = return . boolToNum $ l == r
+mathOp b l r = exception $
+  concat ["invalid arguments to ", show b, " :", showRuntime l, ", " , showRuntime r]
 
 boolToNum :: Bool -> Runtime
 boolToNum True  = Num 1
 boolToNum False = Num 0
-
-foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
-foldRuntime fn fp fc r = f r where
-  f n@(Num _)             = fn n
-  f p@(Pointer _)         = fp p
-  f c@(FunctionPointer _) = fc c
-
-showRuntimePure :: [Runtime] -> Runtime -> String
-showRuntimePure m = foldRuntime
- (\(Num n) -> show n) (showArrayPure m) (\l -> runtimeError $ "can't print a label: " ++ showRuntimeSimple l)
-
-getArrayPure :: [Runtime] -> Int64 -> (Int64, [Runtime])
-getArrayPure mem i = (size, arr) where
-  view       = drop (fromIntegral i) mem
-  (Num size) = foldRuntime id err err $ head view
-  err r      = runtimeError $ "bug, bad array size: " ++ showRuntimeSimple r
-  arr        = take (fromIntegral size) $ drop 1 view
-
-showArrayPure :: [Runtime] -> Runtime -> String
-showArrayPure mem (Pointer i) = concat ["{s:", show size, ", ", body, "}"] where
-  (size, arr) = getArrayPure mem i
-  body = join $ intersperse ", " (showRuntimePure mem <$> arr)
-showArrayPure _ e = error $ "impossible (showArrayPure called with: " ++ showRuntimeSimple e ++ ")"
