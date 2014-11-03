@@ -14,7 +14,7 @@ data Func = Func { name :: Label, args :: [Variable], body :: E }
 data V    = VarV Variable | NumV Int64 | LabelV Label
 data E    = Let Variable D E | IfStatement V E E | DE D
 data D    = FunCall V [V] | PrimApp PrimName [V] | VD V |
-            NewTuple [V] | MakeClosure Label V | ClosureProc V | ClosureVars V
+            NewTuple  [V] | MakeClosure Label V  | ClosureProc V | ClosureVars V
 
 data PrimName =
     Add | Sub | Mult | LessThan | LTorEQ   | EqualTo

@@ -34,7 +34,7 @@ import L.Utils
 
 data Memory s = Memory {
   _runMemory :: STVector s Runtime
- ,_heapP     :: Int64 -- pointer to top of heap  -- this is good across all languages!
+ ,_heapP     :: Int64 -- pointer to top of heap
 }
 makeClassy ''Memory
 

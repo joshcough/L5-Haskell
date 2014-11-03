@@ -39,9 +39,10 @@ data ComputationResult a = ComputationResult {
   ,_internals :: a
 } deriving (Functor)
 
-mkComputationResult :: ([Output], (Either Halt (), a)) -> ComputationResult a
+-- TODO: this ignores the final result. should something be done about that?
+mkComputationResult :: ([Output], (Either Halt b, a)) -> ComputationResult a
 mkComputationResult (o, (Left  h , c)) = ComputationResult o (Halted h) c
-mkComputationResult (o, (Right (), c)) = ComputationResult o Running c
+mkComputationResult (o, (Right _, c))  = ComputationResult o Running c
 
 data Computer s a = Computer {
    _registers   :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)

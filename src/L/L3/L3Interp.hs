@@ -70,7 +70,7 @@ lTrue  = Num 1
 lFalse = Num 0
 
 interpL3 :: L3 -> String
-interpL3 p = runST $ show <$> runL3Comp p
+interpL3 p = runST $ show <$> runL3Computation p
 
 newL3Computer :: MonadST m => L3 -> m (L3Computer (World m))
 newL3Computer (L3 _ fs) = do
@@ -81,12 +81,13 @@ newL3Computer (L3 _ fs) = do
     _l3Lib = Map.fromList $ fmap (\f -> (name f, f)) fs
   }
 
-runL3Comp :: (MonadST m, Functor m) => L3 -> m (ComputationResult L3FrozenComputer)
-runL3Comp p@(L3 e _) = do
+runL3Computation :: (MonadST m, Functor m) => L3 -> m (ComputationResult L3FrozenComputer)
+runL3Computation p@(L3 e _) = do
   c <- newL3Computer p
-  (o, e) <- runOutputT $ runErrorT $ runStateT (interpE e) c
-  --mem <- freezeMem $ c'^.l3Mem
-  return $ error "todo" -- $ mkComputationResult (output, (haltEither, L3FrozenComputer (c'^.l3Env) mem (c'^.l3Lib)))
+  (output, (eHaltRuntime, finalComputer)) <- runOutputT $ flip runStateT c $ runErrorT $ interpE e
+  mem <- freezeMem $ finalComputer^.l3Mem
+  let fc = L3FrozenComputer (finalComputer^.l3Env) mem (finalComputer^.l3Lib)
+  return $ mkComputationResult (output, (eHaltRuntime, fc))
 
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
