@@ -138,7 +138,8 @@ interpD (PrimApp NewArray [s, d])  = bind2 allocate (interpV s) (interpV d)
 interpD (PrimApp ARef [a, loc])    = arrayRef a loc
 interpD (PrimApp ASet [a, loc, v]) = arraySet a loc v
 interpD (PrimApp ALen [a])         = interpV a >>= arraySize "L3-alen"
-interpD (PrimApp L3.Print [v])     = interpV v >>= print False
+-- print should apparently return 0. this might require more work in the future.
+interpD (PrimApp L3.Print [v])     = interpV v >>= print False >> return (Num 0)
 interpD (PrimApp p vs)             = exception $ show p ++ " applied to wrong arguments: " ++ show vs
 
 interpV :: MonadL3Computer c m => V -> m Runtime
