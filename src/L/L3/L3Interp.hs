@@ -94,7 +94,15 @@ runL3Computation p@(L3 e _) = do
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
 instance Show (ComputationResult L3FrozenComputer) where
-  show (ComputationResult output Running _) = concat $ fmap outputText output
+  {-
+    normally in L3, thec computer thinks it's still running.
+    Halted Normal only happens on an expected arrayError.
+    I could make the computer halt normally upon termination of execution,
+    but unfortunately that would cause the final result to be lost
+    TODO: however, i'm not yet even using the final result...should i be?
+  -}
+  show (ComputationResult output Running _)         = concat $ fmap outputText output
+  show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
   show (ComputationResult output rs c) =intercalate "\n" [
     "Output:      " ++ concat (fmap outputText output),
     "Run State:   " ++ show rs,

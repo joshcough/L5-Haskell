@@ -166,7 +166,7 @@ safeReadMem caller p i = do
   index <- expectNum i
   if index <= size
     then runOp p Increment i >>= readMem caller
-    else arrayError p i
+    else arrayError p (Num $ index-1)
 
 -- | sets the (arr[i] = e)
 safeWriteMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> Runtime -> m ()
@@ -175,7 +175,7 @@ safeWriteMem caller p i v = do
   index <- expectNum i
   if index <= size
     then runOp p Increment i >>= flip (writeMem caller) v
-    else arrayError p i
+    else arrayError p (Num $ index-1)
 
 freezeMem :: MonadST m => Memory (World m) -> m (Vector Runtime)
 freezeMem m = liftST $ freeze (m^.runMemory)

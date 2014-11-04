@@ -34,7 +34,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree [l2Tests]
+  ts <- traverse tree allTests
   return $ testGroup "Main" ts
 
 quickTests = [l1Tests, l2Tests, l3Tests, l4Tests, l5Tests]
@@ -148,7 +148,7 @@ runAndCompareInterpTurtlesVsNative lang inputFile resFile = do
   interpResList <- (fmap $ fmap strip) <$> (interpretTurtlesFile lang opts inputFile)
   resFileExists <- doesFileExist resFile
   expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
-  let resultList = nativeRes : interpResList ++ if resFileExists then [Right expectedRes] else []
+  let resultList = if resFileExists then [Right expectedRes] else [] ++ (nativeRes : interpResList)
   assertList $ resultList
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
