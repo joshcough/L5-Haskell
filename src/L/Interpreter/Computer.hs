@@ -96,7 +96,7 @@ registerStartState = Map.insert rsp (Pointer rspStart) $ Map.fromList $ zip regi
 
 newComputer :: (MonadST m, Show x, Show s) => Program x s -> m (Computer (World m) (Instruction x s))
 newComputer p = do
-  m <-  newMem
+  m <-  newMem (MemoryConfig True True) -- encoded numbers, word indexed
   return Computer {
     _registers   = registerStartState,
     _computerMem = m,

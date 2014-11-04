@@ -26,17 +26,27 @@ import Data.Vector.Fusion.Stream hiding ((++))
 import Data.Vector.Generic.Mutable (update)
 import Data.Vector.Mutable (STVector, read, write)
 import qualified Data.Vector.Mutable as MV
+import Debug.Trace
 import Prelude hiding (read)
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1L2AST
 import L.Utils
 
+data MemoryConfig = MemoryConfig {
+  _encoded     :: Bool
+ ,_wordIndexed :: Bool -- True if you have to multiply by 8...TODO document more
+}
+makeClassy ''MemoryConfig
+
 data Memory s = Memory {
   _runMemory :: STVector s Runtime
  ,_heapP     :: Int64 -- pointer to top of heap
+ ,_memConfig :: MemoryConfig
 }
 makeClassy ''Memory
+
+instance HasMemoryConfig (Memory s) where memoryConfig = memConfig
 
 type MonadMemory mem m = (Functor m, MonadST m, MonadError Halt m, MonadState mem m, HasMemory mem (World m))
 
@@ -49,38 +59,44 @@ zero = 0
 memSizeAsInt :: Int
 memSizeAsInt = fromIntegral memSize
 
-newMem :: MonadST m => m (Memory (World m))
-newMem = liftST $ Memory <$> MV.replicate memSizeAsInt (Num zero) <*> pure 0
+newMem :: MonadST m => MemoryConfig -> m (Memory (World m))
+newMem config = liftST $ Memory <$> MV.replicate memSizeAsInt (Num zero) <*> pure 0 <*> pure config
+
+divideIndex :: MonadMemory mem m => Int64 -> m Int64
+divideIndex = withMemIndex div
+
+multiplyIndex :: MonadMemory mem m => Int64 -> m Int64
+multiplyIndex = withMemIndex (*)
+
+withMemIndex :: MonadMemory mem m => (Int64 -> Int64 -> Int64) -> Int64 -> m Int64
+withMemIndex f i = do m <- use memory; return $ if (m^.memoryConfig^.wordIndexed) then f i 8 else i
 
 -- write an int into memory at the given address
 writeMem :: MonadMemory mem m => String -> Runtime -> Runtime -> m ()
 writeMem caller addr value = do
-  p <- expectPointer (caller ++ "/writeMem") addr
-  let index = (p `div` 8) :: Int64
-      inbounds = index < memSize
-  if inbounds
-    then do m <- use memory; liftST $ write (_runMemory m) (fromIntegral index) value
+  p     <- expectPointer (caller ++ "/writeMem") addr
+  index <- divideIndex p
+  if index < memSize
+    then do m <- use memory; liftST $ write (m^.runMemory) (fromIntegral index) value
     else exception $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
 readMem :: MonadMemory mem m => String -> Runtime -> m Runtime
 readMem caller addr = do
-  p <- expectPointer (caller ++ "/readMem") addr
-  let index = (p `div` 8) :: Int64
-      inbounds = index < memSize
-  if inbounds
-    then do m <- use memory; liftST $ read (_runMemory m) (fromIntegral index)
+  p     <- expectPointer (caller ++ "/readMem") addr
+  index <- divideIndex p
+  if index < memSize
+    then do m <- use memory; liftST $ read (m^.runMemory) (fromIntegral index)
     else exception $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
 readArray :: MonadMemory mem m => Runtime -> m (STVector (World m) Runtime)
 readArray addr = do
-  p    <- expectPointer "readArray" addr
-  size <- evalAddrToNum "readArray" p
-  let startIndex :: Int
-      startIndex = fromIntegral p `div` 8 + 1
-  if startIndex + fromIntegral size < memSizeAsInt
-    then uses memory (MV.slice startIndex (fromIntegral size) . _runMemory)
+  p          <- expectPointer "readArray" addr
+  startIndex <- divideIndex p <&> (+ 1)
+  size       <- evalAddrToNum "readArray" p
+  if startIndex + size < memSize
+    then uses memory (MV.slice (fromIntegral startIndex) (fromIntegral size) . _runMemory)
     else exception $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
 evalAddrToNum :: MonadMemory mem m => String -> Int64 -> m Int64
@@ -95,16 +111,18 @@ allocate size r = do
 
 newArray :: (MonadState mem m, MonadMemory mem m) => [Runtime] -> m Runtime
 newArray rs = do
-  hp   <- use heapP
+  hp    <- use heapP
+  index <- divideIndex hp
   let size = fromIntegral $ Prelude.length rs
-      indices = [(fromIntegral $ hp `div` 8)..]
+      indices = [(fromIntegral index)..]
       rsWithIndices = Prelude.zip indices $ Num size : rs
   do m <- use memory; liftST $ update (m^.runMemory) (fromList rsWithIndices)
-  heapP += ((size+1) * 8)
+  heapSpaceUsed <- multiplyIndex (size+1)
+  heapP += heapSpaceUsed
   return $ Pointer hp
 
 -- print a number or an array
---   if the int argument is an encoded int, prints the int
+--   if argument is an int, prints the int
 --   else it's an array, print the contents of the array (and recur)
 print :: forall mem m. (MonadOutput m, MonadMemory mem m) => Bool -> Runtime -> m Runtime
 print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1) where
@@ -118,8 +136,6 @@ print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1
   printContent depth r
     | depth >= 4   = return "..."
     | otherwise = case r of
-      -- TODO: should i make sure that i is odd?
-      -- n .&. 1 == 1 = return . show $ shiftR n 1
       Num i         -> return . show $ if encoded then shiftR i 1 else i
       p@(Pointer _) -> do
         size      <- arraySizeNum "print" p
@@ -143,13 +159,12 @@ arraySize caller = readMem caller
 arraySizeNum :: (MonadMemory mem m) => String -> Runtime -> m Int64
 arraySizeNum caller a = readMem caller a >>= expectNum
 
-
 -- TODO: refactor out safeMem or safeWithMem or whatever.
 safeReadMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> m Runtime
 safeReadMem caller p i = do
   size  <- arraySizeNum caller p
   index <- expectNum i
-  if index < size
+  if index <= size
     then runOp p Increment i >>= readMem caller
     else arrayError p i
 
@@ -158,7 +173,7 @@ safeWriteMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runti
 safeWriteMem caller p i v = do
   size  <- arraySizeNum caller p
   index <- expectNum i
-  if index < size
+  if index <= size
     then runOp p Increment i >>= flip (writeMem caller) v
     else arrayError p i
 

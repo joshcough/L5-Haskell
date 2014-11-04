@@ -74,7 +74,7 @@ interpL3 p = runST $ show <$> runL3Computation p
 
 newL3Computer :: MonadST m => L3 -> m (L3Computer (World m))
 newL3Computer (L3 _ fs) = do
-  mem <-  newMem
+  mem <-  newMem (MemoryConfig False False) -- numbers not encoded, and not word indexed.
   return L3Computer {
     _l3Env = Map.empty,
     _l3Mem = mem,
@@ -90,19 +90,25 @@ runL3Computation p@(L3 e _) = do
   return $ mkComputationResult (output, (eHaltRuntime, fc))
 
 -- TODO: we have the ability to distinguish between stdout and stderr
+-- TODO: this doesnt show the heap pointer!
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
 instance Show (ComputationResult L3FrozenComputer) where
-  -- no need to show anything other than the output, if halted normally.
   show (ComputationResult output Running _) = concat $ fmap outputText output
   show (ComputationResult output rs c) =intercalate "\n" [
-    "Output:     " ++ concat (fmap outputText output),
-    "Run State:  " ++ show rs,
-    "Memory!=0:  " ++ memDisplay ] where
+    "Output:      " ++ concat (fmap outputText output),
+    "Run State:   " ++ show rs,
+    "Memory!=0:   " ++ showMem (c^.l3MemFrozen),
+    "Environment: " ++ showEnv (c^.l3EnvFrozen) ] where
     --"Heap Ptr:   " ++ show (frozenHeapP c) ] where
-    memDisplay = show . map (second showRuntime) $ memList
-    memList :: [(Int, Runtime)]
-    memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] . Vector.toList $ c^.l3MemFrozen
+
+showMem :: Vector Runtime -> String
+showMem m = show $ map (second showRuntime) memList where
+  memList :: [(Int, Runtime)]
+  memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] $ Vector.toList m
+
+showEnv :: Map Variable Runtime -> String
+showEnv = show . Map.map showRuntime
 
 -- | interpret an E, building a monadic operation to be run.
 interpE :: MonadL3Computer c m => E -> m Runtime
@@ -151,13 +157,16 @@ interpApp f vs = do
 
 -- | array reference (arr[i])
 arrayRef :: MonadL3Computer c m =>  V -> V -> m Runtime
-arrayRef arr i = bind2 (safeReadMem "L3-aref") (interpV arr) (interpV i)
+arrayRef arr i = do
+  p     <- interpV arr
+  index <- interpV i >>= mathOp Add (Num 1)
+  safeReadMem "L3-aref" p index
 
 -- | sets the (arr[i] = e)
 arraySet :: MonadL3Computer c m => V -> V -> V -> m Runtime
 arraySet arr i v = do
   p        <- interpV arr
-  index    <- interpV i
+  index    <- interpV i >>= mathOp Add (Num 1)
   r        <- interpV v
   safeWriteMem "L3 array set" p index r
   return lTrue

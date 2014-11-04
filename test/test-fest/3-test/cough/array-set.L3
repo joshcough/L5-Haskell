@@ -1,2 +1,2 @@
-((let ((t_1 (new-tuple 1 2)))
-    (let ((__4 (aset t_1 1 3))) (print t_1))))
+((let ((x (new-tuple 1 2)))
+    (let ((_ (aset x 1 3))) (print x))))
