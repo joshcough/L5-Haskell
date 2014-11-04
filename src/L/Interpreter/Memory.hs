@@ -86,31 +86,28 @@ readArray addr = do
 evalAddrToNum :: MonadMemory mem m => String -> Int64 -> m Int64
 evalAddrToNum caller addr = readMem caller (Pointer addr) >>= expectNum
 
-encodeNum :: Int64 -> Int64
-encodeNum n = shiftR n 1
-
 -- TODO: test if heap runs into stack, and vice-versa
 -- NOTE: allocate is Haskell's replicate
 allocate :: (MonadState mem m, MonadMemory mem m) => Runtime -> Runtime -> m Runtime
 allocate size r = do
-  size' <- encodeNum <$> expectNum size
+  size' <- expectNum size
   newArray $ Prelude.replicate (fromIntegral size') r
 
 newArray :: (MonadState mem m, MonadMemory mem m) => [Runtime] -> m Runtime
 newArray rs = do
   hp   <- use heapP
-  let size = encodeNum . fromIntegral $ Prelude.length rs
+  let size = fromIntegral $ Prelude.length rs
       indices = [(fromIntegral $ hp `div` 8)..]
       rsWithIndices = Prelude.zip indices $ Num size : rs
-  do m <- use memory; liftST $ update (_runMemory m) (fromList rsWithIndices)
+  do m <- use memory; liftST $ update (m^.runMemory) (fromList rsWithIndices)
   heapP += ((size+1) * 8)
   return $ Pointer hp
 
 -- print a number or an array
 --   if the int argument is an encoded int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: forall mem m. (MonadOutput m, MonadMemory mem m) => Runtime -> m Runtime
-print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1) where
+print :: forall mem m. (MonadOutput m, MonadMemory mem m) => Bool -> Runtime -> m Runtime
+print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1) where
   loop v depth index
     | index >= MV.length v = return []
     | otherwise = do
@@ -123,7 +120,7 @@ print n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1) where
     | otherwise = case r of
       -- TODO: should i make sure that i is odd?
       -- n .&. 1 == 1 = return . show $ shiftR n 1
-      Num i         -> return . show $ shiftR i 1
+      Num i         -> return . show $ if encoded then shiftR i 1 else i
       p@(Pointer _) -> do
         size      <- arraySizeNum "print" p
         arr       <- readArray p
@@ -136,8 +133,8 @@ arrayError :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> m a
 arrayError a x = do
   size  <- arraySizeNum "arrayError" a
   index <- expectNum x
-  stdErr $ "attempted to use position " ++ show (encodeNum index) ++
-           " in an array that only has " ++ show size ++ " positions"
+  stdErr $ concat [
+    "attempted to use position ", show index, " in an array that only has ", show size, " positions"]
   halt
 
 arraySize :: (MonadMemory mem m) => String -> Runtime -> m Runtime

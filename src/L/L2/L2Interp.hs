@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- TODO: most of this code is in L1Interp too, refactor.
 module L.L2.L2Interp where --(interpL2, runL2Computation) where
 
 import Control.Applicative
@@ -14,6 +15,7 @@ import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
+import Data.Bits
 import Data.Int
 import Data.List.NonEmpty hiding (length)
 import Data.Map (Map)
@@ -69,9 +71,9 @@ step (Assign x1 (MemRead (MemLoc x2 offset))) = do
   index <- runOp (Pointer x') Increment (Num $ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWX x1
 step (Assign x (Allocate size datum)) =
-  bind2 allocate (readS size) (readS datum) >>= nextInstWX x
-step (Assign x (Print s)) = readS s >>= print >>= nextInstWX x
-step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
+  bind2 allocate (readS size >>= encodeNum) (readS datum) >>= nextInstWX x
+step (Assign x (Print s)) = readS s >>= print True >>= nextInstWX x
+step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2 >>= encodeNum)
 step (Assign r (SRHS s)) = readS s >>= nextInstWX r
 step (MathInst x op s) = do
   xv     <- readX x
@@ -151,3 +153,7 @@ writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
 
 readNum :: (MonadOutput m, MonadComputer (CE m) m a) => L2S -> m Int64
 readNum s = readS s >>= expectNum
+
+encodeNum :: MonadComputer c m a => Runtime -> m Runtime
+encodeNum (Num n) = return . Num $ shiftR n 1
+encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r

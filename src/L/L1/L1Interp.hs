@@ -9,6 +9,7 @@ import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
+import Data.Bits
 import Data.Int
 import Data.Vector.Generic.Mutable (length)
 import L.Interpreter.Computer
@@ -42,9 +43,9 @@ step (Assign x1 (MemRead (MemLoc x2 offset))) = do
   index <- runOp (Pointer x') Increment (Num $ fromIntegral offset)
   readMem "MemRead" index >>= nextInstWX x1
 step (Assign x (Allocate size datum)) =
-  bind2 allocate (readS size) (readS datum) >>= nextInstWX x
-step (Assign x (Print s)) = readS s >>= print >>= nextInstWX x
-step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2)
+  bind2 allocate (readS size >>= encodeNum) (readS datum) >>= nextInstWX x
+step (Assign x (Print s)) = readS s >>= print True >>= nextInstWX x
+step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2 >>= encodeNum)
 step (Assign r (SRHS s)) = readS s >>= nextInstWX r
 step (MathInst x op s) = do
   xv     <- readX x
@@ -92,3 +93,7 @@ writeX = writeReg
 
 readNum :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
 readNum s = readS s >>= expectNum
+
+encodeNum :: MonadComputer c m a => Runtime -> m Runtime
+encodeNum (Num n) = return . Num $ shiftR n 1
+encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r

@@ -94,7 +94,7 @@ runL3Computation p@(L3 e _) = do
 --       but forcing us into a string here makes this difficult.
 instance Show (ComputationResult L3FrozenComputer) where
   -- no need to show anything other than the output, if halted normally.
-  show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
+  show (ComputationResult output Running _) = concat $ fmap outputText output
   show (ComputationResult output rs c) =intercalate "\n" [
     "Output:     " ++ concat (fmap outputText output),
     "Run State:  " ++ show rs,
@@ -113,7 +113,7 @@ interpE (DE d)                = interpD d
 interpD :: MonadL3Computer c m => D -> m Runtime
 -- Regular L3 Level stuff
 interpD (FunCall v vs)    = interpApp v vs
-interpD (NewTuple vs)     = traverse interpV vs >>= error "todo" --makeHeapArray (fromIntegral $ length vs)
+interpD (NewTuple vs)     = traverse interpV vs >>= newArray
 interpD (MakeClosure l v) = interpD (NewTuple [LabelV l, v])
 interpD (ClosureProc c)   = arrayRef c (NumV 0)
 interpD (ClosureVars c)   = arrayRef c (NumV 1)
@@ -132,7 +132,7 @@ interpD (PrimApp NewArray [s, d])  = bind2 allocate (interpV s) (interpV d)
 interpD (PrimApp ARef [a, loc])    = arrayRef a loc
 interpD (PrimApp ASet [a, loc, v]) = arraySet a loc v
 interpD (PrimApp ALen [a])         = interpV a >>= arraySize "L3-alen"
-interpD (PrimApp L3.Print [v])     = interpV v >>= print
+interpD (PrimApp L3.Print [v])     = interpV v >>= print False
 interpD (PrimApp p vs)             = exception $ show p ++ " applied to wrong arguments: " ++ show vs
 
 interpV :: MonadL3Computer c m => V -> m Runtime
