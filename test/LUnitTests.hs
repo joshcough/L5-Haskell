@@ -99,7 +99,7 @@ l4_2010_Dir sub = testDir ++ "L4-tests-from-2010/" ++ sub
 l4Dirs = [testDir ++ "4-test",
           l4_2010_Dir "mcglynn",
           l4_2010_Dir "shawger",
-          l4_2010_Dir "hartglass",
+          --l4_2010_Dir "hartglass",  -- these tests take a very long time.
           l4_2010_Dir "kleinfindler",
           l4_2010_Dir "burgener"]
 l4Tests        = oneLevelTestDef l4Language l4Dirs
@@ -108,7 +108,7 @@ l4TurtlesTests = turtlesTestDef  l4Language l4Dirs
 l5_2010_Dir sub = testDir ++ "L5-tests-from-2010/" ++ sub
 l5Dirs = [l5_2010_Dir "burgener",
           l5_2010_Dir "mcglynn",
-          l5_2010_Dir "hartglass",
+          --l5_2010_Dir "hartglass", -- these tests take a very long time.
           l5_2010_Dir "kleinfindler",
           l5_2010_Dir "shawger"]
 l5Tests        = oneLevelTestDef l5Language l5Dirs
