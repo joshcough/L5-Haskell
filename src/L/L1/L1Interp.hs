@@ -12,10 +12,11 @@ import Control.Monad.Trans.Error
 import Data.Bits
 import Data.Int
 import Data.Vector.Generic.Mutable (length)
-import L.Interpreter.Computer
+import L.Interpreter.ComputationResult
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
+import L.Interpreter.X86Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster (adjustMain)
 import L.Utils (bind2)
@@ -26,14 +27,14 @@ import Prelude hiding (length, print)
 interpL1 :: L1 -> String
 interpL1 p = runST $ show <$> runL1Computation p
 
-runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenComputer L1Instruction))
+runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenX86Computer L1Instruction))
 runL1Computation p = do
-  c    <- newComputer $ adjustMain p
-  (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runComputer step) c
-  fzc  <- freezeComputer comp
+  c    <- newX86Computer $ adjustMain p
+  (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runX86Computer step) c
+  fzc  <- freezeX86Computer comp
   return $ mkComputationResult (output, (haltEither, fzc))
 
-step :: (MonadOutput m, MonadComputer c m L1Instruction) => L1Instruction -> m ()
+step :: (MonadOutput m, MonadX86Computer c m L1Instruction) => L1Instruction -> m ()
 step (Assign x (CompRHS (Comp s1 op s2))) = do
   s1' <- readNum s1
   s2' <- readNum s2
@@ -77,23 +78,23 @@ step Return = do
   if done then halt else readMem "Return" (Pointer rspVal) >>= goto
 
 -- goto the next instruction after writing a register
-nextInstWX :: MonadComputer c m a => Register -> Runtime -> m ()
+nextInstWX :: MonadX86Computer c m a => Register -> Runtime -> m ()
 nextInstWX r i = writeX r i >> nextInst
 
-readS :: (MonadOutput m, MonadComputer c m a) => L1S -> m Runtime
+readS :: (MonadOutput m, MonadX86Computer c m a) => L1S -> m Runtime
 readS (NumberL1S n) = return $ Num n
 readS (RegL1S r)    = readX r
 readS (LabelL1S l)  = return $ FunctionPointer l
 
-readX :: MonadComputer c m a => Register -> m Runtime
+readX :: MonadX86Computer c m a => Register -> m Runtime
 readX = readReg
 
-writeX :: MonadComputer c m a => Register -> Runtime -> m ()
+writeX :: MonadX86Computer c m a => Register -> Runtime -> m ()
 writeX = writeReg
 
-readNum :: (MonadOutput m, MonadComputer c m a) => L1S -> m Int64
+readNum :: (MonadOutput m, MonadX86Computer c m a) => L1S -> m Int64
 readNum s = readS s >>= expectNum
 
-encodeNum :: MonadComputer c m a => Runtime -> m Runtime
+encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
 encodeNum (Num n) = return . Num $ shiftR n 1
 encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r

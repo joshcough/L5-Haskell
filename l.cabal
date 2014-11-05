@@ -45,10 +45,12 @@ library
     L.Utils
 
     -- Interpreter Code
-    L.Interpreter.Computer
+    L.Interpreter.ComputationResult
     L.Interpreter.Memory
+    L.Interpreter.HOComputer
     L.Interpreter.Output
     L.Interpreter.Runtime
+    L.Interpreter.X86Computer
 
     -- L1
     L.L1.L1
@@ -75,6 +77,7 @@ library
     L.L4.ANormalize
     L.L4.L4
     L.L4.L4AST
+    L.L4.L4Interp
     L.L4.L4Parser
 
     -- L5

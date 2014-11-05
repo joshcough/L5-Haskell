@@ -22,10 +22,11 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Vector.Generic.Mutable (length)
-import L.Interpreter.Computer
+import L.Interpreter.ComputationResult
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
+import L.Interpreter.X86Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster
 import L.Utils (bind2)
@@ -45,23 +46,23 @@ addEnv e = do (es, c) <- get; put (cons e es, c)
 showEnv :: Env -> String
 showEnv = show . Map.map showRuntime
 
-type CE m = (NonEmpty Env, Computer (World m) L2Instruction)
+type CE m = (NonEmpty Env, X86Computer (World m) L2Instruction)
 
-instance HasComputer r t a => HasComputer (l, r) t a where
-  computer = _2.computer
+instance HasX86Computer r t a => HasX86Computer (l, r) t a where
+  x86Computer = _2.x86Computer
 
 instance HasMemory r a => HasMemory (l, r) a where
   memory = _2.memory
 
-runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult (FrozenComputer L2Instruction))
+runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult (FrozenX86Computer L2Instruction))
 runL2Computation p = do
-  c   <- newComputer $ adjustMain p
+  c   <- newX86Computer $ adjustMain p
   let ce = (Map.empty :| [], c)
-  (output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runComputer step) ce
-  fzc <- freezeComputer comp
+  (output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runX86Computer step) ce
+  fzc <- freezeX86Computer comp
   return $ mkComputationResult (output, (haltEither, fzc))
 
-step :: (MonadOutput m, MonadComputer (CE m) m L2Instruction) => L2Instruction -> m ()
+step :: (MonadOutput m, MonadX86Computer (CE m) m L2Instruction) => L2Instruction -> m ()
 step (Assign x (CompRHS (Comp s1 op s2))) = do
   s1' <- readNum s1
   s2' <- readNum s2
@@ -133,27 +134,27 @@ step Return = do
       readMem "Return" (Pointer rspVal) >>= goto
 
 -- goto the next instruction after writing an x value
-nextInstWX :: MonadComputer (CE m) m a => L2X -> Runtime -> m ()
+nextInstWX :: MonadX86Computer (CE m) m a => L2X -> Runtime -> m ()
 nextInstWX x i = writeX x i >> nextInst
 
-readS :: MonadComputer (CE m) m a => L2S -> m Runtime
+readS :: MonadX86Computer (CE m) m a => L2S -> m Runtime
 readS (NumberL2S n) = return $ Num n
 readS (XL2S x)      = readX x
 readS (LabelL2S l)  = return $ FunctionPointer l
 
-readX :: MonadComputer (CE m) m a => L2X -> m Runtime
+readX :: MonadX86Computer (CE m) m a => L2X -> m Runtime
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . fst) <$> get
   maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
 
-writeX :: MonadComputer (CE m) m a => L2X -> Runtime -> m ()
+writeX :: MonadX86Computer (CE m) m a => L2X -> Runtime -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
 
-readNum :: (MonadOutput m, MonadComputer (CE m) m a) => L2S -> m Int64
+readNum :: (MonadOutput m, MonadX86Computer (CE m) m a) => L2S -> m Int64
 readNum s = readS s >>= expectNum
 
-encodeNum :: MonadComputer c m a => Runtime -> m Runtime
+encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
 encodeNum (Num n) = return . Num $ shiftR n 1
 encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r
