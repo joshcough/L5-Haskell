@@ -5,7 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module L.L4.L4Interp where --(interpL4) where
+module L.L4.L4Interp (interpL4) where
 
 import Control.Applicative
 import Control.Arrow (second)
@@ -33,24 +33,7 @@ import L.Utils
 import Prelude hiding (print)
 
 interpL4 :: L4 -> String
-interpL4 p = runST $ show <$> runL4Computation p
-
-newHOComputer :: MonadST m => L4 -> m (HOComputer (World m) L4.Func)
-newHOComputer (L4 _ fs) = do
-  mem <-  newMem (MemoryConfig False False) -- numbers not encoded, and not word indexed.
-  return HOComputer {
-    _env = Map.empty,
-    _mem = mem,
-    _lib = Map.fromList $ fmap (\f -> (name f, f)) fs
-  }
-
-runL4Computation :: (MonadST m, Functor m) => L4 -> m (ComputationResult (FrozenHOComputer L4.Func))
-runL4Computation p@(L4 e _) = do
-  c <- newHOComputer p
-  (output, (eHaltRuntime, finalComputer)) <- runOutputT $ flip runStateT c $ runErrorT $ interpE e
-  mem <- freezeMem $ finalComputer^.mem
-  let fc = FrozenHOComputer (finalComputer^.env) mem (finalComputer^.lib)
-  return $ mkComputationResult (output, (eHaltRuntime, fc))
+interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) (fmap (\f -> (name f, f)) fs)
 
 -- | interpret an E, building a monadic operation to be run.
 interpE :: MonadHOComputer c m L4.Func => E -> m Runtime
@@ -92,14 +75,3 @@ interpApp f es = do
   (Func _ args body)      <- use lib >>= libLookup label
   env                     <- use env
   locally (\_ -> Map.union (Map.fromList $ zip args rs) env) (interpE body)
-
--- | array reference (arr[i])
-arrayRef :: MonadHOComputer c m f =>  Runtime -> Runtime -> m Runtime
-arrayRef arr i = mathOp Add (Num 1) i >>= safeReadMem "L4-aref" arr
-
--- | sets the (arr[i] = e)
-arraySet :: MonadHOComputer c m f => Runtime -> Runtime -> Runtime -> m Runtime
-arraySet arr i r = do
-  index <- mathOp Add (Num 1) i
-  safeWriteMem "L4 array set" arr index r
-  return lTrue

@@ -153,29 +153,37 @@ arrayError a x = do
     "attempted to use position ", show index, " in an array that only has ", show size, " positions"]
   halt
 
-arraySize :: (MonadMemory mem m) => String -> Runtime -> m Runtime
+arraySize :: MonadMemory mem m => String -> Runtime -> m Runtime
 arraySize caller = readMem caller
 
-arraySizeNum :: (MonadMemory mem m) => String -> Runtime -> m Int64
+arraySizeNum :: MonadMemory mem m => String -> Runtime -> m Int64
 arraySizeNum caller a = readMem caller a >>= expectNum
 
 -- TODO: refactor out safeMem or safeWithMem or whatever.
 safeReadMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> m Runtime
 safeReadMem caller p i = do
   size  <- arraySizeNum caller p
-  index <- expectNum i
+  index <- expectNum i <&> (+1)
   if index <= size
-    then runOp p Increment i >>= readMem caller
+    then runOp p Increment (Num index) >>= readMem caller
     else arrayError p (Num $ index-1)
 
 -- | sets the (arr[i] = e)
 safeWriteMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> Runtime -> m ()
 safeWriteMem caller p i v = do
   size  <- arraySizeNum caller p
-  index <- expectNum i
+  index <- expectNum i <&> (+1)
   if index <= size
-    then runOp p Increment i >>= flip (writeMem caller) v
+    then runOp p Increment (Num index) >>= flip (writeMem caller) v
     else arrayError p (Num $ index-1)
+
+-- | array reference (arr[i])
+arrayRef :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> m Runtime
+arrayRef arr i = safeReadMem "L4-aref" arr i
+
+-- | sets the (arr[i] = e)
+arraySet :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> Runtime -> m Runtime
+arraySet arr i r = safeWriteMem "Memory Array set" arr i r >> return lTrue
 
 freezeMem :: MonadST m => Memory (World m) -> m (Vector Runtime)
 freezeMem m = liftST $ freeze (m^.runMemory)

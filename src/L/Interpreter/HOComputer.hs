@@ -51,9 +51,30 @@ makeClassy ''FrozenHOComputer
 instance HasMemory (HOComputer s f) s where memory = mem
 type MonadHOComputer c m f = (Applicative m, HasHOComputer c (World m) f, MonadMemory c m, MonadOutput m)
 
+newHOComputer :: MonadST m => [(String, f)] -> m (HOComputer (World m) f)
+newHOComputer funcs = do
+  mem <-  newMem (MemoryConfig False False) -- numbers not encoded, and not word indexed.
+  return HOComputer {
+    _env = Map.empty,
+    _mem = mem,
+    _lib = Map.fromList funcs
+  }
+
+runComputation :: (MonadST m, Functor m) =>
+  ErrorT Halt (StateT (HOComputer (World m) f) (OutputT m)) a ->
+  [(String, f)] ->
+  m (ComputationResult (FrozenHOComputer f))
+runComputation compuation fs = do
+  c <- newHOComputer fs
+  (output, (eHaltRuntime, finalComputer)) <- runOutputT $ flip runStateT c $ runErrorT $ compuation
+  mem <- freezeMem $ finalComputer^.mem
+  let fc = FrozenHOComputer (finalComputer^.env) mem (finalComputer^.lib)
+  return $ mkComputationResult (output, (eHaltRuntime, fc))
+
+
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
-locally :: MonadHOComputer c m f=> (Env -> Env) -> m a -> m a
+locally :: MonadHOComputer c m f => (Env -> Env) -> m a -> m a
 locally modifyEnv action = do 
   e   <- use env
   env .= modifyEnv e
