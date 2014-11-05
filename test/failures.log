@@ -1,71 +1,12 @@
-    L3 One Level ./test/test-fest/3-test/robby/3-test/32.L3: [Failed]
-expected: "8"
- but got: "out of memory"
-    L3 Turtles ./test/test-fest/3-test/robby/3-test/32.L3: [Failed]
-expected: Right "8"
- but got: Right "out of memory"
-    L4 One Level ./test/test-fest/L4-tests-from-2010/mcglynn/test/2.L4: [Failed]
-expected: "1210"
- but got: "1239"
-    L4 One Level ./test/test-fest/L4-tests-from-2010/mcglynn/test/4.L4: [Failed]
-ERROR: Error in array index
-    L4 Turtles ./test/test-fest/L4-tests-from-2010/mcglynn/test/2.L4: [Failed]
-expected: Right "1210"
- but got: Right "1239"
-    L4 Turtles ./test/test-fest/L4-tests-from-2010/mcglynn/test/4.L4: [Failed]
-ERROR: Error in array index
-    L5 One Level ./test/test-fest/L5-tests-from-2010/hartglass/test/3.L5: [Failed]
-expected: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
- but got: "1\n2\n0\n0\n0\n0\n0\n0\n0\n0"
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/13.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/14.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/16.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/17.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097155
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/18.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097159
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/3.L5: [Failed]
-expected: Right "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
- but got: Right "1\n2\n0\n0\n0\n0\n0\n0\n0\n0"
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/4.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/hartglass/test/6.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/1.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/11.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/13.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/15.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/17.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/19.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/21.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/23.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/25.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/26.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097157
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/3.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/kleinfindler/test/6.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
-    L5 Turtles ./tes t/test-fest/L5-tests-from-2010/kleinfindler/test/9.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097155
-    L5 Turtles ./test/test-fest/L5-tests-from-2010/shawger/test/24.L5: [Failed]
-ERROR: step MemWrite tried to write out of bounds memory index: 2097153
+
+    L Parsing Tests test/test-fest/L4-tests-from-2010/hartglass/test/28.L1: [Failed]
+    L Parsing Tests test/test-fest/L4-tests-from-2010/hartglass/test/53.L1: [Failed]
+    L Parsing Tests test/test-fest/L4-tests-from-2010/hartglass/test/54.L1: [Failed]
+    L Parsing Tests test/test-fest/L4-tests-from-2010/hartglass/test/59.L1: [Failed]
 
          Test Cases     Total         
- Passed  4427           4427          
- Failed  29             29            
- Total   4456           4456          
+ Passed  5030           5030          
+ Failed  6              6             
+ Total   5036           5036          
 Test suite tests: FAIL
 Test suite logged to: dist/test/l-0.1.0.0-tests.log
