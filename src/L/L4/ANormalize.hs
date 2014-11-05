@@ -37,12 +37,12 @@ aNormalizeS p = do
   (funcs', moreFuncs) <- unzip <$> (traverse l4FindF funcs)
   return $ L3 main' $ mainFs ++ funcs' ++ concat moreFuncs
 
-l4FindF :: L4.Func -> State Int (L3.Func, [L3.Func])
-l4FindF (L4.Func name args body) = do
+l4FindF :: L4.L4Func -> State Int (L3.L3Func, [L3.L3Func])
+l4FindF (Func name args body) = do
   (fBody, extra) <- l4Find body NoContext
-  return (L3.Func name args fBody, extra)
+  return (Func name args fBody, extra)
 
-l4Find :: L4.E -> Context -> State Int (L3.E, [L3.Func])
+l4Find :: L4.E -> Context -> State Int (L3.E, [L3.L3Func])
 l4Find e c = go e c where 
   go (L4.Let x r body)      k = go r $ LetContext x body k
   go (L4.IfStatement c t f) k = go c $ IfContext t f k
@@ -70,9 +70,9 @@ l4Find e c = go e c where
 
 -- TODO: doing some bad appending onto back of lists here...
 -- should probably reverse the vs.
-fill :: L3.D -> Context -> State Int (L3.E, [L3.Func]) 
+fill :: L3.D -> Context -> State Int (L3.E, [L3.L3Func]) 
 fill d = fill' where
-  fill' :: Context -> State Int (L3.E, [L3.Func])
+  fill' :: Context -> State Int (L3.E, [L3.L3Func])
   fill' NoContext = return (DE d, [])
   fill' (LetContext x b k) = do
     (letBody, extraFuncs) <- l4Find b k
@@ -97,13 +97,13 @@ fill d = fill' where
         freesTup = "frees"
         fBodyWithFrees = foldr f fBody (zip frees [0..]) where
           f (v,i) b = L3.Let v (L3.PrimApp ARef [VarV freesTup, NumV i]) b
-        func = L3.Func fLabel [fArg, freesTup] fBodyWithFrees
+        func = Func fLabel [fArg, freesTup] fBodyWithFrees
         tup  = L4.NewTuple (VE . VarV <$> frees)
     (tt, tef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [t, tup]) NoContext
     (ee, eef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [e, tup]) NoContext
     return (L3.IfStatement v tt ee, concat [[func], extraFuncsFromFBody, tef, eef])
 
-  maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.Func])) -> State Int (L3.E, [L3.Func])
+  maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.L3Func])) -> State Int (L3.E, [L3.L3Func])
   maybeLet (VD v) f = f v
   maybeLet d      f = do
     x                    <- newVar
@@ -130,9 +130,9 @@ freshenL4 :: L4 -> State Int L4
 freshenL4 (L4 e fs) = liftM2 L4 (freshenE e) (traverse freshenFunc fs) where
   freshenE :: L4.E -> State Int L4.E
   freshenE e = go e Map.empty
-  freshenFunc (L4.Func name args body) = do
+  freshenFunc (Func name args body) = do
     freshArgs <- traverse freshenVar args
-    liftM (L4.Func name freshArgs) (go body $ Map.fromList $ zip args freshArgs)
+    liftM (Func name freshArgs) (go body $ Map.fromList $ zip args freshArgs)
   go :: L4.E -> Map Variable Variable -> State Int L4.E
   go (L4.Let x r body)      m =
     do { v <- freshenVar x; liftM2 (L4.Let v) (go r m) (go body $ Map.insert x v m) }

@@ -2,10 +2,10 @@ module L.L4.L4AST where
 
 import L.Read (showAsList)
 import L.L1L2AST (Variable, Label)
-import L.L3.L3AST (PrimName, V)
+import L.L3.L3AST (PrimName, V, Func(..))
 
-data L4   = L4 E [Func]
-data Func = Func { name :: Label, args :: [Variable], body :: E }
+type L4Func = Func E
+data L4   = L4 E [L4Func]
 data E    =
     Let Variable E E 
   | IfStatement E E E
@@ -30,6 +30,5 @@ instance Show E where
   show (VE v)                = show v
   show (PrimApp p es)        = showAsList (show p : fmap show es)
 
-instance Show Func where show (Func n a l) = showAsList [n, showAsList a, show l]
 instance Show L4 where show (L4 e fs) = showAsList (show e : fmap show fs)
 

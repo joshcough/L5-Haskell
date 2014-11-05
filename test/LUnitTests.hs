@@ -34,7 +34,7 @@ import L.Read
 import L.Utils
 
 tests = do
-  ts <- traverse tree allTests
+  ts <- traverse tree [l3Tests, l4Tests]
   return $ testGroup "Main" ts
 
 quickTests = [l1Tests, l2Tests, l3Tests, l4Tests, l5Tests]

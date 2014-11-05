@@ -9,8 +9,12 @@ import L.L1L2AST (Variable, Label)
 import L.Read (showAsList)
 import Prelude hiding (print)
 
-data L3   = L3 E [Func]
-data Func = Func { name :: Label, args :: [Variable], body :: E }
+data Func a = Func { name :: Label, args :: [Variable], body :: a }
+instance Show a => Show (Func a) where
+  show (Func n args a) = showAsList [n, showAsList args, show a]
+
+type L3Func = Func E
+data L3   = L3 E [L3Func]
 data V    = VarV Variable | NumV Int64 | LabelV Label
 data E    = Let Variable D E | IfStatement V E E | DE D
 data D    = FunCall V [V] | PrimApp PrimName [V] | VD V |
@@ -93,6 +97,5 @@ instance Show E where
   show (IfStatement v te fe) = showAsList ["if", show v, show te, show fe]
   show (DE d)                = show d
 
-instance Show Func where show (Func n a l) = showAsList [n, showAsList a, show l]
 instance Show L3 where show (L3 e fs) = showAsList (show e : fmap show fs)
 

@@ -20,7 +20,7 @@ parseLabel (AtomSym l@(':' : _)) = Right $ l
 parseLabel bad = l3ParseError "bad L3-label" bad
 
 -- (l (x ...) e)
-parseFunction :: SExpr -> ParseResult Func
+parseFunction :: SExpr -> ParseResult L3Func
 parseFunction (List [l, args, e]) = liftM3 Func (parseLabel l) (parseArgs args) (parseE e) where
   parseArgs :: SExpr -> ParseResult [Variable]
   parseArgs (List args)  = sequence (parseArg <$> args) where

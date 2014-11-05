@@ -126,7 +126,7 @@ compile lam@(Lambda args body) = do
       liftedFunctionBody = if usingArgsTuple then wrapWithLets argsVar args freeLets else freeLets where
   label <- newLabel
   let closure = L4.MakeClosure label $ L4.NewTuple (VE . VarV <$> frees)
-      liftedFunction = L4.Func label fArgs $ liftedFunctionBody
+      liftedFunction = Func label fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)
 
 {-
@@ -188,7 +188,7 @@ Compile each of the given L5 expressions
   a list of L4 es, one e for each of the incoming L5 es
   a list of L4 functions. the functions are the lambdas lifted when compiling the es.
 -}
-compileEs :: [L5.E] -> State Int ([L4.E], [L4.Func])
+compileEs :: [L5.E] -> State Int ([L4.E], [L4Func])
 compileEs es = do
   let extract (L4 e fs) = (e, fs)
   (l4es, fs) <- unzip <$> fmap extract <$> traverse compile es

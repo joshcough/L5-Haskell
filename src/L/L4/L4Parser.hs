@@ -5,7 +5,7 @@ import Control.Monad
 import Data.Traversable hiding (sequence)
 import L.L1L2AST (Variable, Label)
 import L.Read
-import L.L3.L3AST (PrimName(..), V(..))
+import L.L3.L3AST (PrimName(..), V(..), Func(..))
 import L.L4.L4AST
 
 l4ParseError :: String -> SExpr -> Either String a
@@ -21,7 +21,7 @@ parseLabel (AtomSym l@(':' : _)) = Right $ l
 parseLabel bad = l4ParseError "bad L4-label" bad
 
 -- (l (x ...) e)PrimName
-parseFunction :: SExpr -> ParseResult Func
+parseFunction :: SExpr -> ParseResult L4Func
 parseFunction (List [l, args, e]) = liftM3 Func (parseLabel l) (parseArgs args) (parseE e) where
   parseArgs :: SExpr -> ParseResult [Variable]
   parseArgs (List args)  = sequence (parseArg <$> args) where

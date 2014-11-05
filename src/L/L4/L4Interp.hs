@@ -27,7 +27,7 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1L2AST hiding (Func, Print)
-import L.L3.L3AST (PrimName(..), V(..), isBiop)
+import L.L3.L3AST (PrimName(..), V(..), isBiop, Func(..))
 import L.L4.L4AST as L4
 import L.Utils
 import Prelude hiding (print)
@@ -36,7 +36,7 @@ interpL4 :: L4 -> String
 interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) (fmap (\f -> (name f, f)) fs)
 
 -- | interpret an E, building a monadic operation to be run.
-interpE :: MonadHOComputer c m L4.Func => E -> m Runtime
+interpE :: MonadHOComputer c m L4Func => E -> m Runtime
 interpE (Let v e b)           = do e' <- interpE e; locally (Map.insert v e') (interpE b)
 interpE (IfStatement e te fe) = do e' <- interpE e; interpE $ if e' /= lFalse then te else fe
 interpE (FunCall e es)        = interpApp e es

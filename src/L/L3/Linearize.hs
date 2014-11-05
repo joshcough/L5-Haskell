@@ -21,7 +21,7 @@ linearizeM (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
 -- there is an implicit assertion here that L3 functions
 -- can have at most 6 arguments,
 -- because there are 6 x86-64 argument registers
-compileFunction :: L3.Func -> State Int L2.L2Func
+compileFunction :: L3.L3Func -> State Int L2.L2Func
 compileFunction (L3.Func name args body) = L2.Func <$> insts where
   labl = LabelDeclaration name
   -- inside a function body, we need to get the argument values out of the registers
