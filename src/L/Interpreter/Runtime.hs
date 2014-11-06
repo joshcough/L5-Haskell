@@ -49,7 +49,6 @@ boolToNum :: Bool -> Runtime
 boolToNum True  = Num 1
 boolToNum False = Num 0
 
-
 showRuntime :: Runtime -> String
 showRuntime (Num i)             = "(Num " ++ show i ++ ")"
 showRuntime (Pointer i)         = "(Pointer " ++ show i ++ ")"
@@ -59,10 +58,14 @@ isNumber :: Runtime -> Runtime
 isNumber (Num _) = lTrue
 isNumber _       = lFalse
 
+isArray :: Runtime -> Runtime
+isArray = isPointer
+
 -- TODO: should label return true here?
 isPointer :: Runtime -> Runtime
-isPointer (Pointer _) = lTrue
-isPointer _           = lFalse
+isPointer (Pointer _)         = lTrue
+isPointer (FunctionPointer _) = lTrue
+isPointer _                   = lFalse
 
 expectNum :: MonadRuntime m => Runtime -> m Int64
 expectNum (Num i) = return i

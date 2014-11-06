@@ -12,7 +12,6 @@ import Control.Applicative
 import Control.Arrow (second)
 import Control.Lens
 import Control.Monad.State
-import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
 import Data.Int
@@ -27,50 +26,35 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1L2AST hiding (Func)
-import L.L3.L3AST as L3 hiding (print)
-import L.Utils
 import Prelude hiding (print)
 
 type Env = Map Variable Runtime
 type Lib func = Map Label func
 
-data HOComputer s f = HOComputer {
-  _env    :: Env
- ,_mem    :: Memory s
- ,_lib    :: Lib f
-}
+data HOComputer s = HOComputer { _env :: Env, _mem :: Memory s }
 makeClassy ''HOComputer
 
-data FrozenHOComputer f = FrozenHOComputer {
-  _envFrozen    :: Env
- ,_memFrozen    :: Vector Runtime
- ,_libFrozen    :: Lib f
-}
+data FrozenHOComputer = FrozenHOComputer { _envFrozen :: Env, _memFrozen :: Vector Runtime }
 makeClassy ''FrozenHOComputer
 
-instance HasMemory (HOComputer s f) s where memory = mem
-type MonadHOComputer c m f = (Applicative m, HasHOComputer c (World m) f, MonadMemory c m, MonadOutput m)
+instance HasMemory (HOComputer s) s where memory = mem
+type MonadHOComputer c m f = (Applicative m, HasHOComputer c (World m), MonadMemory c m, MonadOutput m)
 
-newHOComputer :: MonadST m => [(String, f)] -> m (HOComputer (World m) f)
-newHOComputer funcs = do
-  mem <-  newMem (MemoryConfig False False) -- numbers not encoded, and not word indexed.
-  return HOComputer {
-    _env = Map.empty,
-    _mem = mem,
-    _lib = Map.fromList funcs
-  }
+-- numbers not encoded, and not word indexed.
+hoMemConfig :: MemoryConfig
+hoMemConfig = MemoryConfig False False
+
+newHOComputer :: (Functor m, MonadST m) => m (HOComputer (World m))
+newHOComputer = HOComputer (Map.empty) <$> newMem hoMemConfig
 
 runComputation :: (MonadST m, Functor m) =>
-  ErrorT Halt (StateT (HOComputer (World m) f) (OutputT m)) a ->
-  [(String, f)] ->
-  m (ComputationResult (FrozenHOComputer f))
-runComputation compuation fs = do
-  c <- newHOComputer fs
+  ErrorT Halt (StateT (HOComputer (World m)) (OutputT m)) a ->
+  m (ComputationResult (FrozenHOComputer))
+runComputation compuation = do
+  c <- newHOComputer
   (output, (eHaltRuntime, finalComputer)) <- runOutputT $ flip runStateT c $ runErrorT $ compuation
   mem <- freezeMem $ finalComputer^.mem
-  let fc = FrozenHOComputer (finalComputer^.env) mem (finalComputer^.lib)
-  return $ mkComputationResult (output, (eHaltRuntime, fc))
-
+  return $ mkComputationResult (output, (eHaltRuntime, FrozenHOComputer (finalComputer^.env) mem))
 
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
@@ -86,7 +70,7 @@ locally modifyEnv action = do
 -- TODO: this doesnt show the heap pointer!
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
-instance Show (ComputationResult (FrozenHOComputer f)) where
+instance Show (ComputationResult (FrozenHOComputer)) where
   {-
     normally in L3, thec computer thinks it's still running.
     Halted Normal only happens on an expected arrayError.
