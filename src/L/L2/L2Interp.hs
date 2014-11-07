@@ -37,6 +37,8 @@ import Prelude hiding (head, length, print, tail)
 interpL2 :: L2 -> String
 interpL2 p = runST $ show <$> runL2Computation p
 
+-- TODO: hmmmmm cant i use HOComputer here? instead of CE?
+-- TODO: they are similar, but HOComputer doesnt have registers...but could it?
 -- Env, and some Env operations
 type Env = Map Variable Runtime
 replaceHeadEnv :: MonadState (NonEmpty a, t) m => a -> m ()
@@ -44,7 +46,7 @@ replaceHeadEnv e = do (es, c) <- get; put (e :| tail es, c)
 addEnv :: MonadState (NonEmpty a, t) m => a -> m ()
 addEnv e = do (es, c) <- get; put (cons e es, c)
 showEnv :: Env -> String
-showEnv = show . Map.map showRuntime
+showEnv = show . Map.map show
 
 type CE m = (NonEmpty Env, X86Computer (World m) L2Instruction)
 
@@ -157,4 +159,4 @@ readNum s = readS s >>= expectNum
 
 encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
 encodeNum (Num n) = return . Num $ shiftR n 1
-encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r
+encodeNum r = exception $ "tried to encode non-number: " ++ show r

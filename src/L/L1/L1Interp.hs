@@ -97,4 +97,4 @@ readNum s = readS s >>= expectNum
 
 encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
 encodeNum (Num n) = return . Num $ shiftR n 1
-encodeNum r = exception $ "tried to encode non-number: " ++ showRuntime r
+encodeNum r = exception $ "tried to encode non-number: " ++ show r

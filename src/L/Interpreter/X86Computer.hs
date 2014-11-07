@@ -60,12 +60,12 @@ instance Show a => Show (ComputationResult (FrozenX86Computer a)) where
   show (ComputationResult output rs c) = intercalate "\n" [
     "Output:     " ++ concat (fmap outputText output),
     "Run State:  " ++ show rs,
-    "Registers:  " ++ (show . Map.map showRuntime . Map.filter (Num 0 /=) $ frozenRegisters c),
+    "Registers:  " ++ (show . Map.map show . Map.filter (Num 0 /=) $ frozenRegisters c),
     "Memory!=0:  " ++ memDisplay,
     "Heap Ptr:   " ++ show (frozenHeapP c),
     "Inst Ptr:   " ++ show (frozenIp c),
     "Final Inst: " ++ show (frozenInst c) ] where
-    memDisplay = show . map (second showRuntime) $ memList
+    memDisplay = show . map (second show) $ memList
     memList :: [(Int, Runtime)]
     memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] . Vector.toList $ frozenMemory c
 

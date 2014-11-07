@@ -1,0 +1,18 @@
+    L5 One Level ./test/test-fest/L5-tests-from-2010/burgener/test/11.L5: [Failed]
+expected: "10"
+ but got: "0"
+    L5 One Level ./test/test-fest/L5-tests-from-2010/mcglynn/test/10.L5: [Failed]
+ERROR: non-lambda in letrec: ("object",(new-tuple initial_data (lambda () (aref object 0)) (lambda (new_data) (aset object 0 new_data))))
+    L5 One Level ./test/test-fest/L5-tests-from-2010/mcglynn/test/11.L5: [Failed]
+ERROR: non-lambda in letrec: ("c",6)
+    L5 One Level ./test/test-fest/L5-tests-from-2010/kleinfindler/test/32.L5: [Failed]
+ERROR: non-lambda in letrec: ("x",1)
+    L5 One Level ./test/test-fest/L5-tests-from-2010/kleinfindler/test/36.L5: [Failed]
+ERROR: non-lambda in letrec: ("f",(begin (print 2) (lambda (x) 1)))
+
+         Test Cases   Total       
+ Passed  81           81          
+ Failed  5            5           
+ Total   86           86          
+Test suite tests: FAIL
+Test suite logged to: dist/test/l-0.1.0.0-tests.log

@@ -28,7 +28,6 @@ import Prelude hiding (read)
 import L.L1L2AST
 import L.Interpreter.Memory
 import L.Interpreter.Output
-import L.Interpreter.Runtime
 
 data ComputationResult a = ComputationResult {
    _output    :: [Output]

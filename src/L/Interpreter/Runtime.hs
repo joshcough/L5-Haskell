@@ -12,6 +12,11 @@ import L.L3.L3AST
 
 data Runtime = Num Int64 | Pointer Int64 | FunctionPointer String deriving Eq
 
+instance Show Runtime where
+  show (Num i)             = "(Num " ++ show i ++ ")"
+  show (Pointer i)         = "(Pointer " ++ show i ++ ")"
+  show (FunctionPointer l) = "(FunctionPointer " ++ l ++ ")"
+
 type MonadRuntime m = MonadError Halt m
 
 lTrue, lFalse :: Runtime
@@ -32,7 +37,7 @@ runOp (Num l)     BitwiseAnd (Num r)      = return $ Num     (l .&. r)
 -- If you're going to mess with pointers like this, you're just going to get back a Num.
 runOp (Pointer l) BitwiseAnd (Num r)      = return $ Num     (l .&. r)
 runOp l op r  = exception $
-  "cannot do " ++ showRuntime l ++ " " ++ x86OpSymbol op ++ " " ++ showRuntime r
+  "cannot do " ++ show l ++ " " ++ x86OpSymbol op ++ " " ++ show r
 
 
 mathOp :: MonadRuntime m => PrimName -> Runtime -> Runtime -> m Runtime
@@ -43,16 +48,11 @@ mathOp LessThan (Num l) (Num r) = return . boolToNum $ l <  r
 mathOp LTorEQ   (Num l) (Num r) = return . boolToNum $ l <= r
 mathOp EqualTo  (Num l) (Num r) = return . boolToNum $ l == r
 mathOp b l r = exception $
-  concat ["invalid arguments to ", show b, " :", showRuntime l, ", " , showRuntime r]
+  concat ["invalid arguments to ", show b, " :", show l, ", " , show r]
 
 boolToNum :: Bool -> Runtime
 boolToNum True  = Num 1
 boolToNum False = Num 0
-
-showRuntime :: Runtime -> String
-showRuntime (Num i)             = "(Num " ++ show i ++ ")"
-showRuntime (Pointer i)         = "(Pointer " ++ show i ++ ")"
-showRuntime (FunctionPointer l) = "(FunctionPointer " ++ l ++ ")"
 
 isNumber :: Runtime -> Runtime
 isNumber (Num _) = lTrue
@@ -69,11 +69,11 @@ isPointer _                   = lFalse
 
 expectNum :: MonadRuntime m => Runtime -> m Int64
 expectNum (Num i) = return i
-expectNum r       = exception $ "expected a Num, but got: " ++ showRuntime r
+expectNum r       = exception $ "expected a Num, but got: " ++ show r
 
 expectPointer :: MonadRuntime m => String -> Runtime -> m Int64
 expectPointer _ (Pointer i) = return i
-expectPointer caller r      = exception $ caller ++ " expected Pointer, but got: " ++ showRuntime r
+expectPointer caller r      = exception $ caller ++ " expected Pointer, but got: " ++ show r
 
 foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
 foldRuntime fn fp fc = f where

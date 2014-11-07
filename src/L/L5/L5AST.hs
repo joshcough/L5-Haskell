@@ -1,5 +1,6 @@
 module L.L5.L5AST where
 
+import Data.Int
 import L.L1L2AST (Variable)
 import L.L3.L3AST (Prim(..), PrimName(..), arityByName)
 import L.Read
@@ -19,7 +20,7 @@ data E =
   | NewTuple [E]
   | Begin E E
   | App E [E]
-  | LitInt Int
+  | LitInt Int64
   | PrimE PrimName
   deriving Eq
 

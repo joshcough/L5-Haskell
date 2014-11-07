@@ -24,7 +24,7 @@ interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) where
   lib = Map.fromList $ fmap (\f -> (name f, f)) fs
 
   -- | interpret an E, building a monadic operation to be run.
-  interpE :: MonadHOComputer c m L4Func => E -> m Runtime
+  interpE :: MonadHOComputer c m Runtime => E -> m Runtime
   interpE (Let v e b)           = do e' <- interpE e; locally (Map.insert v e') (interpE b)
   interpE (IfStatement e te fe) = do e' <- interpE e; interpE $ if e' /= lFalse then te else fe
   interpE (FunCall e es)        = interpApp e es
@@ -45,13 +45,13 @@ interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) where
   interpE (PrimApp b [l, r]) | isBiop b = bind2 (mathOp b) (interpE l) (interpE r)
   interpE (PrimApp p es)                = exception $ show p ++ " applied to wrong args: " ++ show es
 
-  interpV :: MonadHOComputer c m f => V -> m Runtime
+  interpV :: MonadHOComputer c m Runtime => V -> m Runtime
   interpV (VarV v)   = use env >>= envLookup v
   interpV (NumV i)   = return $ Num i
   interpV (LabelV l) = return $ FunctionPointer l
 
   -- | function application (f v...)
-  interpApp :: MonadHOComputer c m L4Func => E -> [E] -> m Runtime
+  interpApp :: MonadHOComputer c m Runtime => E -> [E] -> m Runtime
   interpApp f es = do
     (FunctionPointer label) <- interpE f
     rs                      <- traverse interpE es

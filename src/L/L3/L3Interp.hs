@@ -23,12 +23,12 @@ interpL3 (L3 e fs) = runST $ show <$> runComputation (interpE e) where
   lib = Map.fromList $ fmap (\f -> (name f, f)) fs
 
   -- | interpret an E, building a monadic operation to be run.
-  interpE :: MonadHOComputer c m L3Func => E -> m Runtime
+  interpE :: MonadHOComputer c m Runtime => E -> m Runtime
   interpE (Let v d e)           = interpD d >>= \d' -> locally (Map.insert v d') (interpE e)
   interpE (IfStatement v te fe) = interpV v >>= \v' -> interpE $ if v' /= lFalse then te else fe
   interpE (DE d)                = interpD d
 
-  interpD :: MonadHOComputer c m L3Func => D -> m Runtime
+  interpD :: MonadHOComputer c m Runtime => D -> m Runtime
   -- Regular L3 Level stuff
   interpD (FunCall v vs)    = interpApp v vs
   interpD (NewTuple vs)     = traverse interpV vs >>= newArray
@@ -47,13 +47,13 @@ interpL3 (L3 e fs) = runST $ show <$> runComputation (interpE e) where
   interpD (PrimApp b [l, r]) | isBiop b = bind2 (mathOp b) (interpV l) (interpV r)
   interpD (PrimApp p vs)                = exception $ show p ++ " applied to wrong args: " ++ show vs
 
-  interpV :: MonadHOComputer c m f=> V -> m Runtime
+  interpV :: MonadHOComputer c m Runtime => V -> m Runtime
   interpV (VarV v)   = use env >>= envLookup v
   interpV (NumV i)   = return $ Num i
   interpV (LabelV l) = return $ FunctionPointer l
 
   -- | function application (f v...)
-  interpApp :: MonadHOComputer c m L3Func => V -> [V] -> m Runtime
+  interpApp :: MonadHOComputer c m Runtime => V -> [V] -> m Runtime
   interpApp f vs = do
     (FunctionPointer label) <- interpV f
     rs                      <- traverse interpV vs
