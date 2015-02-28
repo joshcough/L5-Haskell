@@ -12,8 +12,8 @@ import Control.Monad.State
 import Data.Traversable
 import L.IOHelpers (mapFileContents)
 import L.L1L2AST
-import L.L1L2Parser
 import L.Read
+import L.Registers
 import L.Utils
 
 defaultSpillPrefix :: String
@@ -32,8 +32,8 @@ spillTest input = case sreadWithRest input of
         var = w !! 0
         off = read $ w !! 1
         pre = w !! 2
-        ins = extract $ parseL2InstList program
-    in showAsList $ fmap show $ fst $ runState (spill pre (var, off) ins) 0
+        ins = extract $ parseInstructionList program
+    in showAsList $ fmap show $ fst $ runState (spill pre (Variable var, off) ins) 0
 
 runSpillMain_ :: FilePath -> IO String
 runSpillMain_ = mapFileContents spillTest
@@ -54,7 +54,7 @@ spill spillPrefix (spillVar, stackOffset) ins =
 spillInst :: String -> (Variable, Int) -> L2Instruction -> State Int [L2Instruction]
 spillInst spillPrefix (spillVar, stackOffset) = spillI where
 
-  memLoc = MemLoc rsp stackOffset
+  memLoc    = MemLoc rsp (fromIntegral stackOffset)
   spillVarX = VarL2X spillVar
   spillVarS = XL2S spillVarX
   readSpillVarInto x = Assign x (MemRead memLoc)
@@ -64,7 +64,7 @@ spillInst spillPrefix (spillVar, stackOffset) = spillI where
   newVar = do
     n <- get
     _ <- put (n + 1)
-    return $ VarL2X $ spillPrefix ++ show n
+    return . VarL2X . Variable $ spillPrefix ++ show n
 
   withNewVar   :: (L2X -> a) -> State Int a
   withNewVar   f = fmap f newVar

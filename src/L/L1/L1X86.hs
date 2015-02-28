@@ -5,6 +5,7 @@ import Control.Monad.Error
 import Data.Traversable
 import L.L1L2AST
 import L.OS
+import L.Registers
 import L.Utils
 
 -- X86 Generation code
@@ -14,7 +15,7 @@ type ProgramName = String
 genX86Code :: ProgramName -> OS -> L1 -> Either String String
 genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genCodeS :: L1 -> ErrorT String (State Int) String
-  genCodeS (Program main funcs) = do
+  genCodeS (L1 (Program main funcs)) = do
     x86Funcs <- compiledFunctions
     return $ dump $ concat [mainHeader, concat x86Funcs, ["\n"]] where
 
@@ -38,27 +39,26 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInstS i = either throwError return $ genInst i
 
   genInst :: L1Instruction -> Either String [X86Inst]
-  genInst (LabelDeclaration label) = return [declare label]
+  genInst (LabelDeclaration (Label label)) = return [declare label]
   genInst (Assign l r)       = genAssignInst l r
 
-  genInst (MemWrite loc  (LabelL1S (':':l))) = return [
+  genInst (MemWrite loc  (LabelL1S (Label (':':l)))) = return [
        triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genS $ RegL1S r15)
       ,triple "movq"  (genS $ RegL1S r15) (genLoc loc)
     ]
-  genInst (MemWrite loc  s)  = return [triple "movq"  (genS s) (genLoc loc)]
-
-  genInst (MathInst r op s)  = return [triple (x86OpName op) (genS s) (genReg r)]
-  genInst (Goto s)           = return [jumpToLabel s]
-  genInst (TailCall s)       = return [jump s]
+  genInst (MemWrite loc  s) = return [triple "movq"  (genS s) (genLoc loc)]
+  genInst (MathInst r op s) = return [triple (x86OpName op) (genS s) (genReg r)]
+  genInst (Goto (Label s))  = return [jumpToLabel s]
+  genInst (TailCall s)      = return [jump s]
   -- special case for two numbers
-  genInst (CJump (Comp (NumberL1S n1) op (NumberL1S n2)) l1 l2) =
+  genInst (CJump (Comp (NumberL1S n1) op (NumberL1S n2)) (Label l1) (Label l2)) =
     return $ if (cmp op n1 n2) then [jumpToLabel l1] else [jumpToLabel l2]
   -- (cjump 11 < ebx :true :false) special case. destination must be a register.
-  genInst (CJump (Comp l@(NumberL1S _) op r@(RegL1S _)) l1 l2) = return [
+  genInst (CJump (Comp l@(NumberL1S _) op r@(RegL1S _)) (Label l1) (Label l2)) = return [
     triple "cmpq" (genS l) (genS r),
     foldOp (jumpIfGreater l1) (jumpIfGreaterOrEqual l1) (jumpIfEqual l1) op,
     jumpToLabel l2 ]
-  genInst (CJump (Comp s1 op s2) l1 l2) = return [
+  genInst (CJump (Comp s1 op s2) (Label l1) (Label l2)) = return [
     triple "cmpq" (genS s2) (genS s1),
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jumpToLabel l2 ]
@@ -66,7 +66,7 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
-  genAssignInst r (SRHS (LabelL1S (':':l))) = 
+  genAssignInst r (SRHS (LabelL1S (Label (':':l)))) = 
     return [triple "movq" (showLabel l ++ "@GOTPCREL(%rip)") (genReg r)]
   genAssignInst r (SRHS s)            = return [triple "movq" (genS s) (genReg r)]
   genAssignInst r (MemRead loc)       = return [triple "movq" (genLoc loc) (genReg r)]
@@ -115,26 +115,26 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   genReg :: Register -> String
   genReg r = "%" ++ show r
   genS :: L1S -> String
-  genS (NumberL1S i)         = "$" ++ show i
-  genS (LabelL1S  (':' : l)) = "$" ++ showLabel l
-  genS (LabelL1S  l        ) = badLabel l
   genS (RegL1S    r)         = genReg r
+  genS (NumberL1S i)         = "$" ++ show i
+  genS (LabelL1S  l        ) = badLabel $ show l
+  genS (LabelL1S  (Label (':' : l))) = "$" ++ showLabel l
   genLoc (MemLoc r i) = concat [show i, "(", genReg r, ")"]
   
   jump r@(RegL1S _)  = "jmp *" ++ genS r
-  jump (LabelL1S l)  = jumpToLabel l
+  jump (LabelL1S l)  = jumpToLabel $ show l
   jump (NumberL1S n) = error $ "bad jump to literal number: " ++ show n
 
-  jumpToLabel :: Label -> String
+  jumpToLabel :: String -> String
   jumpToLabel (':' : label) = "jmp " ++ showLabel label
   jumpToLabel l = badLabel l
 
   call :: L1S -> String
   call (RegL1S reg) = "call *" ++ genReg reg
-  call (LabelL1S l) = callLabel l
+  call (LabelL1S l) = callLabel $ show l
   call x = error $ "bad call: " ++ show x
 
-  callLabel :: Label -> String
+  callLabel :: String -> String
   callLabel (':' : label) = "call " ++ showLabel label
   callLabel l = badLabel l
 

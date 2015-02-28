@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import L.L1L2AST
+import L.Registers
 import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
@@ -38,7 +39,7 @@ allocate f = Func finalL1Body where
    -}
   label = case allocatedBody !! 0 of
     l@(LabelDeclaration _) -> l
-    _ -> LabelDeclaration ":main"
+    _ -> LabelDeclaration $ Label ":main"
 
   {-
     TODO: re-document what is going on here...
@@ -98,10 +99,12 @@ allocateCompletely body = evalState (go 0 body) 0
         Nothing ->
           -- find the next variable to spill by figuring out which one has the most connections
           -- TODO: tie should go to the one with the longest liverange.
-          let vs = Set.toList $ vars g
+          let vs :: [Variable]
+              vs = Set.toList $ vars g
               s (_, n1) (_, n2) = compare n1 n2
-              f (v, _) = not $ isPrefixOf defaultSpillPrefix v
-              conns = filter f . sortBy s $ fmap (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
+              f (Variable v, _) = not $ isPrefixOf defaultSpillPrefix v
+              conns = filter f . sortBy s $ fmap 
+                (\v -> (v, Set.size $ connections (VarL2X v) g)) vs
               v = fst $ head conns
           in spillDef (v, offset * 16) insts >>= go (offset + 1)
 

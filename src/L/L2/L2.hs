@@ -3,8 +3,8 @@ module L.L2.L2 (l2Language, interpL2) where
 import Control.Applicative
 import L.Compiler
 import L.L1L2AST
-import L.L1L2Parser
-import L.L1.L1 
+import L.SExpr
+import L.L1.L1
 import L.L2.L2Interp
 import L.L2.Allocation
 
@@ -19,7 +19,7 @@ import L.L2.Allocation
 
 l2Language :: Language L2 L1
 l2Language  = Language
-  parseL2
+  fromSExpr
   (\_ _ -> Right . compileL2ToL1)
   interpL2
   "L2"
@@ -27,7 +27,7 @@ l2Language  = Language
 
 -- this is the main function, the rest are just various helpers
 compileL2ToL1 :: L2 -> L1
-compileL2ToL1 (Program main fs) =
-  Program (allocate mainWithRet) $ (allocate <$> fs) where 
+compileL2ToL1 (L2 (Program main fs)) =
+  L1 $ Program (allocate mainWithRet) $ (allocate <$> fs) where 
   mainWithRet = Func (body main ++ [Return])
 

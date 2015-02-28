@@ -10,12 +10,12 @@ import L.Interpreter.Output
 import L.L1L2AST
 import L.L3.L3AST
 
-data Runtime = Num Int64 | Pointer Int64 | FunctionPointer String deriving Eq
+data Runtime = Num Int64 | Pointer Int64 | FunctionPointer Label deriving Eq
 
 instance Show Runtime where
   show (Num i)             = "(Num " ++ show i ++ ")"
   show (Pointer i)         = "(Pointer " ++ show i ++ ")"
-  show (FunctionPointer l) = "(FunctionPointer " ++ l ++ ")"
+  show (FunctionPointer l) = "(FunctionPointer " ++ show l ++ ")"
 
 type MonadRuntime m = MonadError Halt m
 

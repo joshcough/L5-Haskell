@@ -98,7 +98,7 @@ showEnv = show . Map.map show
 envLookup :: MonadHOComputer c m r => Variable -> Env r -> m r
 envLookup = forceLookup "variable"
 
-libLookup :: MonadHOComputer c m r => Variable -> Lib f -> m f
+libLookup :: MonadHOComputer c m r => Label -> Lib f -> m f
 libLookup = forceLookup "function"
 
 forceLookup :: (Show k, Ord k, MonadHOComputer c m r) => String -> k -> Map k v -> m v

@@ -26,6 +26,7 @@ import Data.Vector (Vector, freeze)
 import qualified Data.Vector as Vector
 import Prelude hiding (read)
 import L.L1L2AST
+import L.Registers
 import L.Interpreter.ComputationResult
 import L.Interpreter.Memory
 import L.Interpreter.Output
@@ -130,7 +131,8 @@ pop r = do
   writeReg rsp (Pointer $ rspValN + 8)
 
 findLabelIndex :: MonadX86Computer c m a => Label -> m Int64
-findLabelIndex l = use (labels.at l) >>= maybe (exception $ "no such label: " ++ l) return
+findLabelIndex l = 
+  use (labels.at l) >>= maybe (exception $ "no such label: " ++ show l) return
 
 goto :: MonadX86Computer c m a => Runtime -> m ()
 goto (Num i) = ip .= i

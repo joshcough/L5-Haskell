@@ -29,6 +29,7 @@ import L.Interpreter.Runtime
 import L.Interpreter.X86Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster
+import L.Registers
 import L.Utils (bind2)
 import Prelude hiding (head, length, print, tail)
 
@@ -57,7 +58,7 @@ instance HasMemory r a => HasMemory (l, r) a where
   memory = _2.memory
 
 runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult (FrozenX86Computer L2Instruction))
-runL2Computation p = do
+runL2Computation (L2 p) = do
   c   <- newX86Computer $ adjustMain p
   let ce = (Map.empty :| [], c)
   (output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runX86Computer step) ce
@@ -148,7 +149,7 @@ readX :: MonadX86Computer (CE m) m a => L2X -> m Runtime
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . fst) <$> get
-  maybe (exception $ "unbound variable: " ++ v) return (Map.lookup v e)
+  maybe (exception $ "unbound variable: " ++ show v) return (Map.lookup v e)
 
 writeX :: MonadX86Computer (CE m) m a => L2X -> Runtime -> m ()
 writeX (RegL2X r) i = writeReg r i

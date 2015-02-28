@@ -4,7 +4,7 @@ import Control.Applicative
 import Control.Monad.State
 import qualified Data.Set as Set
 import Data.Traversable
-import L.L1L2AST (Variable, Label)
+import L.L1L2AST (Variable(..), Label(..))
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
@@ -110,8 +110,8 @@ compile pe@(PrimE p) = compile $ Lambda (primVars p) (App pe (Var <$> primVars p
  -}
 compile lam@(Lambda args body) = do
   let usingArgsTuple = length args > 2
-      freesVar = "frees"
-      argsVar  = "args"
+      freesVar = Variable "frees"
+      argsVar  = Variable "args"
       -- the arguments to the new function
       fArgs = if usingArgsTuple then [freesVar, argsVar] else freesVar : args
       -- the free variables in the lambda
@@ -227,8 +227,8 @@ subst x y = f where
   f e@(PrimE _)            = e
 
 newVar :: State Int Variable
-newVar = incState "_l5_"
+newVar = Variable <$> incState "_l5_"
 newLabel :: State Int Label
-newLabel = incState ":l5_"
+newLabel = Label <$> incState ":l5_"
 incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }

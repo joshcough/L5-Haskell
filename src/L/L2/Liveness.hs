@@ -18,9 +18,9 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import L.L1L2AST
-import L.L1L2Parser
 import L.IOHelpers (mapFileContents, withFileArg)
 import L.Read
+import L.Registers
 import L.Utils
 
 data InstructionInOutSet = InstructionInOutSet {
@@ -92,7 +92,7 @@ liveness = head . inout
 
 -- calculate the liveness for a string containing a list of instructions
 runLiveness :: String -> [IIOS]
-runLiveness = liveness . extract . parseL2InstList . sread
+runLiveness = liveness . extract . parseInstructionList . sread
 
 -- calculate the liveness for a string containing a list of instructions
 -- that string is read from the given filepath
@@ -124,7 +124,7 @@ inout is =
       indeces = Map.fromList instructionsWithIndex
       findLabelDecIndex :: Label -> Int
       findLabelDecIndex l = 
-        maybe (error $ "no such label: " ++ l) id (Map.lookup (LabelDeclaration l) indeces) 
+        maybe (error $ "no such label: " ++ show l) id (Map.lookup (LabelDeclaration l) indeces) 
       succIndeces :: [Set Int]
       succIndeces = fmap succIndeces_ instructionsWithIndex where
         succIndeces_ :: (L2Instruction, Int) -> Set Int

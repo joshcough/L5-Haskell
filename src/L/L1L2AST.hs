@@ -9,47 +9,18 @@ module L.L1L2AST where
 
 import Control.Applicative
 import Control.Lens
-import Data.Bits
+import Control.Monad
 import Data.Int
 import Data.Map as Map
+import Data.Traversable
 import Data.Tuple
-import L.Read (showAsList)
+import L.Read
+import L.Registers
 import Prelude hiding (LT, EQ)
 
-type Label    = String
+newtype Label = Label String deriving (Eq, Ord, Show)
 
-data Register =
- Rax | Rbx | Rcx | Rdx |
- Rsi | Rdi | Rbp | Rsp |
- R8  | R9  | R10 | R11 |
- R12 | R13 | R14 | R15 deriving (Eq,Ord,Enum,Bounded)
-
-class AsRegister t where
-  _Register :: Prism' t Register
-
-instance AsRegister Register where
-  _Register = id
-
-rsi, rdi, rbp, rsp, rax, rbx, rcx, rdx, r8, r9, r10, r11, r12, r13, r14, r15 :: AsRegister t => t
-rsi = _Register # Rsi
-rdi = _Register # Rdi
-rbp = _Register # Rbp
-rsp = _Register # Rsp
-r8  = _Register # R8
-r9  = _Register # R9
-r10 = _Register # R10
-r11 = _Register # R11
-r12 = _Register # R12
-r13 = _Register # R13
-r14 = _Register # R14
-r15 = _Register # R15
-rax = _Register # Rax
-rbx = _Register # Rbx
-rcx = _Register # Rcx
-rdx = _Register # Rdx
-
--- TODO: convert Int to Int64?
-data MemLoc x   = MemLoc x Int deriving (Eq, Ord)
+data MemLoc x   = MemLoc x Int64 deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
 data Comp s     = Comp s CompOp s deriving (Eq, Ord)
 data AssignRHS x s =
@@ -120,30 +91,12 @@ instance (Show x, Show s) => Show (Instruction x s) where
   show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
   show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
   show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
-  show (Goto l)             = showAsList ["goto", l]
-  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, l1, l2]
-  show (LabelDeclaration l) = l
+  show (Goto l)             = showAsList ["goto", show l]
+  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, show l1, show l2]
+  show (LabelDeclaration l) = show l
   show (Call s)             = showAsList ["call", show s]
   show (TailCall s)         = showAsList ["tail-call", show s]
   show Return               = "(return)"
-
-instance Show Register where
-  show Rax = "rax"
-  show Rbx = "rbx"
-  show Rcx = "rcx"
-  show Rdx = "rdx"
-  show Rsi = "rsi"
-  show Rdi = "rdi"
-  show Rbp = "rbp"
-  show Rsp = "rsp"
-  show R8  = "r8"
-  show R9  = "r9"
-  show R10 = "r10"
-  show R11 = "r11"
-  show R12 = "r12"
-  show R13 = "r13"
-  show R14 = "r14"
-  show R15 = "r15"
 
 instance (Show x, Show s) => Show (AssignRHS x s) where
   show (CompRHS c)        = show c
@@ -158,74 +111,6 @@ instance (Show x) => Show (MemLoc x) where
 
 instance (Show s) => Show (Comp s) where
   show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]
-
-registersList :: [Register]
-registersList   = [Rax, Rbx, Rcx, Rdx, Rsi, Rdi, Rbp, Rsp, R8, R9, R10, R11, R12, R13, R14, R15]
--- saving r15 for storing labels into memory
-allocatableRegisters :: AsRegister t => [t]
-allocatableRegisters = [rax, rbx, rcx, rdx, rdi, rsi, r8, r9, r10, r11, r12, r13, r14]
-registerNames :: [String]
-registerNames  = fmap show registersList
-registerNamesMap :: Map String Register
-registerNamesMap = Map.fromList (zip registerNames registersList)
-
-registerFromName :: String -> Either String Register
-registerFromName s = maybe 
-  (Left $ "invalid register: " ++ s) Right (Map.lookup s registerNamesMap)
-
-low8 :: Register -> String
-low8 Rax = "al"
-low8 Rbx = "bl"
-low8 Rcx = "cl"
-low8 Rdx = "dl"
-low8 Rsi = "sil"
-low8 Rdi = "dil"
-low8 Rbp = "bpl"
-low8 Rsp = "spl"
-low8 R8  = "r8b"
-low8 R9  = "r9b"
-low8 R10 = "r10b"
-low8 R11 = "r11b"
-low8 R12 = "r12b"
-low8 R13 = "r13b"
-low8 R14 = "r14b"
-low8 R15 = "r15b"
-
-low16 :: Register -> String
-low16 Rax = "ax"
-low16 Rbx = "bx"
-low16 Rcx = "cx"
-low16 Rdx = "dx"
-low16 Rsi = "si"
-low16 Rdi = "di"
-low16 Rbp = "bp"
-low16 Rsp = "sp"
-low16 R8  = "r8w"
-low16 R9  = "r9w"
-low16 R10 = "r10w"
-low16 R11 = "r11w"
-low16 R12 = "r12w"
-low16 R13 = "r13w"
-low16 R14 = "r14w"
-low16 R15 = "r15w"
-
-low32 :: Register -> String
-low32 Rax = "eax"
-low32 Rbx = "ebx"
-low32 Rcx = "ecx"
-low32 Rdx = "edx"
-low32 Rsi = "esi"
-low32 Rdi = "edi"
-low32 Rbp = "ebp"
-low32 Rsp = "esp"
-low32 R8  = "r8d"
-low32 R9  = "r9d"
-low32 R10 = "r10d"
-low32 R11 = "r11d"
-low32 R12 = "r12d"
-low32 R13 = "r13d"
-low32 R14 = "r14d"
-low32 R15 = "r15d"
 
 instance Show CompOp where
   show LT   = "<"
@@ -253,21 +138,31 @@ type L1X = Register
 data L1S = NumberL1S Int64 | LabelL1S Label | RegL1S Register deriving (Eq, Ord)
 type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
-type L1 = Program L1X L1S
+newtype L1 = L1 (Program L1X L1S)
+
+instance Show L1
+  where show (L1 p) = show p
 
 instance Show L1S where
   show (NumberL1S n) = show n
-  show (LabelL1S l)  = l
+  show (LabelL1S l)  = show l
   show (RegL1S r)    = show r
 
 -- L2 AST (uses shared L1/L2 AST)
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
-type Variable = String
+newtype Variable = Variable String deriving (Eq, Ord, Show)
+
+instance AsSExpr Variable where
+  asSExpr (Variable v) = AtomSym v
+
+instance FromSExpr Variable where
+  fromSExpr (AtomSym s) = Right $ Variable s
+  fromSExpr bad = Left $ "invalid variable name: " ++ show bad
 
 class AsVariable t where
-  _Variable :: Prism' t String
+  _Variable :: Prism' t Variable
 
-instance AsVariable String where
+instance AsVariable Variable where
   _Variable = id
 
 data L2X = RegL2X Register | VarL2X Variable
@@ -282,19 +177,144 @@ data L2S = XL2S L2X | NumberL2S Int64 | LabelL2S Label deriving (Eq, Ord)
 type L2MemLoc = MemLoc L2X
 type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
-type L2 = Program L2X L2S
+newtype L2 = L2 (Program L2X L2S)
+
+instance Show L2
+  where show (L2 p) = show p
 
 instance Show L2X where
   show (RegL2X r) = show r
-  show (VarL2X v) = v
+  show (VarL2X v) = show v
 
 instance Show L2S where
-  show (NumberL2S n)   = show n
-  show (LabelL2S l)    = l
-  show (XL2S x)        = show x
+  show (NumberL2S n) = show n
+  show (LabelL2S l)  = show l
+  show (XL2S x)      = show x
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
 
 orderedPair :: Ord a => a -> a -> (a, a)
 orderedPair a1 a2 = if a1 < a2 then (a1, a2) else (a2, a1)
+
+parseError :: String -> String -> Either String a
+parseError  msg expr = Left $ concat ["Parse Error: '", msg, "' in: ", show expr]
+parseError_ :: String -> SExpr -> Either String a
+parseError_ msg expr = parseError msg (show expr)
+
+parseLabel :: String -> ParseResult Label
+parseLabel l@(':' : ':' : _) = Left $ "invalid label: " ++ l
+parseLabel l@(':' : _) = Right $ Label l
+parseLabel l = Left $ "invalid label: " ++ l  
+
+instance AsSExpr Label where
+  asSExpr (Label l) = AtomSym l
+
+instance FromSExpr Label where
+  fromSExpr (AtomSym l) = parseLabel l
+  fromSExpr bad = Left $ "bad label" ++ show bad
+
+instance FromSExpr X86Op where
+  fromSExpr (AtomSym "+=")  = Right increment
+  fromSExpr (AtomSym "-=")  = Right decrement
+  fromSExpr (AtomSym "*=")  = Right multiply
+  fromSExpr (AtomSym "<<=") = Right leftShift
+  fromSExpr (AtomSym ">>=") = Right rightShift
+  fromSExpr (AtomSym "&=")  = Right bitwiseAnd
+  fromSExpr bad             = parseError_ "bad operator" bad
+
+instance FromSExpr CompOp where
+  fromSExpr (AtomSym s) = compOpFromSym s
+  fromSExpr bad         = fail $ "not a comparison operator" ++ show bad
+
+instance (FromSExpr s) => FromSExpr (Comp s) where
+  fromSExpr (List [s1, cmp, s2]) = 
+    liftM3 Comp (fromSExpr s1) (fromSExpr cmp) (fromSExpr s2)
+  fromSExpr bad         = fail $ "not a comparison operator" ++ show bad
+
+instance (FromSExpr x, FromSExpr s) => FromSExpr (Program x s) where
+  fromSExpr (List ((List main) : funcs)) =
+    liftM2 Program (parseMain main) (traverse fromSExpr funcs)
+  fromSExpr bad = parseError_ "bad program" bad
+
+parseMain :: (FromSExpr x, FromSExpr s) => [SExpr] -> ParseResult (Func x s)
+parseMain exps = do
+  bdy <- traverse fromSExpr exps
+  return $ Func $ (LabelDeclaration $ Label ":main") : bdy
+
+instance (FromSExpr x, FromSExpr s) => FromSExpr (Func x s) where
+  fromSExpr (List ((AtomSym name) : exps)) = do
+    bdy   <- traverse fromSExpr exps
+    label <- parseLabel name
+    return $ Func $ LabelDeclaration label : bdy
+  fromSExpr bad = parseError_ "bad function" bad
+
+instance (FromSExpr x, FromSExpr s) => FromSExpr (Instruction x s) where
+  fromSExpr (AtomSym s)   = LabelDeclaration <$> parseLabel s
+  fromSExpr a@(AtomNum _) = parseError_ "bad instruction" a
+  fromSExpr list@(List _) = case flatten list of
+    [x, AtomSym "<-", AtomSym "print", s] -> liftM2 Assign (fromSExpr x) (Print <$> fromSExpr s)
+    [x, AtomSym "<-", AtomSym "allocate", s1, s2] ->
+      liftM2 Assign (fromSExpr x) (liftM2 Allocate (fromSExpr s1) (fromSExpr s2))
+    [x, AtomSym "<-", AtomSym "array-error", s1, s2] ->
+      liftM2 Assign (fromSExpr x) (liftM2 ArrayError (fromSExpr s1) (fromSExpr s2))
+    [x, AtomSym "<-", s]  -> liftM2 Assign (fromSExpr x) (SRHS <$> fromSExpr s)
+    [x1, AtomSym "<-", AtomSym "mem", x2, n4] ->
+      liftM2 Assign (fromSExpr x1) (MemRead <$> liftM2 MemLoc (fromSExpr x2) (parseN4 n4))
+    [AtomSym "mem", x, n4, AtomSym "<-", s] ->
+      liftM2 MemWrite (liftM2 MemLoc (fromSExpr x) (parseN4 n4)) (fromSExpr s)
+    [x, op, s] -> liftM3 MathInst (fromSExpr x) (fromSExpr op) (fromSExpr s)
+    [cx, AtomSym "<-", s1, cmp, s2] -> 
+      liftM2 Assign (fromSExpr cx) (CompRHS <$> parseComp s1 cmp s2)
+    [AtomSym "goto", l]      -> Goto <$> fromSExpr l
+    [AtomSym "cjump", s1, cmp, s2, l1, l2] ->
+      liftM3 CJump (parseComp s1 cmp s2) (fromSExpr l1) (fromSExpr l2)
+    [AtomSym "call", s]      -> Call <$> fromSExpr s
+    [AtomSym "tail-call", s] -> TailCall <$> fromSExpr s
+    [AtomSym "return"]       -> Right Return
+    _ -> parseError_ "bad instruction" list
+    where
+      parseComp s1 cmp s2 = fromSExpr (List [s1, cmp, s2])
+      -- todo add check for divisible by 4
+      parseN4 (AtomNum n) = Right n
+      parseN4 bad         = parseError_ "not a number" bad
+
+parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> ParseResult a
+parseLabelOrRegister f _ l@(':' : _) = f <$> parseLabel l
+parseLabelOrRegister _ f r           = f <$> registerFromName r
+
+instance FromSExpr L1S where
+  fromSExpr (AtomNum n) = Right $ NumberL1S (fromIntegral n)
+  fromSExpr (AtomSym s) = parseLabelOrRegister LabelL1S RegL1S s
+  fromSExpr bad         = parseError_ "bad L1S" bad
+
+instance FromSExpr L1 where
+  fromSExpr s = L1 <$> fromSExpr s
+
+parseL2X v r s = Right $ either (\_ -> v s) r (registerFromName s)
+
+instance FromSExpr L2X where
+  fromSExpr (AtomSym s) = parseL2X (VarL2X . Variable) RegL2X s
+  fromSExpr bad         = parseError_ "bad L2X" bad
+
+instance FromSExpr L2S where
+  fromSExpr (AtomNum n) = Right $ NumberL2S (fromIntegral n)
+  fromSExpr (AtomSym s) = either 
+    (\_-> parseL2X (XL2S . VarL2X . Variable) (XL2S . RegL2X) s)
+    Right
+    (parseLabelOrRegister LabelL2S (XL2S . RegL2X) s)
+  fromSExpr bad         = parseError_ "bad L2S" bad
+
+instance FromSExpr L2 where
+  fromSExpr s = L2 <$> fromSExpr s 
+
+parseInstructionList :: (FromSExpr x, FromSExpr s) =>  SExpr -> ParseResult [(Instruction x s)]
+parseInstructionList (List exps) = traverse fromSExpr exps
+parseInstructionList bad = parseError_ "not an instruction list" bad
+
+parseL1OrDie :: SExpr -> L1
+parseL1OrDie = (either error id) . fromSExpr
+
+parseL2OrDie :: SExpr -> L2
+parseL2OrDie = (either error id) . fromSExpr
+

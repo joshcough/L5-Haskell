@@ -8,16 +8,18 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Traversable
-import L.L1L2AST (Variable, Label)
+import L.L1L2AST (Variable(..), Label(..))
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
 
+freshenString :: String -> State Int String
+freshenString = incState
 freshenVar :: Variable -> State Int Variable
-freshenVar = incState
+freshenVar (Variable v) = Variable <$> freshenString v
 newVar :: State Int Variable
-newVar = freshenVar "_l4_"
+newVar = freshenVar $ Variable "_l4_"
 newLabel :: State Int Label
-newLabel = freshenVar ":l4_"
+newLabel = Label <$> freshenString ":l4_"
 incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ "_" ++  show n }
 
@@ -94,7 +96,7 @@ fill d = fill' where
     fArg   <- newVar
     (fBody, extraFuncsFromFBody) <- fill (VD $ VarV fArg) k
     let frees = filter (/=fArg) (freeVars fBody)
-        freesTup = "frees"
+        freesTup = Variable "frees"
         fBodyWithFrees = foldr f fBody (zip frees [0..]) where
           f (v,i) b = L3.Let v (L3.PrimApp ARef [VarV freesTup, NumV i]) b
         func = Func fLabel [fArg, freesTup] fBodyWithFrees

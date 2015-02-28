@@ -1,17 +1,16 @@
 module L.Read 
   (
     ParseResult
-   ,SExpr(..)
    ,flatten
    ,liftParser
    ,runParser
    ,runParserOrDie
    ,intParser
    ,sexprParser
-   ,showAsList
    ,sreadWithRest
    ,sread
    ,trim
+   ,module L.SExpr
   ) where
 
 import Control.Applicative
@@ -20,28 +19,17 @@ import Data.ByteString.UTF8 as UTF8 hiding (lines)
 import Data.Char (isDigit, isSpace)
 import qualified Data.HashSet as HashSet
 import Data.Semigroup
+import L.SExpr
 import Text.Parser.Combinators
 import Text.Parser.Token
 import qualified Text.Parser.Token.Highlight as Highlight
 import Text.Read (readMaybe)
 import Text.Trifecta hiding (semi)
 
-import L.Utils
-
 type ParseResult a = Either String a
 
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace
-
-data SExpr = AtomSym String | AtomNum Int | List [SExpr] deriving (Eq)
-
-instance Show SExpr where
-  show (AtomSym s) = s
-  show (AtomNum i) = show i
-  show (List exps) = showAsList $ fmap show exps
-
-showAsList :: [String] -> String
-showAsList as = "(" ++ (mkString " " as) ++ ")"
 
 sread :: String -> SExpr
 sread = runParserOrDie sexprParser . preprocess
@@ -54,10 +42,9 @@ preprocess = trim . concat . map f . lines where
   f = (++ " ") . trim . removeComments
   removeComments = takeWhile $ not . (==';')
 
-flatten :: SExpr -> [String]
-flatten (AtomSym s) = [s]
-flatten (AtomNum n) = [show n]
-flatten (List ss)   = ss >>= flatten
+flatten :: SExpr -> [SExpr]
+flatten (List ss) = ss >>= flatten
+flatten s         = [s]
 
 liftParser :: (SExpr -> ParseResult p) -> String -> ParseResult p
 liftParser f = f . sread
@@ -96,8 +83,8 @@ listParser = List <$> (parens recur <|> brackets recur) where
 
 runParser :: Parser a -> String -> ParseResult a
 runParser p s = case parseByteString p mempty (UTF8.fromString s) of
-  Failure xs -> error (show xs) -- Left $ show xs
-  Success a -> Right a
+  Failure xs -> Left $ show xs
+  Success a  -> Right a
 
 runParserOrDie :: Parser a -> String -> a
 runParserOrDie p s = either error id (runParser p s)

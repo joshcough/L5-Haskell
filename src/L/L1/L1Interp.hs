@@ -19,6 +19,7 @@ import L.Interpreter.Runtime
 import L.Interpreter.X86Computer
 import L.L1L2AST
 import L.L1L2MainAdjuster (adjustMain)
+import L.Registers
 import L.Utils (bind2)
 import Prelude hiding (length, print)
 
@@ -28,7 +29,7 @@ interpL1 :: L1 -> String
 interpL1 p = runST $ show <$> runL1Computation p
 
 runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenX86Computer L1Instruction))
-runL1Computation p = do
+runL1Computation (L1 p) = do
   c    <- newX86Computer $ adjustMain p
   (output, (haltEither, comp)) <- runOutputT $ runStateT (runErrorT $ runX86Computer step) c
   fzc  <- freezeX86Computer comp

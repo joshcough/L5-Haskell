@@ -18,6 +18,7 @@ import qualified Data.Set as S
 import L.IOHelpers (withFileArg,mapFileContents)
 import L.L1L2AST
 import L.Read (showAsList)
+import L.Registers
 import L.Utils (mkString)
 import L.L2.Liveness
 import L.L2.Vars

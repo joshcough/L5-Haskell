@@ -5,16 +5,25 @@ import Control.Monad.State hiding (sequence, (>>))
 import Data.Int
 import Data.Traversable
 import L.L1L2AST  as L2
+import L.Registers
 import L.L3.L3AST as L3
 import Prelude hiding (EQ, LT, sequence, (>>))
 
 linearize :: L3 -> L2
 linearize l3 = fst $ runState (linearizeM l3) 0
 
+-- TODO: Move to L1L2AST
+decl :: String -> Instruction x s
+decl = LabelDeclaration . Label
+
 linearizeM :: L3 -> State Int L2
-linearizeM (L3 e funcs) = (L2.Program callMain) <$> l2Funcs where
-  callMain = L2.Func [LabelDeclaration ":main", L2.Call $ LabelL2S ":_L3main_", Return]
-  l2MainInsts = (LabelDeclaration ":_L3main_" :) <$> compileE e
+linearizeM (L3 e funcs) = (L2 . L2.Program callMain) <$> l2Funcs where
+  callMain = L2.Func [
+      decl ":main"
+     ,L2.Call . LabelL2S $ Label ":_L3main_"
+     ,Return
+    ]
+  l2MainInsts = (decl ":_L3main_" :) <$> compileE e
   l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (traverse compileFunction funcs)
 
 -- (l (x ...) e)
@@ -197,9 +206,9 @@ toLHS = RegL2X
 num :: Int64 -> L2S
 num = NumberL2S
 newTemp  :: State Int L2X
-newTemp  = VarL2X <$> newId
-newLabel :: State Int String
-newLabel = (':':) <$> newId
+newTemp  = VarL2X . Variable <$> newId
+newLabel :: State Int Label
+newLabel = (Label . (':':)) <$> newId
 newId :: State Int String
 newId = do { n <- get; put (n + 1); return $ "_l3_" ++ show n }
 memRead :: Variable -> AssignRHS L2X L2S
