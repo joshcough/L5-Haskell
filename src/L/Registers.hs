@@ -7,11 +7,8 @@
 
 module L.Registers where
 
-import Control.Applicative
 import Control.Lens
-import Data.Int
 import Data.Map as Map
-import Data.Tuple
 import L.Read
 import Prelude hiding (LT, EQ)
 
@@ -22,22 +19,10 @@ data Register =
  R12 | R13 | R14 | R15 deriving (Eq,Ord,Enum,Bounded)
 
 instance Show Register where
-  show Rax = "rax"
-  show Rbx = "rbx"
-  show Rcx = "rcx"
-  show Rdx = "rdx"
-  show Rsi = "rsi"
-  show Rdi = "rdi"
-  show Rbp = "rbp"
-  show Rsp = "rsp"
-  show R8  = "r8"
-  show R9  = "r9"
-  show R10 = "r10"
-  show R11 = "r11"
-  show R12 = "r12"
-  show R13 = "r13"
-  show R14 = "r14"
-  show R15 = "r15"
+  show Rax = "rax"; show Rbx = "rbx"; show Rcx = "rcx"; show Rdx = "rdx"
+  show Rsi = "rsi"; show Rdi = "rdi"; show Rbp = "rbp"; show Rsp = "rsp"
+  show R8  = "r8";  show R9  = "r9";  show R10 = "r10"; show R11 = "r11"
+  show R12 = "r12"; show R13 = "r13"; show R14 = "r14"; show R15 = "r15"
 
 class AsRegister t where
   _Register :: Prism' t Register
@@ -78,6 +63,9 @@ registerFromName s = maybe (badRegister s) return (Map.lookup s registerNamesMap
 
 badRegister :: String -> Either String Register
 badRegister s = fail $ "invalid register: " ++ s
+
+instance AsSExpr Register where
+  asSExpr = AtomSym . show 
 
 instance FromSExpr Register where
   fromSExpr (AtomSym s) = registerFromName s

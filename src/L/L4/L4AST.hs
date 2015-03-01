@@ -21,22 +21,23 @@ data E    =
   | ClosureVars E
   | VE V
 
-instance Show E where
-  show (Let v e b)           = showAsList ["let", concat ["[", show v, " ", show e, "]"], show b]
-  show (IfStatement v te fe) = showAsList ["if", show v, show te, show fe]
-  show (Begin e1 e2)         = showAsList ["begin", show e1, show e2]
-  show (NewTuple es)         = showAsList ("new-tuple" : fmap show es)
-  show (MakeClosure l e)     = showAsList ["make-closure", show l, show e]
-  show (ClosureProc e)       = showAsList ["closure-proc", show e]
-  show (ClosureVars e)       = showAsList ["closure-vars", show e]
-  show (FunCall e es)        = showAsList (show e : fmap show es)
-  show (VE v)                = show v
-  show (PrimApp p es)        = showAsList (show p : fmap show es)
+instance Show E  where show = showSExpr
+instance Show L4 where show = showSExpr
 
-instance Show L4 where show (L4 e fs) = showAsList (show e : fmap show fs)
+instance AsSExpr E where
+  asSExpr (Let v e b)           = asSExpr (sym "let", (asSExpr v, e), b)
+  asSExpr (IfStatement v te fe) = asSExpr (sym "if", v, te, fe)
+  asSExpr (Begin e1 e2)         = asSExpr (sym "begin", e1, e2)
+  asSExpr (NewTuple es)         = List    (sym "new-tuple" : fmap asSExpr es)
+  asSExpr (MakeClosure l e)     = asSExpr (sym "make-closure", asSExpr l, e)
+  asSExpr (ClosureProc e)       = asSExpr (sym "closure-proc", e)
+  asSExpr (ClosureVars e)       = asSExpr (sym "closure-vars", e)
+  asSExpr (FunCall e es)        = asSExpr (asSExpr e : fmap asSExpr es)
+  asSExpr (PrimApp p es)        = asSExpr (asSExpr p : fmap asSExpr es)
+  asSExpr (VE v)                = asSExpr v
 
-l4ParseError :: String -> SExpr -> Either String a
-l4ParseError msg exp = Left $ concat ["L4 Parse Error: '", msg, "' in: ", show exp]
+instance AsSExpr L4 where
+  asSExpr (L4 e fs) = List $ asSExpr e : fmap asSExpr fs
 
 -- p ::= (e (l (x ...) e) ...)
 instance FromSExpr L4 where

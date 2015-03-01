@@ -6,6 +6,7 @@ module L.SExpr
   , list
   , num
   , showAsList
+  , showSExpr
   , sym
   ) where
 
@@ -27,6 +28,9 @@ instance Show SExpr where
   show (AtomSym s) = s
   show (AtomNum i) = show i
   show (List exps) = showAsList $ fmap show exps
+
+showSExpr :: AsSExpr a => a -> String
+showSExpr = show . asSExpr
 
 class AsSExpr a where
   asSExpr :: a -> SExpr

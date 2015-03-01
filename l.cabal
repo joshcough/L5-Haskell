@@ -37,11 +37,12 @@ library
     L.IOHelpers
     L.L1L2AST
     L.L1L2MainAdjuster
-    L.L1L2Parser
     L.NativeRunner
     L.OS
     L.Read
+    L.Registers
     L.ReplTools
+    L.SExpr
     L.Utils
 
     -- Interpreter Code
@@ -70,7 +71,6 @@ library
     L.L3.L3
     L.L3.L3AST
     L.L3.L3Interp
-    L.L3.L3Parser
     L.L3.Linearize
 
     -- L4
@@ -78,14 +78,12 @@ library
     L.L4.L4
     L.L4.L4AST
     L.L4.L4Interp
-    L.L4.L4Parser
 
     -- L5
     L.L5.L5
     L.L5.L5AST
     --L.L5.L5Core
     L.L5.L5Interp
-    L.L5.L5Parser
     L.L5.LambdaLifter
 
   build-depends:

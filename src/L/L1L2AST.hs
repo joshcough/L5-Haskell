@@ -81,23 +81,26 @@ x86OpName LeftShift  = "salq"
 x86OpName RightShift = "sarq"
 x86OpName BitwiseAnd = "andq"
 
-instance (Show x, Show s) => Show (Program x s) where
-  show (Program main fs) = unlines ["(", show main, fs >>= show, ")"]
+instance (AsSExpr x, AsSExpr s) => Show (Program x s)     where show = showSExpr
+instance (AsSExpr x, AsSExpr s) => Show (Func x s)        where show = showSExpr
+instance (AsSExpr x, AsSExpr s) => Show (Instruction x s) where show = showSExpr
 
-instance (Show x, Show s) => Show (Func x s) where
-  show (Func is) = "(" ++ (is >>= (\i -> show i ++ "\n\t")) ++ ")"
+instance (AsSExpr x, AsSExpr s) => AsSExpr (Program x s) where
+  asSExpr (Program main fs) = asSExpr [(main, fs)]
 
-instance (Show x, Show s) => Show (Instruction x s) where
-  show (Assign x rhs)       = showAsList [show x, "<-", show rhs]
-  show (MathInst x op s)    = showAsList [show x, x86OpSymbol op, show s]
-  show (MemWrite loc s)     = showAsList [show loc, "<-", show s]
-  show (Goto l)             = showAsList ["goto", show l]
-  show (CJump cmp l1 l2)    = showAsList ["cjump", show cmp, show l1, show l2]
-  show (LabelDeclaration l) = show l
-  show (Call s)             = showAsList ["call", show s]
-  show (TailCall s)         = showAsList ["tail-call", show s]
-  show Return               = "(return)"
+instance (AsSExpr x, AsSExpr s) => AsSExpr (Instruction x s) where
+  asSExpr (Assign x rhs)       = asSExpr (x, sym "<-", rhs)
+  asSExpr (MathInst x op s)    = asSExpr (x, sym $ x86OpSymbol op, s)
+  asSExpr (MemWrite loc s)     = asSExpr (loc, sym "<-", s)
+  asSExpr (Goto l)             = asSExpr (sym "goto", l)
+  asSExpr (CJump cmp l1 l2)    = asSExpr (sym "cjump", cmp, l1, l2)
+  asSExpr (LabelDeclaration l) = asSExpr l
+  asSExpr (Call s)             = asSExpr (sym "call", s)
+  asSExpr (TailCall s)         = asSExpr (sym "tail-call", s)
+  asSExpr Return               = asSExpr [sym "return"]
 
+{-
+TODO: FIX
 instance (Show x, Show s) => Show (AssignRHS x s) where
   show (CompRHS c)        = show c
   show (Allocate s1 s2)   = showAsList ["allocate", show s1, show s2]
@@ -105,12 +108,28 @@ instance (Show x, Show s) => Show (AssignRHS x s) where
   show (ArrayError s1 s2) = showAsList ["array-error", show s1, show s2]
   show (SRHS s)           = show s
   show (MemRead loc)      = show loc
+-}
 
-instance (Show x) => Show (MemLoc x) where
-  show (MemLoc x n) = showAsList ["mem", show x, show n]
+instance (AsSExpr x, AsSExpr s) => AsSExpr (AssignRHS x s) where
+  asSExpr (CompRHS c)        = error "TODO: might need to change syntax" 
+  asSExpr (Allocate s1 s2)   = asSExpr (sym "allocate", s1, s2)
+  asSExpr (Print s)          = asSExpr (sym "print", s)
+  asSExpr (ArrayError s1 s2) = asSExpr (sym "array-error", s1, s2)
+  asSExpr (SRHS s)           = asSExpr s
+  asSExpr (MemRead loc)      = asSExpr loc
+
+instance (AsSExpr x) => Show (MemLoc x) where show = showSExpr
+
+instance (AsSExpr x) => AsSExpr (MemLoc x) where
+  asSExpr (MemLoc x n) = asSExpr (sym "mem", x, n)
 
 instance (Show s) => Show (Comp s) where
   show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]
+
+instance (AsSExpr s) => AsSExpr (Comp s) where
+  asSExpr (Comp s1 op s2) = asSExpr (s1,op, s2)
+
+instance AsSExpr CompOp where asSExpr = AtomSym . show
 
 instance Show CompOp where
   show LT   = "<"
@@ -140,13 +159,8 @@ type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
 newtype L1 = L1 (Program L1X L1S)
 
-instance Show L1
-  where show (L1 p) = show p
-
-instance Show L1S where
-  show (NumberL1S n) = show n
-  show (LabelL1S l)  = show l
-  show (RegL1S r)    = show r
+instance Show L1 where show = showSExpr
+instance Show L1S where show = showSExpr
 
 -- L2 AST (uses shared L1/L2 AST)
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
@@ -179,17 +193,18 @@ type L2Instruction = Instruction L2X L2S
 type L2Func = Func L2X L2S
 newtype L2 = L2 (Program L2X L2S)
 
-instance Show L2
-  where show (L2 p) = show p
+instance Show L2  where show (L2 p) = show p
+instance Show L2X where show = showSExpr
+instance Show L2S where show = showSExpr
 
-instance Show L2X where
-  show (RegL2X r) = show r
-  show (VarL2X v) = show v
+instance AsSExpr L2X where
+  asSExpr (RegL2X r) = asSExpr r
+  asSExpr (VarL2X v) = asSExpr v
 
-instance Show L2S where
-  show (NumberL2S n) = show n
-  show (LabelL2S l)  = show l
-  show (XL2S x)      = show x
+instance AsSExpr L2S where
+  asSExpr (NumberL2S n) = asSExpr n
+  asSExpr (LabelL2S l)  = asSExpr l
+  asSExpr (XL2S x)      = asSExpr x
 
 instance Eq  L2X where (==) x1 x2 = show x1 == show x2
 instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
@@ -214,13 +229,16 @@ instance FromSExpr Label where
   fromSExpr (AtomSym l) = parseLabel l
   fromSExpr bad = Left $ "bad label" ++ show bad
 
+instance AsSExpr X86Op where
+  asSExpr = AtomSym . x86OpSymbol 
+
 instance FromSExpr X86Op where
-  fromSExpr (AtomSym "+=")  = Right increment
-  fromSExpr (AtomSym "-=")  = Right decrement
-  fromSExpr (AtomSym "*=")  = Right multiply
-  fromSExpr (AtomSym "<<=") = Right leftShift
-  fromSExpr (AtomSym ">>=") = Right rightShift
-  fromSExpr (AtomSym "&=")  = Right bitwiseAnd
+  fromSExpr (AtomSym "+=")  = return increment
+  fromSExpr (AtomSym "-=")  = return decrement
+  fromSExpr (AtomSym "*=")  = return multiply
+  fromSExpr (AtomSym "<<=") = return leftShift
+  fromSExpr (AtomSym ">>=") = return rightShift
+  fromSExpr (AtomSym "&=")  = return bitwiseAnd
   fromSExpr bad             = parseError_ "bad operator" bad
 
 instance FromSExpr CompOp where
@@ -241,6 +259,9 @@ parseMain :: (FromSExpr x, FromSExpr s) => [SExpr] -> ParseResult (Func x s)
 parseMain exps = do
   bdy <- traverse fromSExpr exps
   return $ Func $ (LabelDeclaration $ Label ":main") : bdy
+
+instance (AsSExpr x, AsSExpr s) => AsSExpr (Func x s) where
+  asSExpr (Func xs) = List $ fmap asSExpr xs
 
 instance (FromSExpr x, FromSExpr s) => FromSExpr (Func x s) where
   fromSExpr (List ((AtomSym name) : exps)) = do
@@ -269,41 +290,52 @@ instance (FromSExpr x, FromSExpr s) => FromSExpr (Instruction x s) where
     [AtomSym "goto", l]      -> Goto <$> fromSExpr l
     [AtomSym "cjump", s1, cmp, s2, l1, l2] ->
       liftM3 CJump (parseComp s1 cmp s2) (fromSExpr l1) (fromSExpr l2)
-    [AtomSym "call", s]      -> Call <$> fromSExpr s
+    [AtomSym "call", s]      -> Call     <$> fromSExpr s
     [AtomSym "tail-call", s] -> TailCall <$> fromSExpr s
-    [AtomSym "return"]       -> Right Return
+    [AtomSym "return"]       -> return Return
     _ -> parseError_ "bad instruction" list
     where
       parseComp s1 cmp s2 = fromSExpr (List [s1, cmp, s2])
       -- todo add check for divisible by 4
-      parseN4 (AtomNum n) = Right n
+      parseN4 (AtomNum n) = return n
       parseN4 bad         = parseError_ "not a number" bad
 
 parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> ParseResult a
 parseLabelOrRegister f _ l@(':' : _) = f <$> parseLabel l
 parseLabelOrRegister _ f r           = f <$> registerFromName r
 
+instance AsSExpr L1S where
+  asSExpr (NumberL1S n) = asSExpr n
+  asSExpr (LabelL1S  l) = asSExpr l
+  asSExpr (RegL1S    r) = asSExpr r
+
 instance FromSExpr L1S where
-  fromSExpr (AtomNum n) = Right $ NumberL1S (fromIntegral n)
+  fromSExpr (AtomNum n) = return $ NumberL1S (fromIntegral n)
   fromSExpr (AtomSym s) = parseLabelOrRegister LabelL1S RegL1S s
   fromSExpr bad         = parseError_ "bad L1S" bad
+
+instance AsSExpr L1 where
+  asSExpr (L1 p) = asSExpr p
 
 instance FromSExpr L1 where
   fromSExpr s = L1 <$> fromSExpr s
 
-parseL2X v r s = Right $ either (\_ -> v s) r (registerFromName s)
+parseL2X v r s = return $ either (\_ -> v s) r (registerFromName s)
 
 instance FromSExpr L2X where
   fromSExpr (AtomSym s) = parseL2X (VarL2X . Variable) RegL2X s
   fromSExpr bad         = parseError_ "bad L2X" bad
 
 instance FromSExpr L2S where
-  fromSExpr (AtomNum n) = Right $ NumberL2S (fromIntegral n)
+  fromSExpr (AtomNum n) = return $ NumberL2S (fromIntegral n)
   fromSExpr (AtomSym s) = either 
     (\_-> parseL2X (XL2S . VarL2X . Variable) (XL2S . RegL2X) s)
     Right
     (parseLabelOrRegister LabelL2S (XL2S . RegL2X) s)
   fromSExpr bad         = parseError_ "bad L2S" bad
+
+instance AsSExpr L2 where
+  asSExpr (L2 p) = asSExpr p
 
 instance FromSExpr L2 where
   fromSExpr s = L2 <$> fromSExpr s 

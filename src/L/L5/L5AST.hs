@@ -9,7 +9,6 @@ import L.L3.L3AST (Prim(..), PrimName(..), arityByName, primName, primByRawNameM
 import L.Read
 
 type L5 = E
-type Arity = Int
 
 primVars :: PrimName -> [Variable]
 primVars p = Variable <$> take (arityByName p) ["x", "y", "z"]
@@ -27,21 +26,19 @@ data E =
   | PrimE PrimName
   deriving Eq
 
-instance Show E where
-  show = show . asSExpr
+instance Show E  where show = showSExpr
 
 instance AsSExpr E where
-  asSExpr = f where
-    f (Lambda vs e)         = asSExpr (sym "lambda", fmap asSExpr vs, f e)
-    f (Let v e b)           = asSExpr (sym "let", (asSExpr v, f e), f b)
-    f (LetRec v e b)        = asSExpr (sym "letrec", (asSExpr v, f e), f b)
-    f (IfStatement v te fe) = asSExpr (sym "if", f v, f te, f fe)
-    f (NewTuple es)         = List    (sym "new-tuple" : fmap f es)
-    f (Begin e1 e2)         = asSExpr (sym "begin", f e1, f e2)
-    f (App (PrimE p) es)    = asSExpr (sym (show p) : fmap f es)
-    f (LitInt i)            = AtomNum i
-    f (PrimE p)             = sym $ show p
-    f (Var v)               = asSExpr v
+  asSExpr (Lambda vs e)         = asSExpr (sym "lambda", fmap asSExpr vs, e)
+  asSExpr (Let v e b)           = asSExpr (sym "let", (asSExpr v, e), b)
+  asSExpr (LetRec v e b)        = asSExpr (sym "letrec", (asSExpr v, e), b)
+  asSExpr (IfStatement v te fe) = asSExpr (sym "if", v, te, fe)
+  asSExpr (NewTuple es)         = List    (sym "new-tuple" : fmap asSExpr es)
+  asSExpr (Begin e1 e2)         = asSExpr (sym "begin", e1, e2)
+  asSExpr (App e es)            = asSExpr (asSExpr e : fmap asSExpr es)
+  asSExpr (LitInt i)            = AtomNum i
+  asSExpr (PrimE p)             = sym $ show p
+  asSExpr (Var v)               = asSExpr v
 
 instance FromSExpr E where
   fromSExpr = f where
@@ -52,5 +49,6 @@ instance FromSExpr E where
     f (List (AtomSym "new-tuple" : es)) = liftM  NewTuple (traverse f es)
     f (List [AtomSym "begin", e1, e2])  = liftM2 Begin (f e1) (f e2)
     f (List (e : es)) = liftM2 App (f e) (traverse f es)
-    f (AtomSym v) = Right $ maybe (Var $ Variable v) (PrimE . primName) (primByRawNameMaybe v)
-    f (AtomNum n) = Right $ LitInt (fromIntegral n)
+    f (AtomSym v) = return $ maybe (Var $ Variable v) (PrimE . primName) (primByRawNameMaybe v)
+    f (AtomNum n) = return $ LitInt (fromIntegral n)
+    f bad = fail $ "bad L5-e: " ++ show bad

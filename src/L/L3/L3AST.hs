@@ -12,8 +12,6 @@ import L.Read
 import Prelude hiding (print)
 
 data Func a = Func { name :: Label, args :: [Variable], body :: a }
-instance Show a => Show (Func a) where
-  show (Func n args a) = showAsList [show n, showAsList $ fmap show args, show a]
 
 type L3Func = Func E
 data L3   = L3 E [L3Func]
@@ -27,8 +25,15 @@ data PrimName =
   | IsNumber  | IsArray | Print | NewArray | ARef | ASet | ALen
   deriving (Eq,Ord)
 
-instance Show PrimName where
-  show = primText . primByName
+instance (AsSExpr a, Show a) => Show (Func a) where show = showSExpr
+instance Show V        where show = showSExpr
+instance Show D        where show = showSExpr
+instance Show E        where show = showSExpr
+instance Show L3       where show = showSExpr
+instance Show PrimName where show = primText . primByName
+
+instance AsSExpr PrimName where
+  asSExpr = AtomSym . primText . primByName
 
 type Arity = Int
 data Prim = Prim {
@@ -36,6 +41,7 @@ data Prim = Prim {
   primText :: String,
   primArity :: Arity
 } deriving Eq
+
 add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen :: Prim
 add    = Prim Add      "+"         2
 sub    = Prim Sub      "-"         2
@@ -77,29 +83,22 @@ isBiop p = p `elem` [Add, Sub, Mult, LessThan, LTorEQ, EqualTo]
 isPredicate :: PrimName -> Bool
 isPredicate p = p `elem` [IsNumber, IsArray]
 
-instance Show V where
-  show (VarV v)   = show v
-  show (NumV n)   = show n
-  show (LabelV l) = show l
+instance AsSExpr D where
+  asSExpr (FunCall v vs)    = asSExpr (asSExpr v : fmap asSExpr vs)
+  asSExpr (PrimApp p vs)    = asSExpr (asSExpr p : fmap asSExpr vs)
+  asSExpr (VD v)            = asSExpr v
+  asSExpr (NewTuple vs)     = asSExpr (sym "new-tuple" : fmap asSExpr vs)
+  asSExpr (MakeClosure l v) = asSExpr (sym "make-closure", l, v)
+  asSExpr (ClosureProc v)   = asSExpr (sym "closure-proc", v)
+  asSExpr (ClosureVars v)   = asSExpr (sym "closure-vars", v)
 
-instance Show Prim where
-  show (Prim _ name _) = name
+instance AsSExpr E where
+  asSExpr (Let v d e)           = asSExpr (sym "let", asSExpr [(v, d)], e)
+  asSExpr (IfStatement v te fe) = asSExpr (sym "if", v, te, fe)
+  asSExpr (DE d)                = asSExpr d
 
-instance Show D where
-  show (FunCall v vs)    = showAsList (show v : fmap show vs)
-  show (PrimApp p vs)    = showAsList (show p : fmap show vs)
-  show (VD v)            = show v
-  show (NewTuple vs)     = showAsList ("new-tuple" : fmap show vs)
-  show (MakeClosure l v) = showAsList ["make-closure", show l, show v]
-  show (ClosureProc v)   = showAsList ["closure-proc", show v]
-  show (ClosureVars v)   = showAsList ["closure-vars", show v]
-
-instance Show E where
-  show (Let v d e)           = showAsList ["let", concat ["([", show v, " ", show d, "])"], show e]
-  show (IfStatement v te fe) = showAsList ["if", show v, show te, show fe]
-  show (DE d)                = show d
-
-instance Show L3 where show (L3 e fs) = showAsList (show e : fmap show fs)
+instance AsSExpr L3 where
+  asSExpr (L3 e fs) = List $ asSExpr e : fmap asSExpr fs
 
 -- v :: = x | l | num
 instance FromSExpr V where
@@ -107,6 +106,14 @@ instance FromSExpr V where
   fromSExpr (AtomSym v) = Right . VarV $ Variable v
   fromSExpr (AtomNum n) = Right $ NumV (fromIntegral n)
   fromSExpr bad         = Left  $ concat ["Parse Error: 'bad V' in: ", show bad]
+
+instance AsSExpr V where
+  asSExpr (VarV (Variable v)) = AtomSym v
+  asSExpr (NumV n)            = AtomNum n
+  asSExpr (LabelV (Label l))  = AtomSym l
+
+instance AsSExpr a => AsSExpr (Func a) where
+  asSExpr (Func n args a) = asSExpr (n, args, a)
 
 {-
 d ::= (biop v v) | (pred v) | (v v ...) | (new-array v v) | (new-tuple v ...)
@@ -132,12 +139,12 @@ instance FromSExpr D where
     f (List [AtomSym "number?", v])         = parsePrimApp1 IsNumber v
     f (List [AtomSym "a?",      v])         = parsePrimApp1 IsArray  v
     f (List [AtomSym "new-array", s, v])    = parsePrimApp2 NewArray s v
-    f (List (AtomSym "new-tuple" : vs))     = liftM  NewTuple (traverse fromSExpr vs)
+    f (List (AtomSym "new-tuple" : vs))     = liftM         NewTuple (traverse fromSExpr vs)
     f (List [AtomSym "aref", a, loc])       = parsePrimApp2 ARef a loc
     f (List [AtomSym "aset", a, loc, v])    = parsePrimApp3 ASet a loc v
     f (List [AtomSym "alen", v])            = parsePrimApp1 ALen  v
     f (List [AtomSym "print", v])           = parsePrimApp1 Print v
-    f (List (v : vs))                       = liftM2 FunCall (fromSExpr v) (traverse fromSExpr vs)
+    f (List (v : vs))                       = liftM2        FunCall (fromSExpr v) (traverse fromSExpr vs)
     f v = VD <$> fromSExpr v
 
     parsePrimApp1 p v   = liftM (PrimApp p . return) (fromSExpr v)
