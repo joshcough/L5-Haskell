@@ -84,47 +84,35 @@ x86OpName BitwiseAnd = "andq"
 instance (AsSExpr x, AsSExpr s) => Show (Program x s)     where show = showSExpr
 instance (AsSExpr x, AsSExpr s) => Show (Func x s)        where show = showSExpr
 instance (AsSExpr x, AsSExpr s) => Show (Instruction x s) where show = showSExpr
+instance (AsSExpr x, AsSExpr s) => Show (AssignRHS x s)   where show = showSExpr
+instance (AsSExpr x)            => Show (MemLoc x)        where show = showSExpr
+instance (AsSExpr s)            => Show (Comp s)          where show = showSExpr
 
 instance (AsSExpr x, AsSExpr s) => AsSExpr (Program x s) where
   asSExpr (Program main fs) = asSExpr [(main, fs)]
 
 instance (AsSExpr x, AsSExpr s) => AsSExpr (Instruction x s) where
-  asSExpr (Assign x rhs)       = asSExpr (x, sym "<-", rhs)
-  asSExpr (MathInst x op s)    = asSExpr (x, sym $ x86OpSymbol op, s)
-  asSExpr (MemWrite loc s)     = asSExpr (loc, sym "<-", s)
-  asSExpr (Goto l)             = asSExpr (sym "goto", l)
-  asSExpr (CJump cmp l1 l2)    = asSExpr (sym "cjump", cmp, l1, l2)
-  asSExpr (LabelDeclaration l) = asSExpr l
-  asSExpr (Call s)             = asSExpr (sym "call", s)
-  asSExpr (TailCall s)         = asSExpr (sym "tail-call", s)
-  asSExpr Return               = asSExpr [sym "return"]
-
-{-
-TODO: FIX
-instance (Show x, Show s) => Show (AssignRHS x s) where
-  show (CompRHS c)        = show c
-  show (Allocate s1 s2)   = showAsList ["allocate", show s1, show s2]
-  show (Print s)          = showAsList ["print", show s]
-  show (ArrayError s1 s2) = showAsList ["array-error", show s1, show s2]
-  show (SRHS s)           = show s
-  show (MemRead loc)      = show loc
--}
+  asSExpr (Assign x (CompRHS c)) = List $ flatten $ asSExpr (x, sym "<-", c)
+  asSExpr (Assign x rhs)         = asSExpr (x, sym "<-", rhs)
+  asSExpr (MathInst x op s)      = asSExpr (x, sym $ x86OpSymbol op, s)
+  asSExpr (MemWrite loc s)       = asSExpr (loc, sym "<-", s)
+  asSExpr (Goto l)               = asSExpr (sym "goto", l)
+  asSExpr (CJump cmp l1 l2)      = List $ flatten $ asSExpr (sym "cjump", cmp, l1, l2)
+  asSExpr (LabelDeclaration l)   = asSExpr l
+  asSExpr (Call s)               = asSExpr (sym "call", s)
+  asSExpr (TailCall s)           = asSExpr (sym "tail-call", s)
+  asSExpr Return                 = asSExpr [sym "return"]
 
 instance (AsSExpr x, AsSExpr s) => AsSExpr (AssignRHS x s) where
-  asSExpr (CompRHS c)        = error "TODO: might need to change syntax" 
+  asSExpr (CompRHS c)        = asSExpr c
   asSExpr (Allocate s1 s2)   = asSExpr (sym "allocate", s1, s2)
   asSExpr (Print s)          = asSExpr (sym "print", s)
   asSExpr (ArrayError s1 s2) = asSExpr (sym "array-error", s1, s2)
   asSExpr (SRHS s)           = asSExpr s
   asSExpr (MemRead loc)      = asSExpr loc
 
-instance (AsSExpr x) => Show (MemLoc x) where show = showSExpr
-
 instance (AsSExpr x) => AsSExpr (MemLoc x) where
   asSExpr (MemLoc x n) = asSExpr (sym "mem", x, n)
-
-instance (Show s) => Show (Comp s) where
-  show (Comp s1 op s2) = concat [show s1, " ", show op, " ", show s2]
 
 instance (AsSExpr s) => AsSExpr (Comp s) where
   asSExpr (Comp s1 op s2) = asSExpr (s1,op, s2)
@@ -159,7 +147,7 @@ type L1Instruction = Instruction L1X L1S
 type L1Func = Func L1X L1S
 newtype L1 = L1 (Program L1X L1S)
 
-instance Show L1 where show = showSExpr
+instance Show L1  where show = showSExpr
 instance Show L1S where show = showSExpr
 
 -- L2 AST (uses shared L1/L2 AST)
