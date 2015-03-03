@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module L.SExpr 
   (
   	SExpr(..)
@@ -34,6 +36,9 @@ showSExpr = show . asSExpr
 
 class AsSExpr a where
   asSExpr :: a -> SExpr
+
+--instance AsSExpr String where
+--  asSExpr = AtomSym
 
 instance AsSExpr Int64 where
   asSExpr = AtomNum

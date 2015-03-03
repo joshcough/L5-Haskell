@@ -22,18 +22,18 @@ import Prelude hiding (print)
 interpL5 :: L5 -> String
 interpL5 e = runST $ show <$> runComputation (interpEMain e)
 
-data L5Runtime = OriginalRuntime Runtime | Closure [Variable] E (Env L5Runtime) deriving Eq
+data L5Runtime = OriginalRuntime Runtime | Closure [Variable] L5 (Env L5Runtime) deriving Eq
 instance Show L5Runtime where
   show (OriginalRuntime r) = show r
   show _ = "<function>"
 
-interpEMain :: MonadHOComputer c m L5Runtime => E -> m Runtime
+interpEMain :: MonadHOComputer c m L5Runtime => L5 -> m Runtime
 interpEMain e = do
   r <- interpE e
   return $ case r of OriginalRuntime r -> r; Closure _ _ _ -> Num 0
 
 -- | interpret an E, building a monadic operation to be run.
-interpE :: MonadHOComputer c m L5Runtime => E -> m L5Runtime
+interpE :: MonadHOComputer c m L5Runtime => L5 -> m L5Runtime
 interpE (Lambda vs e)       = use env >>= return . Closure vs e
 interpE (Var v)             = use env >>= envLookup v
 interpE (Let v e body)      = interpE $ App (Lambda [v] body) [e]
@@ -51,7 +51,7 @@ interpE (App f es)          = interpApp f es
 interpE (PrimE p)           = interpE $ Lambda vs (App (PrimE p) $ Var <$> vs) where vs = primVars p
 
 -- | interpret a Primitive function
-interpPrim :: MonadHOComputer c m L5Runtime => PrimName -> [E] -> m L5Runtime
+interpPrim :: MonadHOComputer c m L5Runtime => PrimName -> [L5] -> m L5Runtime
 interpPrim Print    [e]          = expectRuntime e >>= print False >> return (promote $ Num 0)
 interpPrim IsNumber [e]          = l5IsNumber <$> interpE e
 interpPrim IsArray  [e]          = l5IsArray  <$> interpE e
@@ -79,29 +79,29 @@ l5IsArray (OriginalRuntime r) = promote $ isArray r
 l5IsArray _                   = l5False
 
 -- | function application (f e...)
-interpApp :: MonadHOComputer c m L5Runtime => E -> [E] -> m L5Runtime
+interpApp :: MonadHOComputer c m L5Runtime => L5 -> [L5] -> m L5Runtime
 interpApp f es = do
   (Closure vars body env) <- evalClosure f
   rs <- traverse interpE es
   locally (\_ -> Map.union (Map.fromList (zip vars rs)) env) (interpE body)
 
-expectRuntime :: MonadHOComputer c m L5Runtime => E -> m Runtime
+expectRuntime :: MonadHOComputer c m L5Runtime => L5 -> m Runtime
 expectRuntime = expectRuntimeM return
 
-evalNumber :: MonadHOComputer c m L5Runtime => E -> m Runtime
+evalNumber :: MonadHOComputer c m L5Runtime => L5 -> m Runtime
 evalNumber = expectRuntimeM (\r -> Num <$> expectNum r)
 
-evalPointer :: MonadHOComputer c m L5Runtime => E -> m Runtime
+evalPointer :: MonadHOComputer c m L5Runtime => L5 -> m Runtime
 evalPointer = expectRuntimeM (\r -> Pointer <$> expectPointer "L5/evalPointer" r)
 
-expectRuntimeM :: MonadHOComputer c m L5Runtime => (Runtime -> m Runtime) -> E -> m Runtime
+expectRuntimeM :: MonadHOComputer c m L5Runtime => (Runtime -> m Runtime) -> L5 -> m Runtime
 expectRuntimeM f e = interpE e >>= expectRuntime' f
 
 expectRuntime' :: MonadHOComputer c m L5Runtime => (Runtime -> m Runtime) -> L5Runtime -> m Runtime
 expectRuntime' f (OriginalRuntime r) = f r
 expectRuntime' _ _ = exception $ "expected Runtime, but got a Closure"
 
-evalClosure :: MonadHOComputer c m L5Runtime => E -> m L5Runtime
+evalClosure :: MonadHOComputer c m L5Runtime => L5 -> m L5Runtime
 evalClosure e = interpE e >>= evalClosure' where
   evalClosure' (OriginalRuntime r) = exception $ "expected Closure, but got " ++ show r
   evalClosure' c = return c

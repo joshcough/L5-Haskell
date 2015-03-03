@@ -9,7 +9,6 @@ import L.L3.L3AST as L3
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 
-
 lambdaLift :: L5 -> L4
 lambdaLift l5 = fst $ runState (compile l5) 0
 
@@ -175,7 +174,7 @@ which in turn, get shoved into an L4 if-statement.
 @return  a tuple containing one L4 expression and a list of L4 functions
         the functions are the lambdas lifted when compiling the es.
 -}
-compileSubExprs :: [L5.E] -> ([L4.E] -> L4.E) -> State Int L4
+compileSubExprs :: [L5] -> ([L4.E] -> L4.E) -> State Int L4
 compileSubExprs es combine = do
   (l4es, fs) <- compileEs es
   return $ L4 (combine l4es) fs where
@@ -188,7 +187,7 @@ Compile each of the given L5 expressions
   a list of L4 es, one e for each of the incoming L5 es
   a list of L4 functions. the functions are the lambdas lifted when compiling the es.
 -}
-compileEs :: [L5.E] -> State Int ([L4.E], [L4Func])
+compileEs :: [L5] -> State Int ([L4.E], [L4Func])
 compileEs es = do
   let extract (L4 e fs) = (e, fs)
   (l4es, fs) <- unzip <$> fmap extract <$> traverse compile es
@@ -199,7 +198,7 @@ Find all the free vars in an expression.
 @param e  The expression
 @return a list which contains all the free variables in e
 -}
-freeVars :: L5.E -> [Variable]
+freeVars :: L5 -> [Variable]
 freeVars e = Set.toList $ f e Set.empty where
   f (L5.Lambda args e)     bv = f e (Set.union (Set.fromList args) bv)
   f (Var v)                bv = if Set.member v bv then Set.empty else Set.singleton v
@@ -213,7 +212,7 @@ freeVars e = Set.toList $ f e Set.empty where
   f (PrimE _)              _  = Set.empty
 
 {- Replace all occurrences of x for y in e. -}
-subst :: Variable -> L5.E -> L5.E -> L5.E
+subst :: Variable -> L5 -> L5 -> L5
 subst x y = f where
   f (Lambda vs e)          = if x `elem` vs then Lambda vs e else Lambda vs (f e)
   f (Var v)                = if v == x then y else Var v

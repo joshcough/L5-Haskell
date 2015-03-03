@@ -140,10 +140,10 @@ instance FromSExpr D where
     f (List [AtomSym "a?",      v])         = parsePrimApp1 IsArray  v
     f (List [AtomSym "new-array", s, v])    = parsePrimApp2 NewArray s v
     f (List (AtomSym "new-tuple" : vs))     = liftM         NewTuple (traverse fromSExpr vs)
-    f (List [AtomSym "aref", a, loc])       = parsePrimApp2 ARef a loc
-    f (List [AtomSym "aset", a, loc, v])    = parsePrimApp3 ASet a loc v
-    f (List [AtomSym "alen", v])            = parsePrimApp1 ALen  v
-    f (List [AtomSym "print", v])           = parsePrimApp1 Print v
+    f (List [AtomSym "aref", a, loc])       = parsePrimApp2 ARef     a loc
+    f (List [AtomSym "aset", a, loc, v])    = parsePrimApp3 ASet     a loc v
+    f (List [AtomSym "alen",  v])           = parsePrimApp1 ALen     v
+    f (List [AtomSym "print", v])           = parsePrimApp1 Print    v
     f (List (v : vs))                       = liftM2        FunCall (fromSExpr v) (traverse fromSExpr vs)
     f v = VD <$> fromSExpr v
 

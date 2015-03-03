@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+{-
 module L.L5.L5Core (toCore) where
 
 import Bound
@@ -12,19 +12,6 @@ import L.L5.L5AST (E, PrimFun(..))
 import qualified L.L5.L5AST as L5
 
 type Out = Core Convention String
-
-{-
-data E =
-    Lambda [Variable] E
-  | Let [(Variable, E)] E
-  | LetRec [(Variable, E)] E
-  | IfStatement E E E
-  | NewTuple [E]
-  | Begin E E
-  | LitInt Int
-  | PrimFunE PrimFun
-  deriving Eq
--}
 
 toCore :: E -> Out
 toCore   (L5.Var v)        = Var v
@@ -52,3 +39,4 @@ primFunToCore (ALen e)         = mkprim "alen"  [e]
 mkprim :: Strict.Text -> [E] -> Out
 mkprim name (e:es) = foldl (\e f -> App N f e) inner (fmap toCore es) where
   inner = App N (HardCore $ Foreign $ Unknown name) (toCore e)
+-}
