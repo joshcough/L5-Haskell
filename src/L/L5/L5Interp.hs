@@ -42,7 +42,7 @@ interpE (LetRec v e body)   = locally newEnv (interpE body) where
   newEnv old = new where new = Map.union (Map.fromList ([toClosure (v, e)])) old
                          toClosure (v, Lambda vs e) = (v, Closure vs e new)
                          toClosure (v, e) = error $ "non-lambda in letrec: " ++ show (v, e)
-interpE (IfStatement p t f) = do r <- interpE p; interpE $ if r == l5True then t else f
+interpE (If p t f)          = do r <- interpE p; interpE $ if r == l5True then t else f
 interpE (NewTuple es)       = promote <$> (traverse expectRuntime es >>= newArray)
 interpE (Begin e1 e2)       = interpE e1 >> interpE e2
 interpE (LitInt i)          = return . promote $ Num i

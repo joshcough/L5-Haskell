@@ -152,7 +152,7 @@ instance Show L1S where show = showSExpr
 
 -- L2 AST (uses shared L1/L2 AST)
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
-newtype Variable = Variable String deriving (Eq, Ord, Show)
+newtype Variable = Variable String deriving (Eq, Ord, Read, Show)
 
 instance AsSExpr Variable where
   asSExpr (Variable v) = AtomSym v

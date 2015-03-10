@@ -103,6 +103,7 @@ library
     mtl                       >= 2,
     optparse-applicative      >= 0.10.0,
     parsers                   >= 0.12.1.1,
+    prelude-extras            >= 0.4,
     primitive                 >= 0.5.3.0,
     process                   >= 1.1.0.2,
     text                      >= 1.1.1.1,

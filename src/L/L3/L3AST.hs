@@ -6,6 +6,8 @@ import Data.Int
 import Data.Map (Map)
 import Data.Maybe (fromJust)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
 import L.L1L2AST (Variable(..), Label(..))
 import L.Read
@@ -23,7 +25,7 @@ data D    = FunCall V [V] | PrimApp PrimName [V] | VD V |
 data PrimName =
     Add | Sub | Mult | LessThan | LTorEQ   | EqualTo
   | IsNumber  | IsArray | Print | NewArray | ARef | ASet | ALen
-  deriving (Eq,Ord)
+  deriving (Eq,Ord,Read)
 
 instance (AsSExpr a, Show a) => Show (Func a) where show = showSExpr
 instance Show V        where show = showSExpr
@@ -37,8 +39,8 @@ instance AsSExpr PrimName where
 
 type Arity = Int
 data Prim = Prim {
-  primName :: PrimName,
-  primText :: String,
+  primName  :: PrimName,
+  primText  :: String,
   primArity :: Arity
 } deriving Eq
 
@@ -56,6 +58,12 @@ newArr = Prim NewArray "new-array" 2
 aref   = Prim ARef     "aref"      2
 aset   = Prim ASet     "aset"      3
 alen   = Prim ALen     "alen"      1
+
+class PrimLookup a where
+  lookupPrim :: a -> Maybe Prim
+
+instance PrimLookup Variable where
+  lookupPrim (Variable v) = primByRawNameMaybe v
 
 prims :: [Prim]
 prims = [add, sub, mult, lt, eq, lteq, isNum, isArr, print, newArr, aref, aset, alen]
@@ -172,3 +180,20 @@ instance FromSExpr L3 where
 instance FromSExpr a => FromSExpr (Func a) where
   fromSExpr (List [l, args, e]) = liftM3 Func (fromSExpr l) (fromSExpr args) (fromSExpr e)
   fromSExpr bad = parseError "bad function" bad
+
+class FreeVars a where
+  freeVars :: a -> Set Variable -> Set Variable
+
+instance FreeVars E where
+  freeVars = f where
+    f (Let x r body)         bv = f (DE r) bv `Set.union` f body (Set.insert x bv)
+    f (IfStatement e a b)    bv = f (ve e) bv `Set.union` f a bv `Set.union` f b bv
+    f (DE (VD (VarV v)))     bv = if Set.member v bv then Set.empty else Set.singleton v 
+    f (DE (VD _))            _  = Set.empty
+    f (DE (MakeClosure _ v)) bv = f (ve v) bv
+    f (DE (ClosureProc v))   bv = f (ve v) bv
+    f (DE (ClosureVars v))   bv = f (ve v) bv
+    f (DE (FunCall v vs))    bv = Set.unions $ f (ve v) bv : fmap (flip f bv) (ve <$> vs)
+    f (DE (NewTuple vs))     bv = Set.unions $ fmap (flip f bv) (ve <$> vs) 
+    f (DE (PrimApp _ vs))    bv = Set.unions $ fmap (flip f bv) (ve <$> vs) 
+    ve = DE . VD

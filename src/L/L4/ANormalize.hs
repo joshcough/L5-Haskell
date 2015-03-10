@@ -7,6 +7,8 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Traversable
 import L.L1L2AST (Variable(..), Label(..))
 import L.L3.L3AST as L3
@@ -95,7 +97,7 @@ fill d = fill' where
     fLabel <- newLabel
     fArg   <- newVar
     (fBody, extraFuncsFromFBody) <- fill (VD $ VarV fArg) k
-    let frees = filter (/=fArg) (freeVars fBody)
+    let frees = Set.toList $ Set.filter (/=fArg) (freeVars fBody Set.empty)
         freesTup = Variable "frees"
         fBodyWithFrees = foldr f fBody (zip frees [0..]) where
           f (v,i) b = L3.Let v (L3.PrimApp ARef [VarV freesTup, NumV i]) b
@@ -111,22 +113,6 @@ fill d = fill' where
     x                    <- newVar
     (letBody, extraFuns) <- f $ VarV x
     return (L3.Let x d letBody, extraFuns) 
-
--- TODO: replace with set
-freeVars :: L3.E -> [Variable]
-freeVars e = nub $ f e [] where
-  ve = DE . VD
-  f :: L3.E -> [Variable] -> [Variable]
-  f (L3.Let x r body)         bv = f (DE r) bv ++ f body (x : bv)
-  f (L3.IfStatement e a b)    bv = f (ve e) bv ++ f a bv ++ f b bv
-  f (DE (VD (L3.VarV v)))     bv = maybe [v] (const []) $ Data.List.find (v==) bv
-  f (DE (VD _))               _  = []
-  f (DE (L3.MakeClosure _ v)) bv = f (ve v) bv
-  f (DE (L3.ClosureProc v))   bv = f (ve v) bv
-  f (DE (L3.ClosureVars v))   bv = f (ve v) bv
-  f (DE (L3.FunCall v vs))    bv = f (ve v) bv ++ (ve <$> vs >>= flip f bv)
-  f (DE (L3.NewTuple vs))     bv = ve <$> vs >>= flip f bv
-  f (DE (L3.PrimApp _ vs))    bv = ve <$> vs >>= flip f bv
 
 freshenL4 :: L4 -> State Int L4
 freshenL4 (L4 e fs) = liftM2 L4 (freshenE e) (traverse freshenFunc fs) where
