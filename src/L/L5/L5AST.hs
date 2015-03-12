@@ -7,7 +7,7 @@ import Bound.Var
 import Control.Applicative
 import Control.Monad
 import Data.Int
-import Data.Foldable hiding (all)
+import Data.Foldable hiding (all, foldl)
 import Data.List
 import Data.Monoid
 import Data.Set (Set)
@@ -80,21 +80,61 @@ instance Traversable E where
 instance Eq1   E where (==#)      = (==)
 instance Ord1  E where compare1   = compare
 instance Read1 E where readsPrec1 = readsPrec  
+--instance Show1 E where showsPrec1 = showsPrec  
 
-instance AsSExpr a => Show (E a) where show = showSExpr
+instance a ~ Variable => Show (E a) where show = showSExpr
 
-instance AsSExpr a => AsSExpr (E a) where
-  asSExpr (Var    v)     = asSExpr v
-{-  asSExpr (Lambda vs e)  = asSExpr (sym "lambda", fmap asSExpr vs, e)
-  asSExpr (Let    v e b) = asSExpr (sym "let", (asSExpr v, e), b)
-  asSExpr (LetRec v e b) = asSExpr (sym "letrec", (asSExpr v, e), b)
-  asSExpr (If v te fe)   = asSExpr (sym "if", v, te, fe)
-  asSExpr (NewTuple es)  = List    (sym "new-tuple" : fmap asSExpr es)
-  asSExpr (Begin e1 e2)  = asSExpr (sym "begin", e1, e2)
-  asSExpr (App e es)     = asSExpr (asSExpr e : fmap asSExpr es)
-  asSExpr (LitInt i)     = AtomNum i
-  asSExpr (PrimE  p)     = sym $ show p
--}
+-- TODO: extract lots o' combinators
+-- TODO: use non-empty for the supply
+instance a ~ Variable => AsSExpr (E a) where 
+  asSExpr = start id where
+    start :: (Variable -> Variable) -> E Variable -> SExpr
+    start f e = go f names Set.empty e where
+      supply = [Variable [v] | v <- ['a'..'z']]
+      names  = filter (not . flip Set.member (boundVars e <> freeVars e)) supply
+    go :: (a -> Variable) -> [Variable] -> Set Variable -> E a -> SExpr
+    go f _ _ (Var v) = asSExpr $ f v
+    -- | Let      Variable (E a) (Scope () E a)
+    go f names@(n:ns) lbs (Let v e b)
+     | v `Set.member` lbs = asSExpr (
+        sym "let", 
+        [(n, go f names lbs e)], 
+        go (unvar (const n) f) ns (Set.insert n lbs) (fromScope b))
+     | otherwise = asSExpr (
+        sym "let", 
+        [(v, go f names lbs e)], 
+        go (unvar (const v) f) ns (Set.insert v lbs) (fromScope b))
+    -- | LetRec   Variable (Scope () E a) (Scope () E a)
+    go f names@(n:ns) lbs (LetRec v s b)
+     | v `Set.member` lbs = asSExpr (
+        sym "letrec", 
+        [(n, go (unvar (const n) f) names lbs (fromScope s))], 
+        go (unvar (const n) f) ns (Set.insert n lbs) (fromScope b))
+     | otherwise = asSExpr (
+        sym "letrec", 
+        [(v, go (unvar (const n) f) names lbs (fromScope s))], 
+        go (unvar (const v) f) ns (Set.insert v lbs) (fromScope b))
+    --Lambda   [Variable] (Scope Int E a)
+    go f names lbs (Lambda vs e) = asSExpr (sym "lambda", freshArgNames, body) where
+      {-
+        for each name in vs:
+          we need to determine if we can use it, 
+          or we need to pull a new name off of names
+      -}
+      (freshArgNames,rest) = foldl g ([],names) vs where
+        g (vs',(n:ns)) v
+          | v `Set.member` lbs = (n:vs',ns) 
+          | otherwise          = (v:vs',(n:ns))
+      newBoundNames = Set.fromList freshArgNames <> lbs
+      body = go (unvar (freshArgNames !!) f) rest newBoundNames (fromScope e)
+    go f names lbs (If v te fe)  = 
+      asSExpr (sym "if", go f names lbs v, go f names lbs te, go f names lbs fe)
+    go f names lbs (NewTuple es) = List (sym "new-tuple" : fmap (go f names lbs) es)
+    go f names lbs (Begin e1 e2) = asSExpr (sym "begin", go f names lbs e1, go f names lbs e2)
+    go f names lbs (App   e  es) = asSExpr (go f names lbs e : fmap (go f names lbs) es)
+    go _ _ _ (LitInt   i)     = asSExpr i
+    go _ _ _ (PrimE    p)     = asSExpr p
+
 -- TODO: join all errors together?
 wellFormedArgList :: [SExpr] -> Either String [Variable]
 wellFormedArgList = traverse wellFormedArg where
@@ -118,7 +158,7 @@ instance a ~ Variable => FromSExpr (E a) where
   fromSExpr (List [AtomSym "letrec", List [List [arg, e]], b]) = 
     letrec <$> wellFormedArg arg <*> fromSExpr e  <*> fromSExpr b
   fromSExpr (List [AtomSym "if", pe, te, fe]) = 
-    If <$> fromSExpr pe <*> fromSExpr te <*> fromSExpr fe
+    If  <$> fromSExpr pe <*> fromSExpr te <*> fromSExpr fe
   fromSExpr (List (AtomSym "new-tuple" : es)) = NewTuple <$> traverse fromSExpr es
   fromSExpr (List [AtomSym "begin", e1, e2])  = Begin    <$> fromSExpr e1 <*> fromSExpr e2
   fromSExpr (List (e : es))                   = 
@@ -138,7 +178,7 @@ instance (BoundVars f, Monad f) => BoundVars (Scope b f) where
 
 instance BoundVars E where
   boundVars (Var a)         = mempty
-  boundVars (Lambda args s) = Set.fromList args <> boundVars s
+  boundVars (Lambda args b) = Set.fromList args <> boundVars b
   boundVars (Let   v e b)   = Set.insert v $ boundVars e <> boundVars b
   boundVars (LetRec v e b)  = Set.insert v $ boundVars e <> boundVars b
   boundVars (If p a b)      = boundVars p <> boundVars a <> boundVars b 
@@ -151,20 +191,6 @@ instance BoundVars E where
 freeVars :: (Foldable f, Ord a) => f a -> Set a   
 freeVars = foldMap Set.singleton
 
---fromScope :: Monad f => Scope b f a -> f (Var b a)
--- Let      Variable (E a) (Scope () E a)
--- Scope () E a -> E (Var () a)
-pretty :: (Variable -> Variable) -> E Variable -> String
-pretty f0 es0 = go f0 names0 Set.empty es0 where
-  go :: (a -> Variable) -> [Variable] -> Set Variable -> E a -> String
-  go f names@(n:ns) lbs (Let v e b)
-    | v `Set.member` lbs = "let " ++ show n ++ " = " ++ go f names lbs e ++ " in " 
-                                  ++ go (unvar (const n) f) ns (Set.insert n lbs) (fromScope b)
-    | otherwise = "let"
-  bs = boundVars es0
-  fs = freeVars es0
-  vs = bs <> fs
-  names0 = filter (not . flip Set.member vs) [Variable [v] | v <- ['a'..'z']]
 
 {-
 (a -> r)
