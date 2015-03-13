@@ -20,7 +20,6 @@ import L.L1L2AST (Variable(..))
 import L.L3.L3AST (Prim(..), PrimName(..), PrimLookup(..), arityByName, primName)
 import L.Read
 import Prelude.Extras
-import Debug.Trace
 
 type L5 = (E Variable)
 
@@ -51,6 +50,12 @@ letrec v e b = LetRec v (f e) (f b) where f = abstract (matchVar v)
 
 matchVar :: (MonadPlus m, Eq a) => a -> a -> m ()
 matchVar a = guard . (a ==)
+
+app :: SExpr -> [SExpr] -> Either String (E Variable)
+app e es = case e of
+  (AtomSym s) | s `Set.member` keywords -> fail $ "bad L5-E: " ++ show (List $ e : es)
+  _                                     -> App <$> fromSExpr e <*> traverse fromSExpr es
+
 
 instance Functor     E where fmap    = fmapDefault
 instance Foldable    E where foldMap = foldMapDefault
@@ -157,11 +162,6 @@ wellFormedArgString arg = return $ Variable arg
 keywords :: Set String
 keywords = Set.fromList ["lambda", "let", "letrec", "if", "new-tuple", "begin"]
 
-mkApp :: SExpr -> [SExpr] -> Either String (E Variable)
-mkApp e es = case e of
-  (AtomSym s) | s `Set.member` keywords -> fail $ "bad L5-E: " ++ show (List $ e : es)
-  _                                     -> App <$> fromSExpr e <*> traverse fromSExpr es
-
 instance a ~ Variable => FromSExpr (E a) where
   fromSExpr (List [AtomSym "lambda", List args, b]) = 
     lambda <$> wellFormedArgList args <*> fromSExpr b
@@ -173,7 +173,7 @@ instance a ~ Variable => FromSExpr (E a) where
     If  <$> fromSExpr pe <*> fromSExpr te <*> fromSExpr fe
   fromSExpr (List (AtomSym "new-tuple" : es)) = NewTuple <$> traverse fromSExpr es
   fromSExpr (List [AtomSym "begin", e1, e2])  = Begin    <$> fromSExpr e1 <*> fromSExpr e2
-  fromSExpr (List (e : es))                   = mkApp e es
+  fromSExpr (List (e : es))                   = app e es
   fromSExpr (AtomNum n) = return $ LitInt (fromIntegral n)
   fromSExpr (AtomSym v) = maybe 
     (Var <$> wellFormedArgString v) 
