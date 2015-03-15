@@ -56,6 +56,10 @@ app e es = case e of
   (AtomSym s) | s `Set.member` keywords -> fail $ "bad L5-E: " ++ show (List $ e : es)
   _                                     -> App <$> fromSExpr e <*> traverse fromSExpr es
 
+primlet :: PrimName -> E a
+primlet p = l where 
+  a = App (PrimE p) [Var (B 0), Var (B 1)]
+  l = Lambda [Variable "x", Variable "y"] (toScope a)
 
 instance Functor     E where fmap    = fmapDefault
 instance Foldable    E where foldMap = foldMapDefault
@@ -105,6 +109,9 @@ supplyNameM v = do
   f v (Supply (n:|ns) usedSet)
     | v `Set.member` usedSet = (n, Supply (Nel.fromList ns) (Set.insert n usedSet))
     | otherwise              = (v, Supply (n:|ns)           (Set.insert v usedSet))
+
+supplyNameM' :: String -> State Supply Variable
+supplyNameM' = supplyNameM . Variable
 
 -- | create a new supply of names, never generating any from the given set.
 newSupply :: Set Variable -> Supply
