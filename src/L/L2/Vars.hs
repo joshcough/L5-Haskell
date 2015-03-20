@@ -9,6 +9,7 @@ module L.L2.Vars
 import Data.Set (Set)
 import qualified Data.Set as Set
 import L.L1L2AST
+import L.Variable
  
 isVariable :: L2X -> Bool
 isVariable (VarL2X _) = True

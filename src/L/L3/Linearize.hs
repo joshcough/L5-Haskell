@@ -7,6 +7,7 @@ import Data.Traversable
 import L.L1L2AST  as L2
 import L.Registers
 import L.L3.L3AST as L3
+import L.Variable
 import Prelude hiding (EQ, LT, sequence, (>>))
 
 linearize :: L3 -> L2

@@ -15,6 +15,7 @@ import L.L2.Interference
 import L.L2.Liveness
 import L.L2.Spill
 import L.L2.Vars
+import L.Variable
 
 -- gives back a fully allocated function (if its possible to allocate it)
 -- with all of the variables replaced with the assigned registers.

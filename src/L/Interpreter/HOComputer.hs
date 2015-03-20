@@ -26,6 +26,7 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1L2AST hiding (Func)
+import L.Variable
 import Prelude hiding (print)
 
 type Env r = Map Variable r

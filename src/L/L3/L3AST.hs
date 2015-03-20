@@ -4,13 +4,14 @@ import Control.Applicative
 import Control.Monad
 import Data.Int
 import Data.Map (Map)
-import Data.Maybe (fromJust)
 import qualified Data.Map as Map
+import Data.Maybe (fromJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
-import L.L1L2AST (Variable(..), Label(..))
+import L.L1L2AST (Label(..))
 import L.Read
+import L.Variable
 import Prelude hiding (print)
 
 data Func a = Func { name :: Label, args :: [Variable], body :: a }

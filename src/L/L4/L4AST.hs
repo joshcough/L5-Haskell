@@ -4,8 +4,9 @@ import Control.Applicative
 import Control.Monad
 import Data.Traversable hiding (sequence)
 import L.Read
-import L.L1L2AST (Variable, Label)
+import L.L1L2AST (Label)
 import L.L3.L3AST (PrimName(..), V, Func(..))
+import L.Variable
 
 type L4Func = Func E
 data L4   = L4 E [L4Func]

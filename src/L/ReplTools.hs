@@ -2,6 +2,12 @@ module L.ReplTools (
    cat
   ,ls
   ,quickCompile
+  ,quickCompileL1
+  ,quickCompileL2
+  ,quickCompileL3
+  ,quickCompileL4
+  ,quickCompileL5
+  ,quickCompileString
   ,quickCompileTurtles
   ,quickInterp
   ,quickRunNative
@@ -22,6 +28,24 @@ import System.FilePath.Lens
 
 opts :: CompilationOptions
 opts = def
+
+quickCompileString :: Show o => Language i o -> String -> String
+quickCompileString l s = show . runVal $ compileString l s opts s
+
+quickCompileL1 :: String -> String
+quickCompileL1 = quickCompileString l1Language
+
+quickCompileL2 :: String -> String
+quickCompileL2 = quickCompileString l2Language
+
+quickCompileL3 :: String -> String
+quickCompileL3 = quickCompileString l3Language
+
+quickCompileL4 :: String -> String
+quickCompileL4 = quickCompileString l4Language
+
+quickCompileL5 :: String -> String
+quickCompileL5 = quickCompileString l5Language
 
 -- TODO: really need a pretty printer for displaying the result in the repl
 quickCompile :: FilePath -> IO ()

@@ -31,6 +31,7 @@ import L.L1L2AST
 import L.L1L2MainAdjuster
 import L.Registers
 import L.Utils (bind2)
+import L.Variable
 import Prelude hiding (head, length, print, tail)
 
 -- run the given L2 program to completion on a new computer

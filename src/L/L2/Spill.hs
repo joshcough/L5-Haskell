@@ -15,6 +15,7 @@ import L.L1L2AST
 import L.Read
 import L.Registers
 import L.Utils
+import L.Variable
 
 defaultSpillPrefix :: String
 defaultSpillPrefix = "spilled_var_"

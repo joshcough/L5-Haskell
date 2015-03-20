@@ -16,6 +16,7 @@ import Data.Traversable
 import Data.Tuple
 import L.Read
 import L.Registers
+import L.Variable
 import Prelude hiding (LT, EQ)
 
 newtype Label = Label String deriving (Eq, Ord, Show)
@@ -152,21 +153,6 @@ instance Show L1S where show = showSExpr
 
 -- L2 AST (uses shared L1/L2 AST)
 -- L2 adds variables to X and S. that's the only difference between L2 and L1.
-newtype Variable = Variable String deriving (Eq, Ord, Read, Show)
-
-instance AsSExpr Variable where
-  asSExpr (Variable v) = AtomSym v
-
-instance FromSExpr Variable where
-  fromSExpr (AtomSym s) = Right $ Variable s
-  fromSExpr bad = Left $ "invalid variable name: " ++ show bad
-
-class AsVariable t where
-  _Variable :: Prism' t Variable
-
-instance AsVariable Variable where
-  _Variable = id
-
 data L2X = RegL2X Register | VarL2X Variable
 
 instance AsRegister L2X where

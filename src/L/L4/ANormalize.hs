@@ -3,16 +3,15 @@ module L.L4.ANormalize (aNormalize) where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable
-import L.L1L2AST (Variable(..), Label(..))
+import L.L1L2AST (Label(..))
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
+import L.Variable
 
 freshenString :: String -> State Int String
 freshenString = incState
@@ -115,22 +114,22 @@ fill d = fill' where
     return (L3.Let x d letBody, extraFuns) 
 
 freshenL4 :: L4 -> State Int L4
-freshenL4 (L4 e fs) = liftM2 L4 (freshenE e) (traverse freshenFunc fs) where
+freshenL4 (L4 e fs) = L4 <$> freshenE e <*> traverse freshenFunc fs where
   freshenE :: L4.E -> State Int L4.E
   freshenE e = go e Map.empty
   freshenFunc (Func name args body) = do
     freshArgs <- traverse freshenVar args
-    liftM (Func name freshArgs) (go body $ Map.fromList $ zip args freshArgs)
+    Func name freshArgs <$> go body (Map.fromList $ zip args freshArgs)
   go :: L4.E -> Map Variable Variable -> State Int L4.E
   go (L4.Let x r body)      m =
-    do { v <- freshenVar x; liftM2 (L4.Let v) (go r m) (go body $ Map.insert x v m) }
-  go (L4.IfStatement c t f) m = liftM3 L4.IfStatement (go c m) (go t m) (go f m)
-  go (L4.Begin e1 e2)       m = liftM2 L4.Begin (go e1 m) (go e2 m)
-  go (L4.NewTuple es)       m = liftM  L4.NewTuple (traverse (flip go m) es)
-  go (L4.FunCall f args)    m = liftM2 L4.FunCall (go f m) (traverse (flip go m) args)
-  go (L4.PrimApp p es)      m = liftM (L4.PrimApp p) (traverse (flip go m) es)
-  go (L4.MakeClosure l e)   m = liftM (L4.MakeClosure l) (go e m)
-  go (L4.ClosureProc e)     m = liftM  L4.ClosureProc (go e m)
-  go (L4.ClosureVars e)     m = liftM  L4.ClosureVars (go e m)
+    do { v <- freshenVar x; L4.Let v <$> go r m <*> go body (Map.insert x v m) }
+  go (L4.IfStatement c t f) m = L4.IfStatement   <$> go c m  <*> go t m <*> go f m
+  go (L4.Begin e1 e2)       m = L4.Begin         <$> go e1 m <*> go e2 m
+  go (L4.NewTuple es)       m = L4.NewTuple      <$> traverse (flip go m) es
+  go (L4.FunCall f args)    m = L4.FunCall       <$> go f m  <*> traverse (flip go m) args
+  go (L4.PrimApp p es)      m = L4.PrimApp p     <$> traverse (flip go m) es
+  go (L4.MakeClosure l e)   m = L4.MakeClosure l <$> go e m
+  go (L4.ClosureProc e)     m = L4.ClosureProc   <$> go e m
+  go (L4.ClosureVars e)     m = L4.ClosureVars   <$> go e m
   go (VE (VarV v))          m = return . VE . VarV $ fromMaybe v (Map.lookup v m)
   go ve@(VE _)              _ = return ve

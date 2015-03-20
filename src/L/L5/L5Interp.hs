@@ -19,6 +19,7 @@ import L.L1L2AST hiding (Func, Print)
 import L.L3.L3AST (PrimName(..), isBiop)
 import L.L5.L5AST
 import L.Read
+import L.Variable
 import L.Utils
 import Prelude hiding (print)
 

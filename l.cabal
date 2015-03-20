@@ -43,7 +43,9 @@ library
     L.Registers
     L.ReplTools
     L.SExpr
+    L.Supply
     L.Utils
+    L.Variable
 
     -- Interpreter Code
     L.Interpreter.ComputationResult

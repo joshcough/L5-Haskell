@@ -7,18 +7,24 @@ import Bound.Var
 import Control.Applicative
 import Control.Lens
 import Control.Monad.State
-import Data.List (elemIndex)
 import Data.Monoid
 import qualified Data.Set as Set
-import Data.Traversable
-import L.L1L2AST (Variable(..), Label(..))
+import L.L1L2AST (Label(..))
 import L.L3.L3AST as L3 hiding (freeVars)
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 import L.Read
+import L.Supply
+import L.Variable
 
 lambdaLift :: L5 -> L4
-lambdaLift l5 = fst $ runState (compile l5) 0
+lambdaLift l5 = fst $ runState (go id l5) (newSupply $ boundVars l5 <> freeVars l5)
+
+{-
+TODO: wat? how did f and x get reversed? er, just...waaat?
+*L.ReplTools> quickCompileL5 "(f x)"
+"((let (x f) ((closure-proc x) (closure-vars x) x)))"
+-}
 
 {-
 L5Compiler is a lambda lifter (http://en.wikipedia.org/wiki/Lambda_lifting).
@@ -49,6 +55,11 @@ The remainder of the cases are each documented in place.
          the functions are the lifted lambdas.
 -}
 
+primToLambda :: PrimName -> L5.E (Var Int a)
+primToLambda p = l where
+  a = App (PrimE p) [Var (B 0), Var (B 1)]
+  l = Lambda [Variable "x", Variable "y"] (abstract (^? _B) a)
+
 l5c :: String -> L4
 l5c s = fst $ runState (go id l5e) (newSupply $ boundVars l5e <> freeVars l5e) where
   l5e = (either error id) . fromSExpr $ sread s
@@ -73,89 +84,34 @@ go f (L5.Let v e b)     = do
   (L4 e' efs) <- go f e
   (L4 b' bfs) <- go (unvar (const v') f) (fromScope b)
   return $ L4 (L4.Let v' e' b') (efs++bfs)
-go f (PrimE p)         = go (unvar (primVars p !!) f) l where
-  a = App (PrimE p) [Var (B 0), Var (B 1)]
-  l = Lambda [Variable "x", Variable "y"] (abstract (^? _B) a)
+{-
+ We Turn (f +) => (f (lambda (x y) (+ x y)))
+ So when we see a primitive function by itself,
+ turn it into a lambda expression, and then compile that expression.
+ -}
+go f (PrimE p) = go (unvar (primVars p !!) f) (primToLambda p)
+{-
+ Primitive function application
+ (+ x y z)  => (+ x y z)
+ also a trivial case, but I wanted to keep this case close to the other App case.
+-}
 go f (App (PrimE p) es) = do
   (es', fs) <- goEs f es
   return $ L4 (L4.PrimApp p es') (concat fs)
 go f (App e es) = do
   v' <- supplyNameM' "x"
   -- compile the function position
-  (L4 e' fs')   <- go f e
+  (L4 e' fs') <- go f e
   -- compile all of the arguments
   (es', fs'') <- goEs f es
   let ve = VE $ VarV v'
   return $ L4 (L4.Let v' e' (
     -- free variables go in the first argument.
-    L4.FunCall (L4.ClosureProc $ ve) $
+    L4.FunCall (L4.ClosureProc ve) $
       -- if we can fit the rest of the arguments in, then great
       -- if not, they must also go into another tuple.
-      L4.ClosureVars ve :
-        (if length es' <= 2 then es' else [L4.NewTuple es'])
+      L4.ClosureVars ve : if length es' <= 2 then es' else [L4.NewTuple es']
    )) (concat $ fs' : fs'')
--- Lambda [Variable] (Scope Int E a)
-go f lam@(Lambda args body) = do
-  {- build the body of the new function -}
-  -- compile the body of the lambda
-  (L4 compiledLambdaBody moreFunctions) <- go (unvar (args !!) f) (fromScope body)
-  let usingArgsTuple = length args > 2
-      freesVar = Variable "frees"
-      argsVar  = Variable "args"
-      -- the arguments to the new function
-      fArgs = if usingArgsTuple then [freesVar, argsVar] else freesVar : args
-      -- the free variables in the lambda
-      frees = Set.toList $ freeVars lam
-      -- then wrap it with the required let statements
-      freeLets = wrapWithLets freesVar (error "todo:112" frees) compiledLambdaBody
-      liftedFunctionBody = if usingArgsTuple 
-                           then wrapWithLets argsVar args freeLets 
-                           else freeLets
-  liftedLabel <- fmap toLabel (supplyNameM' "x")
-  let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> (error "todo:118" frees))
-      liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
-  return $ L4 closure (liftedFunction : moreFunctions)
-
-goEs :: Ord a => (a -> Variable) -> [L5.E a] -> State Supply ([L4.E], [[L4Func]])
-goEs f es = unzip <$> fmap extract <$> traverse (go f) es where 
-  extract (L4 e fs) = (e, fs)
-toLabel (Variable v) = Label v
-
-wrapWithLets :: Variable -> [Variable] -> L4.E -> L4.E
-wrapWithLets tup vars e = foldr f e (zip vars [0..]) where
-  f (v, i) b = L4.Let v (L4.PrimApp ARef [VE $ VarV tup, VE $ NumV i]) b
-
-compile :: L5 -> State Int L4
-compile (LitInt i)       = return $ L4 (VE . NumV $ fromIntegral i) []
-compile (Var v)          = return $ L4 (VE $ VarV v) []
-compile (L5.If e t f)    = compileSubExprs [e,t,f] $ \es  -> 
-  L4.IfStatement (es !! 0) (es !! 1) (es !! 2)
-compile (L5.Begin e1 e2) = compileSubExprs [e1,e2] $ \es  -> 
-  L4.Begin (es !! 0) (es !! 1)
-compile (L5.NewTuple es) = compileSubExprs es      $ \es' -> 
-  L4.NewTuple es'
-{-
--- | Let      Variable (E a) (Scope () E a)
-compile (L5.Let v e b)   = compileSubExprs [e,b]   $ \es  -> 
-  L4.Let v (es !! 0) (es !! 1)
- letrec doesn't exist in L4, so we do this simple transformation.
- (letrec ([x e1]) e2)
-  =>
- (let ([x (new-tuple 0)])
-   (begin (aset x 0 e1[x:=(aref x 0)])
-          e2[x:=(aref x 0)]))
-compile (LetRec v e b) = compile $
-  L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
-    (App (PrimE ASet) [Var v, LitInt 0, subst v (App (PrimE ARef) [Var v, LitInt 0]) e])
-    (subst v (App (PrimE ARef) [Var v, LitInt 0]) b)
-  )
--}
-{-
- We Turn (f +) => (f (lambda (x y) (+ x y)))
- So when we see a primitive function by itself,
- turn it into a lambda expression, and then compile that expression.
- -}
-compile pe@(PrimE p) = compile $ lambda (primVars p) (App pe (Var <$> primVars p))
 {-
  Here is where we actually do the lambda lifting.
 
@@ -196,34 +152,56 @@ compile pe@(PrimE p) = compile $ lambda (primVars p) (App pe (Var <$> primVars p
 
  If we need to use a tuple for the remaining arguments, we create lets
  in the very same way.
-compile lam@(Lambda args body) = do
+  
+ Lambda [Variable] (Scope Int E a)
+-}
+go f lam@(Lambda args body) = do
+  {- build the body of the new function -}
+  -- compile the body of the lambda
+  (L4 compiledLambdaBody moreFunctions) <- go (unvar (args !!) f) (fromScope body)
   let usingArgsTuple = length args > 2
       freesVar = Variable "frees"
       argsVar  = Variable "args"
       -- the arguments to the new function
       fArgs = if usingArgsTuple then [freesVar, argsVar] else freesVar : args
       -- the free variables in the lambda
-      frees = freeVars lam
-  {- build the body of the new function -}
-  -- compile the body of the lambda
-  (L4 compiledLambdaBody moreFunctions) <- compile body
-  -- then wrap it with the required let statements
-  let wrapWithLets tup vars e = foldr f e (zip vars [0..]) where
-        f (v, i) b = L4.Let v (L4.PrimApp ARef [VE $ VarV tup, VE $ NumV i]) b
-      freeLets = wrapWithLets freesVar frees compiledLambdaBody
-      liftedFunctionBody = if usingArgsTuple then wrapWithLets argsVar args freeLets else freeLets where
-  label <- newLabel
-  let closure = L4.MakeClosure label $ L4.NewTuple (VE . VarV <$> frees)
-      liftedFunction = Func label fArgs $ liftedFunctionBody
+      frees = Set.toList $ freeVars lam
+      -- then wrap it with the required let statements
+      freeLets = wrapWithLets freesVar (error "todo:158" frees) compiledLambdaBody
+      liftedFunctionBody = if usingArgsTuple 
+                           then wrapWithLets argsVar args freeLets 
+                           else freeLets
+  liftedLabel <- fmap toLabel (supplyNameM' "x")
+  let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> (error "todo:163" frees))
+      liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)
- -}
+
+goEs :: Ord a => (a -> Variable) -> [L5.E a] -> State Supply ([L4.E], [[L4Func]])
+goEs f es = unzip <$> fmap extract <$> traverse (go f) es where 
+  extract (L4 e fs) = (e, fs)
+
+toLabel :: Variable -> Label
+toLabel (Variable v) = Label v
+
+-- | Wraps an array with lets that grab their value from the array
+-- | ex: let x = a !! 0 in let y = a !! 1 ... in e
+wrapWithLets :: Variable -> [Variable] -> L4.E -> L4.E
+wrapWithLets tup vars e = foldr f e (zip vars [0..]) where
+  f (v, i) b = L4.Let v (L4.PrimApp ARef [VE $ VarV tup, VE $ NumV i]) b
 
 {-
- Primitive function application
- (+ x y z)  => (+ x y z)
- also a trivial case, but I wanted to keep this case close to the other App case.
- -}
-compile (App (PrimE p) args) = compileSubExprs args $ \es  -> L4.PrimApp p es
+ letrec doesn't exist in L4, so we do this simple transformation.
+ (letrec ([x e1]) e2)
+  =>
+ (let ([x (new-tuple 0)])
+   (begin (aset x 0 e1[x:=(aref x 0)])
+          e2[x:=(aref x 0)]))
+compile (LetRec v e b) = compile $
+  L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
+    (App (PrimE ASet) [Var v, LitInt 0, subst v (App (PrimE ARef) [Var v, LitInt 0]) e])
+    (subst v (App (PrimE ARef) [Var v, LitInt 0]) b)
+  )
+-}
 
 {-
  In this case, we know we don't have a primitive function
@@ -233,10 +211,11 @@ compile (App (PrimE p) args) = compileSubExprs args $ \es  -> L4.PrimApp p es
  (e0 e1 ... en) =>
  (let ([f e0]) ((closure-proc f) (closure-vars f) e1 ... en))
  -}
-compile (App f args) = do
+{-
+compileOld (App f args) = do
   v <- newVar
   -- compile the function position
-  (L4 compiledF fs')   <- compile f
+  (L4 compiledF fs')   <- compileOld f
   -- compile all of the arguments
   (compiledArgs, fs'') <- compileEs args
   let ve = VE $ VarV v
@@ -248,62 +227,11 @@ compile (App f args) = do
       L4.ClosureVars ve :
         (if length compiledArgs <= 2 then compiledArgs else [L4.NewTuple compiledArgs])
    )) (fs' ++ fs'')
-
-{-
-This function is used to compile the subexpressions of and L5 e.
-Once they are compiled, we need to construct the equivalent L4 e.
-using the freshly compiled subexpressions.
-
-For example, an L5 if-statement has three subexpressions
-They get compiled into three L4 expressions (and some lifted functions)
-which in turn, get shoved into an L4 if-statement.
-
-@param es  The subexpressions to compile
-@param createL4E  A function that takes the compiled subexpressions and
- creates the L4 expression as explained above
-@return  a tuple containing one L4 expression and a list of L4 functions
-        the functions are the lambdas lifted when compiling the es.
--}
-compileSubExprs :: [L5] -> ([L4.E] -> L4.E) -> State Int L4
-compileSubExprs es combine = do
-  (l4es, fs) <- compileEs es
-  return $ L4 (combine l4es) fs where
-
-{-
-Compile each of the given L5 expressions
-
-@param es  A list of L5 es to be compiled
-@return  a tuple containing
-  a list of L4 es, one e for each of the incoming L5 es
-  a list of L4 functions. the functions are the lambdas lifted when compiling the es.
--}
-compileEs :: [L5] -> State Int ([L4.E], [L4Func])
-compileEs es = do
-  let extract (L4 e fs) = (e, fs)
-  (l4es, fs) <- unzip <$> fmap extract <$> traverse compile es
-  return $ (l4es, concat fs)
-
-{-
-Find all the free vars in an expression.
-@param e  The expression
-@return a list which contains all the free variables in e
-freeVars :: L5 -> [Variable]
-freeVars e = Set.toList $ f e Set.empty where
-  f (L5.Lambda args e)     bv = f e (Set.union (Set.fromList args) bv)
-  f (Var v)                bv = if Set.member v bv then Set.empty else Set.singleton v
-  f (L5.Let x r body)      bv = Set.union  (f r bv) (f body $ Set.insert x bv)
-  f (L5.LetRec x r body)   bv = Set.union  (f r bv') (f body bv') where bv' = Set.insert x bv
-  f (L5.IfStatement e a b) bv = Set.unions [f e bv, f a bv, f b bv]
-  f (L5.NewTuple es)       bv = Set.unions (flip f bv <$> es)
-  f (L5.Begin e1 e2)       bv = Set.union  (f e1 bv) (f e2 bv)
-  f (L5.App e es)          bv = Set.union (f e bv) (Set.unions (flip f bv <$> es))
-  f (LitInt _)             _  = Set.empty
-  f (PrimE _)              _  = Set.empty
 -}
 
 {- Replace all occurrences of x for y in e. -}
 subst :: Variable -> L5 -> L5 -> L5
-subst x y = error "todo"
+subst _ _ = error "todo"
 {-
 subst x y = f where
   f (Lambda vs e)     = if x `elem` vs then Lambda vs e else Lambda vs (f e)
@@ -318,9 +246,4 @@ subst x y = f where
   f e@(PrimE _)       = e
 -}
 
-newVar :: State Int Variable
-newVar = Variable <$> incState "_l5_"
-newLabel :: State Int Label
-newLabel = Label <$> incState ":l5_"
-incState :: String -> State Int String
-incState prefix = do { n <- get; put (n + 1); return $ prefix ++ show n }
+
