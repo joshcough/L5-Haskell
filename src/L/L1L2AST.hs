@@ -221,12 +221,11 @@ instance FromSExpr CompOp where
 
 instance (FromSExpr s) => FromSExpr (Comp s) where
   fromSExpr (List [s1, cmp, s2]) = 
-    liftM3 Comp (fromSExpr s1) (fromSExpr cmp) (fromSExpr s2)
+    Comp <$> fromSExpr s1 <*> fromSExpr cmp <*> fromSExpr s2
   fromSExpr bad         = fail $ "not a comparison operator" ++ show bad
 
 instance (FromSExpr x, FromSExpr s) => FromSExpr (Program x s) where
-  fromSExpr (List ((List main) : funcs)) =
-    liftM2 Program (parseMain main) (traverse fromSExpr funcs)
+  fromSExpr (List ((List main) : funcs)) = Program <$> parseMain main <*> traverse fromSExpr funcs
   fromSExpr bad = parseError_ "bad program" bad
 
 parseMain :: (FromSExpr x, FromSExpr s) => [SExpr] -> ParseResult (Func x s)
@@ -248,22 +247,21 @@ instance (FromSExpr x, FromSExpr s) => FromSExpr (Instruction x s) where
   fromSExpr (AtomSym s)   = LabelDeclaration <$> parseLabel s
   fromSExpr a@(AtomNum _) = parseError_ "bad instruction" a
   fromSExpr list@(List _) = case flatten list of
-    [x, AtomSym "<-", AtomSym "print", s] -> liftM2 Assign (fromSExpr x) (Print <$> fromSExpr s)
+    [x, AtomSym "<-", AtomSym "print", s] -> Assign <$> fromSExpr x <*> (Print <$> fromSExpr s)
     [x, AtomSym "<-", AtomSym "allocate", s1, s2] ->
-      liftM2 Assign (fromSExpr x) (liftM2 Allocate (fromSExpr s1) (fromSExpr s2))
+      Assign   <$> fromSExpr x <*> (Allocate <$> fromSExpr s1 <*> fromSExpr s2)
     [x, AtomSym "<-", AtomSym "array-error", s1, s2] ->
-      liftM2 Assign (fromSExpr x) (liftM2 ArrayError (fromSExpr s1) (fromSExpr s2))
-    [x, AtomSym "<-", s]  -> liftM2 Assign (fromSExpr x) (SRHS <$> fromSExpr s)
+      Assign   <$> fromSExpr x <*> (ArrayError <$> fromSExpr s1 <*> fromSExpr s2)
+    [x, AtomSym "<-", s]  -> Assign <$> fromSExpr x <*> (SRHS <$> fromSExpr s)
     [x1, AtomSym "<-", AtomSym "mem", x2, n4] ->
-      liftM2 Assign (fromSExpr x1) (MemRead <$> liftM2 MemLoc (fromSExpr x2) (parseN4 n4))
+      Assign   <$> fromSExpr x1 <*> (MemRead <$> (MemLoc <$> fromSExpr x2 <*> parseN4 n4))
     [AtomSym "mem", x, n4, AtomSym "<-", s] ->
-      liftM2 MemWrite (liftM2 MemLoc (fromSExpr x) (parseN4 n4)) (fromSExpr s)
-    [x, op, s] -> liftM3 MathInst (fromSExpr x) (fromSExpr op) (fromSExpr s)
-    [cx, AtomSym "<-", s1, cmp, s2] -> 
-      liftM2 Assign (fromSExpr cx) (CompRHS <$> parseComp s1 cmp s2)
+      MemWrite <$> (MemLoc <$> fromSExpr x <*> parseN4 n4)  <*> fromSExpr s
+    [x, op, s] -> MathInst <$> fromSExpr x <*> fromSExpr op <*> fromSExpr s
+    [cx, AtomSym "<-", s1, cmp, s2] -> Assign <$> fromSExpr cx <*>  (CompRHS <$> parseComp s1 cmp s2)
     [AtomSym "goto", l]      -> Goto <$> fromSExpr l
     [AtomSym "cjump", s1, cmp, s2, l1, l2] ->
-      liftM3 CJump (parseComp s1 cmp s2) (fromSExpr l1) (fromSExpr l2)
+      CJump <$> parseComp s1 cmp s2 <*> fromSExpr l1 <*> fromSExpr l2
     [AtomSym "call", s]      -> Call     <$> fromSExpr s
     [AtomSym "tail-call", s] -> TailCall <$> fromSExpr s
     [AtomSym "return"]       -> return Return

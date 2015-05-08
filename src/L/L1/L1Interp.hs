@@ -72,7 +72,7 @@ step (Call s) = do
 step (TailCall s) = readS s >>= goto
 step Return = do
   rspVal    <- readX rsp >>= expectPointer "Return"
-  memLength <- liftM (8*) $ uses memory (length . _runMemory)
+  memLength <- (8*) <$> uses memory (length . _runMemory)
   newRspVal <- runOp (Pointer rspVal) Increment (Num 8)
   writeX rsp newRspVal
   let done = rspVal >= fromIntegral memLength

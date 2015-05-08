@@ -85,8 +85,7 @@ fill d = fill' where
   fill' (FunCallContext [] (Just makeD) vs k) = 
     maybeLet d $ \v -> fill (makeD $ vs++[v]) k
   fill' (FunCallContext [] Nothing vs k) = maybeLet d $ \v ->
-    let vsv = vs ++ [v]
-    in fill (L3.FunCall (head vsv) (tail vsv)) k
+    let vsv = vs ++ [v] in fill (L3.App (head vsv) (tail vsv)) k
   {-
    - (+ (if v e_1 e_2) e_big) =>
    -   (let ((ctxt (lambda (ret-val) (+ ret-val e_big))))
@@ -104,7 +103,7 @@ fill d = fill' where
         tup  = L4.NewTuple (VE . VarV <$> frees)
     (tt, tef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [t, tup]) NoContext
     (ee, eef) <- l4Find (L4.FunCall (VE $ LabelV fLabel) [e, tup]) NoContext
-    return (L3.IfStatement v tt ee, concat [[func], extraFuncsFromFBody, tef, eef])
+    return (L3.If v tt ee, concat [[func], extraFuncsFromFBody, tef, eef])
 
   maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.L3Func])) -> State Int (L3.E, [L3.L3Func])
   maybeLet (VD v) f = f v

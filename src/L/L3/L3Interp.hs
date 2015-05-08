@@ -24,13 +24,13 @@ interpL3 (L3 e fs) = runST $ show <$> runComputation (interpE e) where
 
   -- | interpret an E, building a monadic operation to be run.
   interpE :: MonadHOComputer c m Runtime => E -> m Runtime
-  interpE (Let v d e)           = interpD d >>= \d' -> locally (Map.insert v d') (interpE e)
-  interpE (IfStatement v te fe) = interpV v >>= \v' -> interpE $ if v' /= lFalse then te else fe
-  interpE (DE d)                = interpD d
+  interpE (Let v d e)  = interpD d >>= \d' -> locally (Map.insert v d') (interpE e)
+  interpE (If v te fe) = interpV v >>= \v' -> interpE $ if v' /= lFalse then te else fe
+  interpE (DE d)       = interpD d
 
   interpD :: MonadHOComputer c m Runtime => D -> m Runtime
   -- Regular L3 Level stuff
-  interpD (FunCall v vs)    = interpApp v vs
+  interpD (App v vs)        = interpApp v vs
   interpD (NewTuple vs)     = traverse interpV vs >>= newArray
   interpD (MakeClosure l v) = interpD (NewTuple [LabelV l, v])
   interpD (ClosureProc c)   = do c' <- interpV c; arrayRef c' (Num 0)

@@ -25,7 +25,7 @@ linearizeM (L3 e funcs) = (L2 . L2.Program callMain) <$> l2Funcs where
      ,Return
     ]
   l2MainInsts = (decl ":_L3main_" :) <$> compileE e
-  l2Funcs  = liftM2 (:) (L2.Func <$> l2MainInsts) (traverse compileFunction funcs)
+  l2Funcs  = (:) <$> (L2.Func <$> l2MainInsts) <*> traverse compileFunction funcs
 
 -- (l (x ...) e)
 -- there is an implicit assertion here that L3 functions
@@ -41,14 +41,14 @@ compileFunction (L3.Func name args body) = L2.Func <$> insts where
 
 -- e ::= (let ([x d]) e) | (if v e e) | d
 compileE :: E -> State Int [L2Instruction]
-compileE (Let v d e) = liftM2 (++) (compileD d (VarL2X v)) (compileE e)
-compileE (IfStatement v t f) = do
-  (temp,thenLabel,elseLabel) <- liftM3 (,,) newTemp newLabel newLabel
-  (v',t',f') <- liftM3 (,,) (compileD (VD v) temp) (compileE t) (compileE f)
+compileE (Let v d e) = (++) <$> compileD d (VarL2X v) <*> compileE e
+compileE (If v t f)  = do
+  (temp,thenLabel,elseLabel) <- (,,) <$> newTemp <*> newLabel <*> newLabel
+  (v',t',f') <- (,,) <$> compileD (VD v) temp <*> compileE t <*> compileE f
   let test = CJump (Comp (compileV v) L2.EQ l2False) elseLabel thenLabel
   return $ concat [v', [test], [LabelDeclaration thenLabel], t', [LabelDeclaration elseLabel], f']
 -- if it is an function call, make a tail call
-compileE (DE (FunCall v vs)) = return $ compileFunCall v vs Nothing
+compileE (DE (App v vs)) = return $ compileApp v vs Nothing
 -- otherwise, compile the d, store the result in rax, and return.
 compileE (DE d) = (\d' -> d' ++ [Return]) <$> compileD d (RegL2X rax)
 
@@ -56,7 +56,7 @@ compileD :: D -> L2X -> State Int [L2Instruction]
 compileD (PrimApp L3.Print [v]) dest =
   return [toLHS rax <~ (L2.Print $ compileV v), dest <~ regRHS rax]
 -- TODO...tail-call if last d in the tree??
-compileD (FunCall v vs) dest = return $ compileFunCall v vs (Just dest)
+compileD (App v vs) dest = return $ compileApp v vs (Just dest)
 -- biop ::= + | - | * | < | <= | =
 compileD (PrimApp Add [l, r]) dest = return $
   [dest <~ compileVRHS l, dest += compileV r, dest -= num 1]
@@ -125,8 +125,8 @@ compileVRHS = SRHS . compileV
    * then make a regular Call storing the result of the call (which is in rax) into the destination
    * otherwise, make a TailCall
 -}
-compileFunCall :: V -> [V] -> Maybe L2X -> [L2Instruction] 
-compileFunCall v vs dest = regAssignments ++ call where
+compileApp :: V -> [V] -> Maybe L2X -> [L2Instruction]
+compileApp v vs dest = regAssignments ++ call where
   -- on a function call, we need to put the arguments into the registers
   regAssignments = zipWith Assign (RegL2X <$> argRegisters) (SRHS . compileV <$> vs)
   call = maybe ([TailCall $ compileV v]) (\d -> [Call $ compileV v, Assign d $ regRHS rax]) dest

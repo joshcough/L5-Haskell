@@ -11,7 +11,7 @@ import L.Variable
 type L4Func = Func E
 data L4   = L4 E [L4Func]
 data E    =
-    Let Variable E E 
+    Let Variable E E
   | IfStatement E E E
   | FunCall E [E]
   | PrimApp PrimName [E]
@@ -42,18 +42,18 @@ instance AsSExpr L4 where
 
 -- p ::= (e (l (x ...) e) ...)
 instance FromSExpr L4 where
-  fromSExpr (List (main : funcs)) = liftM2 L4 (fromSExpr main) (traverse fromSExpr funcs)
+  fromSExpr (List (main : funcs)) = L4 <$> fromSExpr main <*> traverse fromSExpr funcs
   fromSExpr bad = Left $ concat ["Bad L4 Program: ", show bad]
 
 instance FromSExpr E where
   fromSExpr = f where
-    f (List [AtomSym "let", List [List [arg, e]], b]) = liftM3 Let (fromSExpr arg) (f e) (f b)
-    f (List [AtomSym "if", pe, te, fe])     = liftM3 IfStatement (f pe) (f te) (f fe)
-    f (List (AtomSym "new-tuple" : es))     = liftM  NewTuple (traverse f es)
-    f (List [AtomSym "begin", e1, e2])      = liftM2 Begin (f e1) (f e2)
-    f (List [AtomSym "make-closure", l, e]) = liftM2 MakeClosure (fromSExpr l) (f e)
-    f (List [AtomSym "closure-proc", e])    = liftM  ClosureProc (f e)
-    f (List [AtomSym "closure-vars", e])    = liftM  ClosureVars (f e)
+    f (List [AtomSym "let", List [List [arg, e]], b]) = Let <$> fromSExpr arg <*> f e <*> f b
+    f (List [AtomSym "if", pe, te, fe])     = IfStatement   <$> f pe <*> f te <*> f fe
+    f (List (AtomSym "new-tuple" : es))     = NewTuple      <$> traverse f es
+    f (List [AtomSym "begin", e1, e2])      = Begin         <$> f e1 <*> f e2
+    f (List [AtomSym "make-closure", l, e]) = MakeClosure   <$> fromSExpr l <*> f e
+    f (List [AtomSym "closure-proc", e])    = ClosureProc   <$> f e
+    f (List [AtomSym "closure-vars", e])    = ClosureVars   <$> f e
     -- TODO: this is bad because if they give the wrong number of args to a prim,
     -- TODO: it'll parse a FunCall
     f (List [AtomSym "new-array", s, e])    = parsePrimApp2 NewArray s e
@@ -69,11 +69,11 @@ instance FromSExpr E where
     f (List [AtomSym "=",    l, r])         = parsePrimApp2 EqualTo l r
     f (List [AtomSym "number?", e])         = parsePrimApp1 IsNumber e
     f (List [AtomSym "a?",      e])         = parsePrimApp1 IsArray e
-    f (List (e : es)) = liftM2 FunCall (f e) (traverse f es)
+    f (List (e : es)) = FunCall <$> f e <*> traverse f es
     f v = VE <$> fromSExpr v
 
-    parsePrimApp1 p e = liftM (PrimApp p . return) (fromSExpr e)
-    parsePrimApp2 b l r = liftM2 (\v1 v2 -> PrimApp b [v1,v2]) (fromSExpr l) (fromSExpr r)
+    parsePrimApp1 p e = PrimApp p . return <$> fromSExpr e
+    parsePrimApp2 b l r = (\v1 v2 -> PrimApp b [v1,v2]) <$> fromSExpr l <*> fromSExpr r
     parsePrimApp3 b e1 e2 e3 =
-      liftM3 (\v1 v2 v3 -> PrimApp b [v1,v2,v3]) (fromSExpr e1) (fromSExpr e2) (fromSExpr e3)
+      (\v1 v2 v3 -> PrimApp b [v1,v2,v3]) <$> fromSExpr e1 <*> fromSExpr e2 <*> fromSExpr e3
 

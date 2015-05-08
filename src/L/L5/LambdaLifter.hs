@@ -9,13 +9,13 @@ import Control.Lens
 import Control.Monad.State
 import Data.Monoid
 import qualified Data.Set as Set
+import L.Primitives
 import L.L1L2AST (Label(..))
-import L.L3.L3AST as L3 hiding (freeVars)
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 import L.Read
 import L.Supply
-import L.Variable
+import L.Variable hiding (freeVars)
 
 lambdaLift :: L5 -> L4
 lambdaLift l5 = fst $ runState (go id l5) (newSupply $ boundVars l5 <> freeVars l5)
@@ -168,7 +168,7 @@ go f lam@(Lambda args body) = do
       frees = Set.toList $ freeVars lam
       -- then wrap it with the required let statements
       freeLets = wrapWithLets freesVar (error "todo:158" frees) compiledLambdaBody
-      liftedFunctionBody = if usingArgsTuple 
+      liftedFunctionBody = if   usingArgsTuple 
                            then wrapWithLets argsVar args freeLets 
                            else freeLets
   liftedLabel <- fmap toLabel (supplyNameM' "x")

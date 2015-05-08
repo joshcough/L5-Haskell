@@ -14,13 +14,13 @@ import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
-import L.L3.L3AST (Prim(..), PrimName(..), PrimLookup(..), arityByName, primName)
+import L.Primitives
 import L.Read
 import L.Supply
-import L.Variable
+import L.Variable hiding (freeVars)
 import Prelude.Extras
 
-type L5 = (E Variable)
+type L5 = E Variable
 
 primVars :: PrimName -> [Variable]
 primVars p = Variable <$> take (arityByName p) ["x", "y", "z"]
@@ -101,13 +101,13 @@ instance a ~ Variable => AsSExpr (E a) where
     go :: (a -> Variable) -> E a -> State Supply SExpr
     go f (Var v)       = return . asSExpr $ f v
     go f (If v te fe)  = do
-      (v', te', fe') <- liftM3 (,,) (go f v) (go f te) (go f fe)
+      (v', te', fe') <- (,,) <$> go f v <*> go f te <*> go f fe
       return $ asSExpr (sym "if", v', te', fe')
     go f (NewTuple es) = do 
       List es' <- asSExpr <$> traverse (go f) es
       return $ List (sym "new-tuple" : es')
     go f (Begin e1 e2) = do
-      (e1', e2') <- liftM2 (,) (go f e1) (go f e2)
+      (e1', e2') <- (,) <$> go f e1 <*> go f e2
       return $ asSExpr (sym "begin", e1', e2')
     go f (App   e  es) = do 
       e'       <- go f e
@@ -130,20 +130,6 @@ instance a ~ Variable => AsSExpr (E a) where
       e'  <- go (unvar (vs' !!) f) (fromScope e)
       return $ asSExpr (sym "lambda", vs', e')
 
--- TODO: join all errors together?
-wellFormedArgList :: [SExpr] -> Either String [Variable]
-wellFormedArgList = traverse wellFormedArg where
-
-wellFormedArg :: SExpr -> Either String Variable
-wellFormedArg (AtomSym arg) = wellFormedArgString arg
-wellFormedArg bad           = fail $ "invalid argument name: " ++ show bad  
-
--- TODO: test for valid variable name?
--- it might sort of be handled automatically in Read, but
--- still might be worth doing something here. consider it..
-wellFormedArgString :: String -> Either String Variable
-wellFormedArgString arg = return $ Variable arg
-
 keywords :: Set String
 keywords = Set.fromList ["lambda", "let", "letrec", "if", "new-tuple", "begin"]
 
@@ -155,11 +141,11 @@ instance a ~ Variable => FromSExpr (E a) where
   fromSExpr (List [AtomSym "letrec", List [List [arg, e]], b]) = 
     letrec <$> wellFormedArg arg <*> fromSExpr e  <*> fromSExpr b
   fromSExpr (List [AtomSym "if", pe, te, fe]) = 
-    If  <$> fromSExpr pe <*> fromSExpr te <*> fromSExpr fe
+    If     <$> fromSExpr pe      <*> fromSExpr te <*> fromSExpr fe
   fromSExpr (List (AtomSym "new-tuple" : es)) = NewTuple <$> traverse fromSExpr es
   fromSExpr (List [AtomSym "begin", e1, e2])  = Begin    <$> fromSExpr e1 <*> fromSExpr e2
   fromSExpr (List (e : es))                   = app e es
-  fromSExpr (AtomNum n) = return $ LitInt (fromIntegral n)
+  fromSExpr (AtomNum n) = return . LitInt $ fromIntegral n
   fromSExpr (AtomSym v) = maybe 
     (Var <$> wellFormedArgString v) 
     (return . PrimE . primName) 
@@ -178,20 +164,11 @@ instance BoundVars E where
   boundVars (Let   v e b)   = Set.insert v $ boundVars e <> boundVars b
   boundVars (LetRec v e b)  = Set.insert v $ boundVars e <> boundVars b
   boundVars (If p a b)      = boundVars p <> boundVars a <> boundVars b 
-  boundVars (NewTuple es)   = Set.unions (boundVars <$> es)
+  boundVars (NewTuple es)   = mconcat (boundVars <$> es)
   boundVars (Begin e1 e2)   = boundVars e1 <> boundVars e2 
-  boundVars (App e es)      = boundVars e  <> (Set.unions $ boundVars <$> es)
+  boundVars (App e es)      = boundVars e  <> (mconcat $ boundVars <$> es)
   boundVars (LitInt _)      = mempty
   boundVars (PrimE  _)      = mempty
 
 freeVars :: (Foldable f, Ord a) => f a -> Set a   
 freeVars = foldMap Set.singleton
-
-{-
-(a -> r)
-(b -> r)
-(Either b a -> r)
-
-f (Var b (f a))
-f (Either b a)
--}

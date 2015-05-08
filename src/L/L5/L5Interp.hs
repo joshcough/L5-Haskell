@@ -11,12 +11,12 @@ import Control.Lens
 import Control.Monad.State
 import Control.Monad.ST
 import Data.List
+import L.Primitives hiding (print)
 import L.Interpreter.HOComputer
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime hiding (foldRuntime)
 import L.L1L2AST hiding (Func, Print)
-import L.L3.L3AST (PrimName(..), isBiop)
 import L.L5.L5AST
 import L.Read
 import L.Variable

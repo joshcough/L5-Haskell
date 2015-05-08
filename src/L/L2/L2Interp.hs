@@ -107,7 +107,7 @@ step (TailCall s) = do
   goto loc
 step Return = do
   rspVal     <- readX rsp >>= expectPointer "Return"
-  memLength  <- liftM (8*) $ uses memory (length . _runMemory)
+  memLength  <- (8*) <$> uses memory (length . _runMemory)
   (_:|es, c) <- get
   let done = rspVal >= fromIntegral memLength
   case (done, es) of

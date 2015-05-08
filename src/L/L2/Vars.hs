@@ -6,6 +6,7 @@ module L.L2.Vars
     isVariable
   ) where
 
+import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 import L.L1L2AST
@@ -23,26 +24,26 @@ instance HasVars L2Instruction where
 
 varsInst :: L2Instruction -> Set Variable
 varsInst = varsI where
-  varsI (Assign x rhs)             = Set.unions [varsX x,  varsRHS rhs]
-  varsI (MathInst x _ s)           = Set.unions [varsX x,  varsS s]
-  varsI (MemWrite (MemLoc bp _) s) = Set.unions [varsX bp, varsS s]
-  varsI (Goto _)                   = Set.empty
-  varsI (CJump (Comp s1 _ s2) _ _) = Set.unions [varsS s1, varsS s2]
-  varsI (LabelDeclaration _)       = Set.empty
+  varsI (Assign x rhs)             = varsX x  <> varsRHS rhs
+  varsI (MathInst x _ s)           = varsX x  <>  varsS s
+  varsI (MemWrite (MemLoc bp _) s) = varsX bp <> varsS s
+  varsI (Goto _)                   = mempty
+  varsI (CJump (Comp s1 _ s2) _ _) = varsS s1 <> varsS s2
+  varsI (LabelDeclaration _)       = mempty
   varsI (Call s)                   = varsS s
   varsI (TailCall s)               = varsS s
-  varsI Return                     = Set.empty
+  varsI Return                     = mempty
 
-  varsX (RegL2X _) = Set.empty
+  varsX (RegL2X _) = mempty
   varsX (VarL2X v) = Set.singleton v
 
   varsS (XL2S x)        = varsX x
-  varsS (NumberL2S _)   = Set.empty
-  varsS (LabelL2S _)    = Set.empty
+  varsS (NumberL2S _)   = mempty
+  varsS (LabelL2S _)    = mempty
 
-  varsRHS (CompRHS (Comp s1 _ s2)) = Set.unions [varsS s1, varsS s2] 
-  varsRHS (Allocate s1 s2)         = Set.unions [varsS s1, varsS s2] 
+  varsRHS (CompRHS (Comp s1 _ s2)) = varsS s1 <> varsS s2
+  varsRHS (Allocate s1 s2)         = varsS s1 <> varsS s2
   varsRHS (Print s)                = varsS s
-  varsRHS (ArrayError a n)         = Set.unions [varsS a,  varsS n]
+  varsRHS (ArrayError a n)         = varsS a  <> varsS n
   varsRHS (MemRead (MemLoc bp _))  = varsX bp
   varsRHS (SRHS s)                 = varsS s
