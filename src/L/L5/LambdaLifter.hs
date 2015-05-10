@@ -80,7 +80,7 @@ go f (L5.NewTuple es)   = do
   (l4es, fs) <- goEs f es
   return $ L4 (L4.NewTuple l4es) (concat fs)
 go f (L5.Let v e b)     = do
-  v'          <- supplyNameM v
+  v'          <- freshNameForS v
   (L4 e' efs) <- go f e
   (L4 b' bfs) <- go (unvar (const v') f) (fromScope b)
   return $ L4 (L4.Let v' e' b') (efs++bfs)
@@ -99,7 +99,7 @@ go f (App (PrimE p) es) = do
   (es', fs) <- goEs f es
   return $ L4 (L4.PrimApp p es') (concat fs)
 go f (App e es) = do
-  v' <- supplyNameM' "x"
+  v' <- freshNameForS' "x"
   -- compile the function position
   (L4 e' fs') <- go f e
   -- compile all of the arguments
@@ -171,7 +171,7 @@ go f lam@(Lambda args body) = do
       liftedFunctionBody = if   usingArgsTuple 
                            then wrapWithLets argsVar args freeLets 
                            else freeLets
-  liftedLabel <- fmap toLabel (supplyNameM' "x")
+  liftedLabel <- fmap toLabel (supplyNameFor' "x")
   let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> (error "todo:163" frees))
       liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)

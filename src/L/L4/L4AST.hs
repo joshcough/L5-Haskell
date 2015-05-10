@@ -101,7 +101,7 @@ instance a ~ Variable => AsSExpr (E a) where
     go f (VE (NumV n))     = return . asSExpr $ n
     go f (VE (LabelV l))   = return . asSExpr $ l
     go f (Let v e b)       = do
-      v' <- supplyNameM v
+      v' <- freshNameForS v
       e' <- go f e
       b' <- go (unvar (const v') f) (fromScope b)
       return $ asSExpr (sym "let", [(v', e')], b')

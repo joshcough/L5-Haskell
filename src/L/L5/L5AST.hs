@@ -119,17 +119,17 @@ instance a ~ Variable => AsSExpr (E a) where
     go _ (LitInt   i)  = return $ asSExpr i
     go _ (PrimE    p)  = return $ asSExpr p
     go f (Let v e b) = do
-      v' <- supplyNameM v
+      v' <- freshNameForS v
       e' <- go f e
       b' <- go (unvar (const v') f) (fromScope b)
       return $ asSExpr (sym "let", [(v', e')], b')
     go f (LetRec v e b) = do
-      v' <- supplyNameM v
+      v' <- freshNameForS v
       e' <- go (unvar (const v') f) (fromScope e)
       b' <- go (unvar (const v') f) (fromScope b)
       return $ asSExpr (sym "letrec", [(v', e')], b')
     go f (Lambda vs e) = do
-      vs' <- traverse supplyNameM vs
+      vs' <- traverse freshNameForS vs
       e'  <- go (unvar (vs' !!) f) (fromScope e)
       return $ asSExpr (sym "lambda", vs', e')
 
