@@ -45,10 +45,10 @@ l4FindF (Func name args body) = do
   (fBody, extra) <- l4Find body NoContext
   return (Func name args fBody, extra)
 
-l4Find :: (L4.E Variable) -> Context -> State Int (L3.E, [L3.L3Func])
+l4Find :: L4.E Variable -> Context -> State Int (L3.E, [L3.L3Func])
 l4Find e c = go e c where 
   go (L4.Let x r body)      k = go r $ LetContext x body k
-  go (L4.If c t f)          k = go c $ IfContext t f k
+  go (L4.If  c t f)         k = go c $ IfContext t f k
   go (L4.Begin e1 e2)       k = do { v <- newVar; go (L4.Let v e1 e2) k }
   go (L4.NewTuple [])       k = fill  (L3.NewTuple []) k -- special case
   go (L4.App f args)        k = go f  (FunCallContext args Nothing [] k)
@@ -58,7 +58,11 @@ l4Find e c = go e c where
   go (L4.MakeClosure l e1)  k = go e1 (FunCallContext [] (Just $ wrangle1 (L3.MakeClosure l)) [] k)
   go (L4.ClosureProc e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureProc)    [] k)
   go (L4.ClosureVars e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureVars)    [] k)
-  go (VE v)                 k = fill (VD v) k
+  go (VE v)                 k = fill (VD $ l4VTol3V v) k
+
+  l4VTol3V (L4.VarV   v) = L3.VarV   v
+  l4VTol3V (L4.NumV   n) = L3.NumV   n
+  l4VTol3V (L4.LabelV l) = L3.LabelV l
 
   wranglePrim :: PrimName -> [L3.V] -> D
   wranglePrim pn = f (arityByName pn) where
