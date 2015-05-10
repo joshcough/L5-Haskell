@@ -4,7 +4,7 @@ import Control.Applicative
 import Control.Monad.State hiding (sequence, (>>))
 import Data.Int
 import Data.Traversable
-import L.L1L2AST  as L2
+import L.L1.L1L2AST  as L2
 import L.Registers
 import L.L3.L3AST as L3
 import L.Variable

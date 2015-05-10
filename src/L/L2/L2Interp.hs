@@ -27,10 +27,10 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.Interpreter.X86Computer
-import L.L1L2AST
-import L.L1L2MainAdjuster
+import L.L1.L1L2AST
+import L.L1.L1L2MainAdjuster
 import L.Registers
-import L.Utils (bind2)
+import L.Util.Utils (bind2)
 import L.Variable
 import Prelude hiding (head, length, print, tail)
 

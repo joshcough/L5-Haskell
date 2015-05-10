@@ -10,11 +10,11 @@ module L.L2.Spill
 import Control.Applicative
 import Control.Monad.State
 import Data.Traversable
-import L.IOHelpers (mapFileContents)
-import L.L1L2AST
-import L.Read
+import L.Util.IOHelpers (mapFileContents)
+import L.L1.L1L2AST
+import L.Parser.SExpr
 import L.Registers
-import L.Utils
+import L.Util.Utils
 import L.Variable
 
 defaultSpillPrefix :: String

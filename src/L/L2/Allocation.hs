@@ -9,7 +9,8 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import L.L1L2AST
+import L.L1.L1L2AST
+import L.Primitives hiding (Print, Func, body)
 import L.Registers
 import L.L2.Interference
 import L.L2.Liveness

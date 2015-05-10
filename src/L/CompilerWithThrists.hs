@@ -7,9 +7,9 @@ import Control.Applicative
 import Control.Category
 import Data.Maybe
 import L.L1.L1Interp (Computer, showComputerOutput)
-import L.IOHelpers
-import L.Read
-import L.NativeRunner
+import L.Util.IOHelpers
+import L.Parser.SExpr
+import L.Util.NativeRunner
 import Debug.Trace
 import Prelude hiding ((.),id)
 

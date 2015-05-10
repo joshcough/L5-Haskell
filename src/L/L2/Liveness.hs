@@ -18,11 +18,12 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Monoid
-import L.L1L2AST
-import L.IOHelpers (mapFileContents, withFileArg)
-import L.Read
+import L.L1.L1L2AST
+import L.Util.IOHelpers (mapFileContents, withFileArg)
+import L.Primitives hiding (Print)
+import L.Parser.SExpr
 import L.Registers
-import L.Utils
+import L.Util.Utils
 
 data InstructionInOutSet = InstructionInOutSet {
   index  :: Int,     inst    :: L2Instruction,

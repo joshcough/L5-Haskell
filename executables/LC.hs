@@ -5,8 +5,8 @@ module Main where
 import Control.Lens
 import L.CommandLine
 import L.Compiler
-import L.IOHelpers
-import L.NativeRunner
+import L.Util.IOHelpers
+import L.Util.NativeRunner
 import L.L1.L1
 import L.L2.L2
 import L.L3.L3

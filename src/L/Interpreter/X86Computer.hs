@@ -25,7 +25,8 @@ import Data.Monoid()
 import Data.Vector (Vector, freeze)
 import qualified Data.Vector as Vector
 import Prelude hiding (read)
-import L.L1L2AST
+import L.L1.L1L2AST
+import L.Primitives (Label)
 import L.Registers
 import L.Interpreter.ComputationResult
 import L.Interpreter.Memory

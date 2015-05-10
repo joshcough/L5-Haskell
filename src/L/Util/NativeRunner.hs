@@ -1,4 +1,4 @@
-module L.NativeRunner where
+module L.Util.NativeRunner where
 
 import Control.Lens
 import System.Process

@@ -5,7 +5,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
 
-module L.L1L2AST where
+module L.L1.L1L2AST where
 
 import Control.Applicative
 import Control.Lens
@@ -14,12 +14,11 @@ import Data.Int
 import Data.Map as Map
 import Data.Traversable
 import Data.Tuple
-import L.Read
+import L.Parser.SExpr
 import L.Registers
 import L.Variable
+import L.Primitives (Label(..))
 import Prelude hiding (LT, EQ)
-
-newtype Label = Label String deriving (Eq, Ord, Show)
 
 data MemLoc x   = MemLoc x Int64 deriving (Eq, Ord)
 data CompOp     = LT | LTEQ | EQ deriving (Eq, Ord)
@@ -131,10 +130,10 @@ cmp LTEQ = (<=)
 cmp EQ   = (==)
 
 compOpFromSym :: String -> Either String CompOp
-compOpFromSym "<"  = Right LT
-compOpFromSym "<=" = Right LTEQ
-compOpFromSym "="  = Right EQ
-compOpFromSym s    = Left $ "not a comparison operator" ++ s
+compOpFromSym "<"  = return LT
+compOpFromSym "<=" = return LTEQ
+compOpFromSym "="  = return EQ
+compOpFromSym s    = fail $ "not a comparison operator" ++ s
 
 foldOp :: a -> a -> a -> CompOp -> a
 foldOp a _ _ LT   = a
@@ -186,23 +185,6 @@ instance Ord L2X where compare x1 x2 = compare (show x1) (show x2)
 orderedPair :: Ord a => a -> a -> (a, a)
 orderedPair a1 a2 = if a1 < a2 then (a1, a2) else (a2, a1)
 
-parseError :: String -> String -> Either String a
-parseError  msg expr = Left $ concat ["Parse Error: '", msg, "' in: ", show expr]
-parseError_ :: String -> SExpr -> Either String a
-parseError_ msg expr = parseError msg (show expr)
-
-parseLabel :: String -> ParseResult Label
-parseLabel l@(':' : ':' : _) = Left $ "invalid label: " ++ l
-parseLabel l@(':' : _) = Right $ Label l
-parseLabel l = Left $ "invalid label: " ++ l  
-
-instance AsSExpr Label where
-  asSExpr (Label l) = AtomSym l
-
-instance FromSExpr Label where
-  fromSExpr (AtomSym l) = parseLabel l
-  fromSExpr bad = Left $ "bad label" ++ show bad
-
 instance AsSExpr X86Op where
   asSExpr = AtomSym . x86OpSymbol 
 
@@ -239,12 +221,12 @@ instance (AsSExpr x, AsSExpr s) => AsSExpr (Func x s) where
 instance (FromSExpr x, FromSExpr s) => FromSExpr (Func x s) where
   fromSExpr (List ((AtomSym name) : exps)) = do
     bdy   <- traverse fromSExpr exps
-    label <- parseLabel name
+    label <- fromString name
     return $ Func $ LabelDeclaration label : bdy
   fromSExpr bad = parseError_ "bad function" bad
 
 instance (FromSExpr x, FromSExpr s) => FromSExpr (Instruction x s) where
-  fromSExpr (AtomSym s)   = LabelDeclaration <$> parseLabel s
+  fromSExpr (AtomSym s)   = LabelDeclaration <$> fromString s
   fromSExpr a@(AtomNum _) = parseError_ "bad instruction" a
   fromSExpr list@(List _) = case flatten list of
     [x, AtomSym "<-", AtomSym "print", s] -> Assign <$> fromSExpr x <*> (Print <$> fromSExpr s)
@@ -273,7 +255,7 @@ instance (FromSExpr x, FromSExpr s) => FromSExpr (Instruction x s) where
       parseN4 bad         = parseError_ "not a number" bad
 
 parseLabelOrRegister :: (Label -> a) -> (Register -> a) -> String -> ParseResult a
-parseLabelOrRegister f _ l@(':' : _) = f <$> parseLabel l
+parseLabelOrRegister f _ l@(':' : _) = f <$> fromString l
 parseLabelOrRegister _ f r           = f <$> registerFromName r
 
 instance AsSExpr L1S where
@@ -302,7 +284,7 @@ instance FromSExpr L2S where
   fromSExpr (AtomNum n) = return $ NumberL2S (fromIntegral n)
   fromSExpr (AtomSym s) = either 
     (\_-> parseL2X (XL2S . VarL2X . Variable) (XL2S . RegL2X) s)
-    Right
+    return
     (parseLabelOrRegister LabelL2S (XL2S . RegL2X) s)
   fromSExpr bad         = parseError_ "bad L2S" bad
 

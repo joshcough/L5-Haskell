@@ -1,7 +1,7 @@
 module L.L4.L4 (l4Language, compileL4ToL3) where
 
 import L.Compiler
-import L.SExpr
+import L.Parser.SExpr
 import L.L3.L3AST
 import L.L3.L3 
 import L.L4.ANormalize
@@ -11,7 +11,7 @@ import L.L4.L4Interp
 l4Language :: Language L4 L3
 l4Language  = Language
   fromSExpr
-  (\_ _ -> Right . compileL4ToL3)
+  (\_ _ -> return . compileL4ToL3)
   interpL4
   "L4"
   (Just l3Language)

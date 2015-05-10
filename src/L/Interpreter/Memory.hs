@@ -30,8 +30,8 @@ import Debug.Trace
 import Prelude hiding (read)
 import L.Interpreter.Output
 import L.Interpreter.Runtime
-import L.L1L2AST
-import L.Utils
+import L.L1.L1L2AST
+import L.Util.Utils
 
 data MemoryConfig = MemoryConfig {
   _encoded     :: Bool

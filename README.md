@@ -17,3 +17,6 @@ Todo:
  - [ ] Add L6 - A Language to allow user defined data types
  - [ ] Refactor label and temporary var code because it's all over the place and nasty
  - [ ] Consider using Data.Map.Strict (see notes here: http://www.haskell.org/ghc/docs/latest/html/libraries/containers/Data-Map.html)
+
+
+ replace set.union with <>, set.unions with mconcat

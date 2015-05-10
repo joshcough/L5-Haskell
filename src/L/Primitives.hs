@@ -9,19 +9,36 @@ import Data.Maybe (fromJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
-import L.L1L2AST (Label(..))
-import L.Read
+import L.Parser.SExpr
 import L.Variable
 import Prelude hiding (print)
 
+-- TODO: probably can't have read and show instances here for parsing and printing reasons
+-- TODO: use the instances below
+newtype Label = Label String deriving (Eq, Ord, Read, Show)
+
+parseLabel :: String -> ParseResult Label
+parseLabel l@(':' : ':' : _) = fail $ "invalid label: " ++ l
+parseLabel l@(':' : _) = return $ Label l
+parseLabel l = fail $ "invalid label: " ++ l
+
+instance AsSExpr Label where
+  asSExpr (Label l) = AtomSym l
+
+instance FromSExpr Label where
+  fromSExpr (AtomSym l) = parseLabel l
+  fromSExpr bad = fail $ "bad label" ++ show bad
+
 data Func a = Func { name :: Label, args :: [Variable], body :: a }
 
-data V = VarV Variable | NumV Int64 | LabelV Label
+instance AsSExpr a => AsSExpr (Func a) where
+  asSExpr (Func n args a) = asSExpr (n, args, a)
 
-foldV :: (Variable -> a) -> (Int64 -> a) -> (Label -> a) -> V -> a
-foldV f _ _ (VarV v)   = f v
-foldV _ f _ (NumV v)   = f v
-foldV _ _ f (LabelV v) = f v
+-- (l (x ...) e)
+instance FromSExpr a => FromSExpr (Func a) where
+  fromSExpr (List [l, args, e]) = Func <$> fromSExpr l <*> fromSExpr args <*> fromSExpr e
+  fromSExpr bad = parseError_ "bad function" bad
+
 
 type Arity = Int
 data Prim = Prim {

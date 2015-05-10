@@ -37,8 +37,8 @@ import Control.Lens
 import Data.Default
 import Data.Maybe
 import L.OS
-import L.Read
-import L.NativeRunner
+import L.Parser.SExpr
+import L.Util.NativeRunner
 import Prelude hiding ((.),id)
 import System.FilePath.Lens
 
@@ -91,6 +91,17 @@ ext           (Language _ _ _ e _) = e
 runVal :: Val a -> a
 runVal = either error id
 
+{-
+sequenceA :: (Traversable t, Applicative f) => t (f a) -> f (t a)
+sequence :: (Traversable t, Monad m) => t (m a) -> m (t a)
+
+munge' :: (b -> m1 (m2 a b1)) -> m2 a b -> m1 (m2 a b1)
+munge' = either (return . Left)
+
+munge' :: (a -> m1 (m2 b)) -> m2 a -> m1 (m2 b)
+munge' = ???
+-}
+
 munge :: (b -> IO (Either a b1)) -> Either a b -> IO (Either a b1)
 munge = either (return . Left)
 mungeList :: (b -> [Either a b1]) -> Either a b -> [Either a b1]
@@ -139,7 +150,7 @@ compileAndWriteResult l opts inputFile input =
   f $ compile l opts inputFile input where
     f = munge $ \o -> do
       _ <- writeOutput l inputFile (getOutputDirOrElse opts inputFile) o
-      return (Right o)
+      return (return o)
 
 writeOutput :: Show o =>
   Language i o -> 
@@ -235,7 +246,7 @@ compileAndRunNative ::
 compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile input = do
   code <- compileAndWriteResult l opts inputFile input
   munge (recur subLang) code where
-  recur Nothing    _    = Right <$> runSFileNative sFile (sFile^.directory) where
+  recur Nothing    _    = return <$> runSFileNative sFile (sFile^.directory) where
     sFile = inputFile & extension .~ (outputExtension l) & directory .~ (getOutputDirOrElse opts inputFile)
   recur (Just sub) code = compileAndRunNative sub opts inputFile code
 

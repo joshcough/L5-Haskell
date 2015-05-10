@@ -1,4 +1,4 @@
-module L.Supply where
+module L.Parser.Supply where
 
 import Control.Monad.State
 import Data.List.NonEmpty (NonEmpty(..))

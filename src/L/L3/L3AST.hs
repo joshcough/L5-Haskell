@@ -2,7 +2,9 @@ module L.L3.L3AST (
   L3Func
  ,L3(..)
  ,D(..)
+ ,V(..)
  ,E(..)
+ ,foldV
  ,module L.Primitives
 ) where
 
@@ -16,9 +18,9 @@ import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
-import L.L1L2AST (Label(..))
+import L.L1.L1L2AST hiding (Func, Print)
 import L.Primitives
-import L.Read
+import L.Parser.SExpr
 import L.Variable
 import Prelude hiding (print)
 
@@ -27,6 +29,7 @@ data L3   = L3 E [L3Func]
 data E    = Let Variable D E | If V E E  | DE D
 data D    = App V [V]        | PrimApp PrimName [V] | VD V |
             NewTuple  [V]    | MakeClosure Label V  | ClosureProc V | ClosureVars V
+data V = VarV Variable | NumV Int64 | LabelV Label
 
 instance (AsSExpr a, Show a) => Show (Func a) where show = showSExpr
 instance Show V        where show = showSExpr
@@ -54,17 +57,14 @@ instance AsSExpr L3 where
 -- v :: = x | l | num
 instance FromSExpr V where
   fromSExpr (AtomSym l@(':' : _)) = Right . LabelV $ Label l
-  fromSExpr (AtomSym v) = Right . VarV $ Variable v
-  fromSExpr (AtomNum n) = Right $ NumV (fromIntegral n)
-  fromSExpr bad         = Left  $ concat ["Parse Error: 'bad V' in: ", show bad]
+  fromSExpr (AtomSym v) = return . VarV $ Variable v
+  fromSExpr (AtomNum n) = return $ NumV (fromIntegral n)
+  fromSExpr bad         = fail  $ concat ["Parse Error: 'bad V' in: ", show bad]
 
 instance AsSExpr V where
   asSExpr (VarV (Variable v)) = AtomSym v
   asSExpr (NumV n)            = AtomNum n
   asSExpr (LabelV (Label l))  = AtomSym l
-
-instance AsSExpr a => AsSExpr (Func a) where
-  asSExpr (Func n args a) = asSExpr (n, args, a)
 
 {-
 d ::= (biop v v) | (pred v) | (v v ...) | (new-array v v) | (new-tuple v ...)
@@ -110,19 +110,11 @@ instance FromSExpr E where
     f (List [AtomSym "if", v, te, fe]) = If <$> fromSExpr v <*> f te <*> f fe
     f d = DE <$> fromSExpr d
 
-parseError :: String -> SExpr -> Either String a
-parseError msg exp = Left $ concat ["Parse Error: '", msg, "' in: ", show exp]
-
 -- p ::= (e (l (x ...) e) ...)
 instance FromSExpr L3 where
   fromSExpr = f where
     f (List (main : funcs)) = L3 <$> fromSExpr main <*> traverse fromSExpr funcs
-    f bad = parseError "bad L3-program" bad
-
--- (l (x ...) e)
-instance FromSExpr a => FromSExpr (Func a) where
-  fromSExpr (List [l, args, e]) = Func <$> fromSExpr l <*> fromSExpr args <*> fromSExpr e
-  fromSExpr bad = parseError "bad function" bad
+    f bad = parseError_ "bad L3-program" bad
 
 instance FreeVars E where
   freeVars = f where
@@ -137,3 +129,8 @@ instance FreeVars E where
     f (DE (NewTuple vs))     bv = mconcat $ fmap (flip f bv) (ve <$> vs)
     f (DE (PrimApp _ vs))    bv = mconcat $ fmap (flip f bv) (ve <$> vs)
     ve = DE . VD
+
+foldV :: (Variable -> a) -> (Int64 -> a) -> (Label -> a) -> V -> a
+foldV f _ _ (VarV v)   = f v
+foldV _ f _ (NumV v)   = f v
+foldV _ _ f (LabelV v) = f v

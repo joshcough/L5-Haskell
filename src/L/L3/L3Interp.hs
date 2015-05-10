@@ -14,7 +14,7 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L3.L3AST as L3 hiding (print)
-import L.Utils
+import L.Util.Utils
 import Prelude hiding (print)
 
 interpL3 :: L3 -> String

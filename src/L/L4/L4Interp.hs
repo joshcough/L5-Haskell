@@ -15,7 +15,7 @@ import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L3.L3AST (PrimName(..), V(..), isBiop, Func(..))
 import L.L4.L4AST as L4
-import L.Utils
+import L.Util.Utils
 import Prelude hiding (print)
 
 interpL4 :: L4 -> String

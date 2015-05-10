@@ -16,11 +16,11 @@ import L.Interpreter.HOComputer
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime hiding (foldRuntime)
-import L.L1L2AST hiding (Func, Print)
+import L.L1.L1L2AST hiding (Func, Print)
 import L.L5.L5AST
-import L.Read
+import L.Parser.SExpr
 import L.Variable
-import L.Utils
+import L.Util.Utils
 import Prelude hiding (print)
 
 type L5Monad c m a = (Show a, Eq a, MonadHOComputer c m (L5Runtime a))

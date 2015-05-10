@@ -19,7 +19,7 @@ import System.Info as Info
 import System.FilePath.Lens
 
 import L.Compiler
-import L.IOHelpers
+import L.Util.IOHelpers
 import L.L1.L1
 import L.L1.L1Interp
 import L.L2.L2
@@ -30,8 +30,8 @@ import L.L3.L3
 import L.L4.L4
 import L.L5.L5
 import L.OS as OS
-import L.Read
-import L.Utils
+import L.Parser.SExpr
+import L.Util.Utils
 
 tests = do
   ts <- traverse tree [l5Tests]
@@ -144,11 +144,11 @@ runAndCompareInterpVsNativeVsRes lang inputFile resFile = do
 
 runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> FilePath -> IO ()
 runAndCompareInterpTurtlesVsNative lang inputFile resFile = do
-  nativeRes     <- Right . strip . runVal <$> compileFileAndRunNative lang opts inputFile
+  nativeRes     <- return . strip . runVal <$> compileFileAndRunNative lang opts inputFile
   interpResList <- (fmap $ fmap strip) <$> (interpretTurtlesFile lang opts inputFile)
   resFileExists <- doesFileExist resFile
   expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
-  let resultList = if resFileExists then [Right expectedRes] else [] ++ (nativeRes : interpResList)
+  let resultList = if resFileExists then [return expectedRes] else [] ++ (nativeRes : interpResList)
   assertList $ resultList
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where

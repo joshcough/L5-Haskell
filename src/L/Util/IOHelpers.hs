@@ -1,4 +1,4 @@
-module L.IOHelpers
+module L.Util.IOHelpers
   (
     mapFileContents
    ,withFileArg

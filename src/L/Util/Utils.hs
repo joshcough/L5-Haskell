@@ -1,4 +1,4 @@
-module L.Utils
+module L.Util.Utils
   (
     (|>)
    ,bind2

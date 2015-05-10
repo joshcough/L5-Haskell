@@ -1,6 +1,7 @@
-module L.L1L2MainAdjuster (adjustMain) where
+module L.L1.L1L2MainAdjuster (adjustMain) where
 
-import L.L1L2AST
+import L.L1.L1L2AST
+import L.Primitives (Label(..))
 
 adjustMain :: Program x s -> Program x s
 adjustMain (Program main fs) = Program (adjustMain_ main) fs

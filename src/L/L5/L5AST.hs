@@ -15,8 +15,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
 import L.Primitives
-import L.Read
-import L.Supply
+import L.Parser.SExpr
+import L.Parser.Supply
 import L.Variable hiding (freeVars)
 import Prelude.Extras
 
@@ -54,6 +54,9 @@ app :: SExpr -> [SExpr] -> Either String (E Variable)
 app e es = case e of
   (AtomSym s) | s `Set.member` keywords -> fail $ "bad L5-E: " ++ show (List $ e : es)
   _                                     -> App <$> fromSExpr e <*> traverse fromSExpr es
+
+keywords :: Set String
+keywords = Set.fromList ["lambda", "let", "letrec", "if", "new-tuple", "begin"]
 
 primlet :: PrimName -> E a
 primlet p = l where 
@@ -130,9 +133,6 @@ instance a ~ Variable => AsSExpr (E a) where
       e'  <- go (unvar (vs' !!) f) (fromScope e)
       return $ asSExpr (sym "lambda", vs', e')
 
-keywords :: Set String
-keywords = Set.fromList ["lambda", "let", "letrec", "if", "new-tuple", "begin"]
-
 instance a ~ Variable => FromSExpr (E a) where
   fromSExpr (List [AtomSym "lambda", List args, b]) = 
     lambda <$> wellFormedArgList args <*> fromSExpr b
@@ -149,7 +149,7 @@ instance a ~ Variable => FromSExpr (E a) where
   fromSExpr (AtomSym v) = maybe 
     (Var <$> wellFormedArgString v) 
     (return . PrimE . primName) 
-    (lookupPrim $ Variable v)
+    (lookupPrim $ Variable v) -- TODO: can i create and used a FromSExpr PrimName?
   fromSExpr bad = fail $ "bad L5-E: " ++ show bad
 
 class BoundVars f where

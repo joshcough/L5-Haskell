@@ -10,11 +10,11 @@ import Control.Monad.State
 import Data.Monoid
 import qualified Data.Set as Set
 import L.Primitives
-import L.L1L2AST (Label(..))
+import L.L1.L1L2AST (Label(..))
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
-import L.Read
-import L.Supply
+import L.Parser.SExpr
+import L.Parser.Supply
 import L.Variable hiding (freeVars)
 
 lambdaLift :: L5 -> L4

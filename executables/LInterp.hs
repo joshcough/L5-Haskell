@@ -3,7 +3,7 @@ module Main where
 import Control.Lens
 import L.CommandLine
 import L.Compiler
-import L.IOHelpers
+import L.Util.IOHelpers
 import L.L1.L1Interp
 import L.L1.L1
 import L.L2.L2

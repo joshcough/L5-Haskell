@@ -1,7 +1,7 @@
 module L.Variable where
 
 import Control.Lens
-import L.SExpr
+import L.Parser.SExpr
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -13,8 +13,8 @@ instance AsSExpr Variable where
   asSExpr (Variable v) = AtomSym v
 
 instance FromSExpr Variable where
-  fromSExpr (AtomSym s) = Right $ Variable s
-  fromSExpr bad = Left $ "invalid variable name: " ++ show bad
+  fromSExpr (AtomSym s) = return $ Variable s
+  fromSExpr bad = fail $ "invalid variable name: " ++ show bad
 
 class AsVariable t where
   _Variable :: Prism' t Variable

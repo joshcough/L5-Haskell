@@ -25,7 +25,8 @@ import L.Interpreter.ComputationResult
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
-import L.L1L2AST hiding (Func)
+import L.L1.L1L2AST hiding (Func)
+import L.Primitives (Label)
 import L.Variable
 import Prelude hiding (print)
 

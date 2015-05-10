@@ -9,7 +9,7 @@ module L.Registers where
 
 import Control.Lens
 import Data.Map as Map
-import L.Read
+import L.Parser.SExpr
 import Prelude hiding (LT, EQ)
 
 data Register =

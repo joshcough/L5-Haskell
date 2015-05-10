@@ -2,8 +2,8 @@ module L.L2.L2 (l2Language, interpL2) where
 
 import Control.Applicative
 import L.Compiler
-import L.L1L2AST
-import L.SExpr
+import L.L1.L1L2AST
+import L.Parser.SExpr
 import L.L1.L1
 import L.L2.L2Interp
 import L.L2.Allocation
@@ -20,7 +20,7 @@ import L.L2.Allocation
 l2Language :: Language L2 L1
 l2Language  = Language
   fromSExpr
-  (\_ _ -> Right . compileL2ToL1)
+  (\_ _ -> return . compileL2ToL1)
   interpL2
   "L2"
   (Just l1Language)
