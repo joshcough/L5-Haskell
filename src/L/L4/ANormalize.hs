@@ -1,7 +1,5 @@
 module L.L4.ANormalize (aNormalize) where
 
-import Bound
-import Bound.Var
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
@@ -28,27 +26,27 @@ incState :: String -> State Int String
 incState prefix = do { n <- get; put (n + 1); return $ prefix ++ "_" ++  show n }
 
 data Context = 
-    LetContext Variable (L4.E Variable) Context
-  | IfContext  (L4.E Variable) (L4.E Variable) Context
-  | FunCallContext [L4.E Variable] (Maybe ([L3.V] -> L3.D)) [L3.V] Context
+    LetContext Variable L4.E Context
+  | IfContext  L4.E L4.E Context
+  | FunCallContext [L4.E] (Maybe ([L3.V] -> L3.D)) [L3.V] Context
   | NoContext
 
-aNormalize :: L4 Variable -> L3
+aNormalize :: L4 -> L3
 aNormalize l4 = fst $ runState (aNormalizeS l4) 0
 
-aNormalizeS :: L4 Variable -> State Int L3
+aNormalizeS :: L4 -> State Int L3
 aNormalizeS p = do
   (L4 main funcs)     <- freshenL4 p
   (main' , mainFs)    <- l4Find main NoContext
   (funcs', moreFuncs) <- unzip <$> (traverse l4FindF funcs)
   return $ L3 main' $ mainFs ++ funcs' ++ concat moreFuncs
 
-l4FindF :: L4.L4Func Variable -> State Int (L3.L3Func, [L3.L3Func])
+l4FindF :: L4.L4Func -> State Int (L3.L3Func, [L3.L3Func])
 l4FindF (Func name args body) = do
   (fBody, extra) <- l4Find body NoContext
   return (Func name args fBody, extra)
 
-l4Find :: L4.E Variable -> Context -> State Int (L3.E, [L3.L3Func])
+l4Find :: L4.E -> Context -> State Int (L3.E, [L3.L3Func])
 l4Find e c = go e c where
   go (L4.Let x r body)      k = go r $ LetContext x body k
   go (L4.If  c t f)         k = go c $ IfContext t f k
@@ -61,13 +59,9 @@ l4Find e c = go e c where
   go (L4.MakeClosure l e1)  k = go e1 (FunCallContext [] (Just $ wrangle1 (L3.MakeClosure l)) [] k)
   go (L4.ClosureProc e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureProc)    [] k)
   go (L4.ClosureVars e1)    k = go e1 (FunCallContext [] (Just $ wrangle1  L3.ClosureVars)    [] k)
-  go (VE v)                 k = fill (VD $ l4VTol3V v) k
+  go (VE v)                 k = fill (VD v) k
 
-  l4VTol3V (L4.VarV   v) = L3.VarV   v
-  l4VTol3V (L4.NumV   n) = L3.NumV   n
-  l4VTol3V (L4.LabelV l) = L3.LabelV l
-
-  wranglePrim :: PrimName -> [L3.V] -> D
+  wranglePrim :: PrimName -> [V] -> D
   wranglePrim pn = f (arityByName pn) where
     f 1 [v]        = L3.PrimApp pn [v]
     f 2 [v1,v2]    = L3.PrimApp pn [v1,v2]
@@ -101,33 +95,33 @@ fill d = fill' where
   fill' (IfContext t e k) = maybeLet d $ \v -> do
     fLabel <- newLabel
     fArg   <- newVar
-    (fBody, extraFuncsFromFBody) <- fill (VD $ L3.VarV fArg) k
-    let frees = Set.toList $ Set.filter (/=fArg) (L.Variable.freeVars fBody Set.empty)
+    (fBody, extraFuncsFromFBody) <- fill (VD $ VarV fArg) k
+    let frees = Set.toList $ Set.filter (/=fArg) (freeVars fBody Set.empty)
         freesTup = Variable "frees"
         fBodyWithFrees = foldr f fBody (zip frees [0..]) where
-          f (v,i) b = L3.Let v (L3.PrimApp ARef [L3.VarV freesTup, L3.NumV i]) b
+          f (v,i) b = L3.Let v (L3.PrimApp ARef [VarV freesTup, NumV i]) b
         func = Func fLabel [fArg, freesTup] fBodyWithFrees
-        tup  = L4.NewTuple (VE . L4.VarV <$> frees)
-    (tt, tef) <- l4Find (L4.App (VE $ L4.LabelV fLabel) [t, tup]) NoContext
-    (ee, eef) <- l4Find (L4.App (VE $ L4.LabelV fLabel) [e, tup]) NoContext
+        tup  = L4.NewTuple (VE . VarV <$> frees)
+    (tt, tef) <- l4Find (L4.App (VE $ LabelV fLabel) [t, tup]) NoContext
+    (ee, eef) <- l4Find (L4.App (VE $ LabelV fLabel) [e, tup]) NoContext
     return (L3.If v tt ee, concat [[func], extraFuncsFromFBody, tef, eef])
 
-  maybeLet :: L3.D -> (L3.V -> State Int (L3.E, [L3.L3Func])) -> State Int (L3.E, [L3.L3Func])
+  maybeLet :: L3.D -> (V -> State Int (L3.E, [L3.L3Func])) -> State Int (L3.E, [L3.L3Func])
   maybeLet (VD v) f = f v
   maybeLet d      f = do
     x                    <- newVar
-    (letBody, extraFuns) <- f $ L3.VarV x
+    (letBody, extraFuns) <- f $ VarV x
     return (L3.Let x d letBody, extraFuns) 
 
 {- TODO: It's very likely that with the Supply stuff, this can all just go away... -}
-freshenL4 :: L4 Variable -> State Int (L4 Variable)
+freshenL4 :: L4 -> State Int L4
 freshenL4 (L4 e fs) = L4 <$> freshenE e <*> traverse freshenFunc fs where
-  freshenE :: (L4.E Variable) -> State Int (L4.E Variable)
+  freshenE :: L4.E -> State Int L4.E
   freshenE e = go e Map.empty
   freshenFunc (Func name args body) = do
     freshArgs <- traverse freshenVar args
     Func name freshArgs <$> go body (Map.fromList $ zip args freshArgs)
-  go :: (L4.E Variable) -> Map Variable Variable -> State Int (L4.E Variable)
+  go :: L4.E -> Map Variable Variable -> State Int L4.E
   go (L4.Let x r body)      m =
     do { v <- freshenVar x; L4.Let v <$> go r m <*> go body (Map.insert x v m) }
   go (L4.If c t f)        m = L4.If            <$> go c m  <*> go t m <*> go f m
@@ -138,5 +132,5 @@ freshenL4 (L4 e fs) = L4 <$> freshenE e <*> traverse freshenFunc fs where
   go (L4.MakeClosure l e) m = L4.MakeClosure l <$> go e m
   go (L4.ClosureProc e)   m = L4.ClosureProc   <$> go e m
   go (L4.ClosureVars e)   m = L4.ClosureVars   <$> go e m
-  go (VE (L4.VarV v))     m = return . VE . L4.VarV $ fromMaybe v (Map.lookup v m)
+  go (VE (VarV v))        m = return . VE . VarV $ fromMaybe v (Map.lookup v m)
   go ve@(VE _)            _ = return ve

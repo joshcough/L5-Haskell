@@ -13,10 +13,10 @@ import L.Interpreter.HOComputer
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
+import L.L3.L3AST (V(..))
 import L.Primitives (PrimName(..), Func(..), name, isBiop)
 import L.L4.L4AST as L4
 import L.Util.Utils
-import L.Variable
 import Prelude hiding (print)
 
 interpL4 :: L4 -> String
@@ -26,15 +26,15 @@ interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) where
 
   -- | interpret an E, building a monadic operation to be run.
   interpE :: MonadHOComputer c m Runtime => E -> m Runtime
-  interpE (Let v e b)           = do e' <- interpE e; locally (Map.insert v e') (interpE b)
-  interpE (IfStatement e te fe) = do e' <- interpE e; interpE $ if e' /= lFalse then te else fe
-  interpE (FunCall e es)        = interpApp e es
-  interpE (NewTuple es)         = traverse interpE es >>= newArray
-  interpE (MakeClosure l e)     = interpE (NewTuple [VE $ LabelV l, e])
-  interpE (ClosureProc c)       = do c' <- interpE c; arrayRef c' (Num 0)
-  interpE (ClosureVars c)       = do c' <- interpE c; arrayRef c' (Num 1)
-  interpE (Begin e1 e2)         = interpE e1 >> interpE e2
-  interpE (VE v)                = interpV v
+  interpE (Let v e b)       = do e' <- interpE e; locally (Map.insert v e') (interpE b)
+  interpE (If e te fe)      = do e' <- interpE e; interpE $ if e' /= lFalse then te else fe
+  interpE (App e es)        = interpApp e es
+  interpE (NewTuple es)     = traverse interpE es >>= newArray
+  interpE (MakeClosure l e) = interpE (NewTuple [VE $ LabelV l, e])
+  interpE (ClosureProc c)   = do c' <- interpE c; arrayRef c' (Num 0)
+  interpE (ClosureVars c)   = do c' <- interpE c; arrayRef c' (Num 1)
+  interpE (Begin e1 e2)     = interpE e1 >> interpE e2
+  interpE (VE v)            = interpV v
   -- Primitive applications (built in functions)
   interpE (PrimApp IsNumber [e])        = isNumber <$> interpE e
   interpE (PrimApp IsArray  [e])        = isArray  <$> interpE e
