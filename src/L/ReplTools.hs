@@ -10,6 +10,7 @@ module L.ReplTools (
   ,quickCompileString
   ,quickCompileTurtles
   ,quickInterp
+  ,quickParse
   ,quickRunNative
 ) where
 
@@ -85,6 +86,17 @@ quickInterp :: FilePath -> IO ()
 quickInterp inputFile = g $ inputFile^.extension where
   f :: Language i o -> IO ()
   f l = either id id <$> interpretFile l inputFile >>= putStrLn
+  g ".L1" = f l1Language
+  g ".L2" = f l2Language
+  g ".L3" = f l3Language
+  g ".L4" = f l4Language
+  g ".L5" = f l5Language
+  g _     = error $ "Error: bad L file: " ++ inputFile
+
+quickParse :: FilePath -> IO ()
+quickParse inputFile = g $ inputFile^.extension where
+  f :: Show i => Language i o -> IO ()
+  f l = parseFile l inputFile >>= putStrLn . show
   g ".L1" = f l1Language
   g ".L2" = f l2Language
   g ".L3" = f l3Language

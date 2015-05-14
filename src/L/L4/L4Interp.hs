@@ -13,9 +13,10 @@ import L.Interpreter.HOComputer
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
-import L.L3.L3AST (PrimName(..), V(..), isBiop, Func(..))
+import L.Primitives (PrimName(..), Func(..), name, isBiop)
 import L.L4.L4AST as L4
 import L.Util.Utils
+import L.Variable
 import Prelude hiding (print)
 
 interpL4 :: L4 -> String

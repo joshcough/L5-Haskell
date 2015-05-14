@@ -16,8 +16,9 @@ import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
 import L.Primitives
 import L.Parser.SExpr
-import L.Parser.Supply
+import L.Parser.Supply hiding (take)
 import L.Variable hiding (freeVars)
+import L.L4.L4AST (BoundVars(..), freeVars)
 import Prelude.Extras
 
 type L5 = E Variable
@@ -119,17 +120,17 @@ instance a ~ Variable => AsSExpr (E a) where
     go _ (LitInt   i)  = return $ asSExpr i
     go _ (PrimE    p)  = return $ asSExpr p
     go f (Let v e b) = do
-      v' <- freshNameForS v
+      v' <- freshNameFor v
       e' <- go f e
       b' <- go (unvar (const v') f) (fromScope b)
       return $ asSExpr (sym "let", [(v', e')], b')
     go f (LetRec v e b) = do
-      v' <- freshNameForS v
+      v' <- freshNameFor v
       e' <- go (unvar (const v') f) (fromScope e)
       b' <- go (unvar (const v') f) (fromScope b)
       return $ asSExpr (sym "letrec", [(v', e')], b')
     go f (Lambda vs e) = do
-      vs' <- traverse freshNameForS vs
+      vs' <- traverse freshNameFor vs
       e'  <- go (unvar (vs' !!) f) (fromScope e)
       return $ asSExpr (sym "lambda", vs', e')
 
@@ -170,5 +171,5 @@ instance BoundVars E where
   boundVars (LitInt _)      = mempty
   boundVars (PrimE  _)      = mempty
 
-freeVars :: (Foldable f, Ord a) => f a -> Set a   
+freeVars :: (Foldable f, Ord a) => f a -> Set a
 freeVars = foldMap Set.singleton

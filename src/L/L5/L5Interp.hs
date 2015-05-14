@@ -16,7 +16,6 @@ import L.Interpreter.HOComputer
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime hiding (foldRuntime)
-import L.L1.L1L2AST hiding (Func, Print)
 import L.L5.L5AST
 import L.Parser.SExpr
 import L.Variable
@@ -49,17 +48,17 @@ interpE :: L5Monad c m a => E a -> m (L5Runtime a)
 interpE = ie where
   ie (Lambda _ e)       = return $ Closure e
   ie (Var a)            = fail $ "unbound var: " ++ show a
-  ie (Let _ e body)     = interpE $ App (Lambda [] $ mapBound (const 0) body) [e]
-  ie (LetRec _ e b)     = interpE (inst b) where e' = inst e; inst = instantiate (const e')
-  ie (If p t f)         = do r <- interpE p; interpE $ if r == RT lTrue then t else f
+  ie (Let _ e body)     = ie $ App (Lambda [] $ mapBound (const 0) body) [e]
+  ie (LetRec _ e b)     = ie (inst b) where e' = inst e; inst = instantiate (const e')
+  ie (If p t f)         = do r <- ie p; ie $ if r == RT lTrue then t else f
   ie (NewTuple es)      = RT <$> (traverse asRun es >>= newArray)
-  ie (Begin e1 e2)      = interpE e1 >> interpE e2
+  ie (Begin e1 e2)      = ie e1 >> ie e2
   ie (LitInt i)         = return . RT $ Num i
-  ie (PrimE p)          = interpE (primlet p) where 
+  ie (PrimE p)          = ie (primlet p) where
   ie (App (PrimE p) es) = interpPrim p es
-  ie (App f es)         = interpE f >>= \r -> case r of
+  ie (App f es)         = ie f >>= \r -> case r of
     RT r -> exception $ "expected Closure, but got " ++ show r
-    Closure body -> interpE (instantiate (es!!) body)
+    Closure body -> ie (instantiate (es!!) body)
 
   interpPrim :: L5Monad c m a => PrimName -> [E a] -> m (L5Runtime a)
   interpPrim = ip where

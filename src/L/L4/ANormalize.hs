@@ -1,5 +1,7 @@
 module L.L4.ANormalize (aNormalize) where
 
+import Bound
+import Bound.Var
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
@@ -8,6 +10,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import Data.Traversable
+import L.Parser.Supply
 import L.Primitives (Label(..))
 import L.L3.L3AST as L3
 import L.L4.L4AST as L4
@@ -46,7 +49,7 @@ l4FindF (Func name args body) = do
   return (Func name args fBody, extra)
 
 l4Find :: L4.E Variable -> Context -> State Int (L3.E, [L3.L3Func])
-l4Find e c = go e c where 
+l4Find e c = go e c where
   go (L4.Let x r body)      k = go r $ LetContext x body k
   go (L4.If  c t f)         k = go c $ IfContext t f k
   go (L4.Begin e1 e2)       k = do { v <- newVar; go (L4.Let v e1 e2) k }

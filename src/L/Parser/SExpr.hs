@@ -103,7 +103,7 @@ class FromSExpr a where
   default fromString :: String -> Either String a
   fromString = fromSExpr . sread
 
-instance (FromSExpr a) => FromSExpr [a] where
+instance FromSExpr a => FromSExpr [a] where
   fromSExpr (List args) = sequence (fmap fromSExpr args)
   fromSExpr bad         = fail $ "bad list" ++ show bad
 

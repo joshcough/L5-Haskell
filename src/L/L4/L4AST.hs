@@ -64,10 +64,10 @@ instance Monad E where
   VE (LabelV l)   >>= f = VE (LabelV l)
   Let v e b       >>= f = Let v       (e >>=  f) (b >>>= f)
   If  p a b       >>= f = If          (p >>=  f) (a >>=  f) (b >>= f)
-  App a args      >>= f = App         (a >>= f) (map (>>= f) args)
-  PrimApp p args  >>= f = PrimApp     p         (map (>>= f) args)
+  App a args      >>= f = App         (a >>= f)  (map (>>= f) args)
+  PrimApp p args  >>= f = PrimApp     p (map (>>= f) args)
   NewTuple es     >>= f = NewTuple    (map (>>= f) es)
-  Begin e1 e2     >>= f = Begin       (e1  >>= f) (e2 >>= f)
+  Begin e1 e2     >>= f = Begin       (e1 >>= f) (e2 >>= f)
   MakeClosure l e >>= f = MakeClosure l (e >>= f)
   ClosureProc e   >>= f = ClosureProc (e >>= f)
   ClosureVars e   >>= f = ClosureVars (e >>= f)
@@ -95,42 +95,37 @@ instance a ~ Variable => Show (E a)  where show = showSExpr
 instance a ~ Variable => Show (L4 a) where show = showSExpr
 
 instance a ~ Variable => AsSExpr (E a) where
-  asSExpr ex = fst $ runState (go id ex) (newSupply $ boundVars ex <> freeVars ex) where
-    go :: (a -> Variable) -> E a -> State Supply SExpr
-    go f (VE (VarV v))     = return . asSExpr $ f v
-    go f (VE (NumV n))     = return . asSExpr $ n
-    go f (VE (LabelV l))   = return . asSExpr $ l
-    go f (Let v e b)       = do
-      v' <- freshNameForS v
-      e' <- go f e
-      b' <- go (unvar (const v') f) (fromScope b)
-      return $ asSExpr (sym "let", [(v', e')], b')
-    go f (If v te fe)      = do
-      (v', te', fe') <- (,,) <$> go f v <*> go f te <*> go f fe
-      return $ asSExpr (sym "if", v', te', fe')
-    go f (App   e  es)     = do
-      e'       <- go f e
-      List es' <- asSExpr <$> traverse (go f) es
-      return $ asSExpr (e' : es')
-    go f (PrimApp p es)    = do
-      p'       <- return $ asSExpr p
-      List es' <- asSExpr <$> traverse (go f) es
-      return $ asSExpr (p' : es')
-    go f (NewTuple es)     = do
-      List es' <- asSExpr <$> traverse (go f) es
-      return $ List (sym "new-tuple" : es')
-    go f (Begin e1 e2)     = do
-      (e1', e2') <- (,) <$> go f e1 <*> go f e2
-      return $ asSExpr (sym "begin", e1', e2')
-    go f (MakeClosure l e) = do
-      e' <- go f e
-      return $ asSExpr (sym "make-closure", l, e')
-    go f (ClosureProc e)   = do
-      e' <- go f e
-      return $ asSExpr (sym "closure-proc", e')
-    go f (ClosureVars e)   = do
-      e' <- go f e
-      return $ asSExpr (sym "closure-vars", e')
+  asSExpr ex = fst $ runState (go id ex) (newSupply $ boundVars ex <> freeVars ex)
+
+go :: (a -> Variable) -> E a -> State Supply SExpr
+go f (VE (VarV v))     = return . asSExpr $ f v
+go f (VE (NumV n))     = return . asSExpr $ n
+go f (VE (LabelV l))   = return . asSExpr $ l
+go f (Let v e b)       = do
+  v' <- freshNameFor v
+  e' <- go f e
+  b' <- go (unvar (const v') f) (fromScope b)
+  return $ asSExpr (sym "let", [(v', e')], b')
+go f (If v te fe)      = do
+  (v', te', fe') <- (,,) <$> go f v <*> go f te <*> go f fe
+  return $ asSExpr (sym "if", v', te', fe')
+go f (App   e  es)     = do
+  e'       <- go f e
+  List es' <- asSExpr <$> traverse (go f) es
+  return $ asSExpr (e' : es')
+go f (PrimApp p es)    = do
+  p'       <- return $ asSExpr p
+  List es' <- asSExpr <$> traverse (go f) es
+  return $ asSExpr (p' : es')
+go f (NewTuple es)     = do
+  List es' <- asSExpr <$> traverse (go f) es
+  return $ List (sym "new-tuple" : es')
+go f (Begin e1 e2)     = do
+  (e1', e2') <- (,) <$> go f e1 <*> go f e2
+  return $ asSExpr (sym "begin", e1', e2')
+go f (MakeClosure l e) = go f e >>= \e' -> return $ asSExpr (sym "make-closure", e')
+go f (ClosureProc e)   = go f e >>= \e' -> return $ asSExpr (sym "closure-proc", e')
+go f (ClosureVars e)   = go f e >>= \e' -> return $ asSExpr (sym "closure-vars", e')
 
 instance a ~ Variable => AsSExpr (L4 a) where
   asSExpr (L4 e fs) = List $ asSExpr e : fmap asSExpr fs
@@ -201,24 +196,3 @@ instance a ~ Variable => FromSExpr (E a) where
   fromSExpr bad = fail $ "bad L5-E: " ++ show bad
 -}
 
-
-class BoundVars f where
-  boundVars :: f a -> Set Variable
-
-instance (BoundVars f, Monad f) => BoundVars (Scope b f) where
-  boundVars = boundVars . fromScope
-
-instance BoundVars E where
-  boundVars (VE _)            = mempty
-  boundVars (Let v e b)       = Set.insert v $ boundVars e <> boundVars b
-  boundVars (If p a b)        = boundVars p  <> boundVars a <> boundVars b
-  boundVars (App e es)        = boundVars e  <> (mconcat $ boundVars <$> es)
-  boundVars (PrimApp p es)    = mconcat $ boundVars <$> es
-  boundVars (NewTuple es)     = mconcat $ boundVars <$> es
-  boundVars (Begin e1 e2)     = boundVars e1 <> boundVars e2
-  boundVars (MakeClosure l e) = boundVars e
-  boundVars (ClosureProc e)   = boundVars e
-  boundVars (ClosureVars e)   = boundVars e
-
-freeVars :: (Foldable f, Ord a) => f a -> Set a
-freeVars = foldMap Set.singleton

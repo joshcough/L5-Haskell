@@ -36,7 +36,7 @@ instance AsSExpr a => AsSExpr (Func a) where
 
 -- (l (x ...) e)
 instance FromSExpr a => FromSExpr (Func a) where
-  fromSExpr (List [l, args, e]) = Func <$> fromSExpr l <*> fromSExpr args <*> fromSExpr e
+  fromSExpr (List [nam, args, e]) = Func <$> fromSExpr nam <*> fromSExpr args <*> fromSExpr e
   fromSExpr bad = parseError_ "bad function" bad
 
 

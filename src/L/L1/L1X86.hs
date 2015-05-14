@@ -5,6 +5,7 @@ import Control.Monad.Error
 import Data.Traversable
 import L.L1.L1L2AST
 import L.OS
+import L.Primitives hiding (body, Print)
 import L.Registers
 import L.Util.Utils
 

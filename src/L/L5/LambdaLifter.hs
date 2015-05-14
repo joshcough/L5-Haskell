@@ -10,11 +10,11 @@ import Control.Monad.State
 import Data.Monoid
 import qualified Data.Set as Set
 import L.Primitives
-import L.L1.L1L2AST (Label(..))
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 import L.Parser.SExpr
 import L.Parser.Supply
+import L.Primitives (Label(..))
 import L.Variable hiding (freeVars)
 
 lambdaLift :: L5 -> L4
@@ -57,21 +57,21 @@ The remainder of the cases are each documented in place.
 
 primToLambda :: PrimName -> L5.E (Var Int a)
 primToLambda p = l where
-  a = App (PrimE p) [Var (B 0), Var (B 1)]
+  a = L5.App (PrimE p) [Var (B 0), Var (B 1)]
   l = Lambda [Variable "x", Variable "y"] (abstract (^? _B) a)
 
-l5c :: String -> L4
+l5c :: String -> L4V
 l5c s = fst $ runState (go id l5e) (newSupply $ boundVars l5e <> freeVars l5e) where
   l5e = (either error id) . fromSExpr $ sread s
 
-go :: Ord a => (a -> Variable) -> L5.E a -> State Supply L4
+go :: Ord a => (a -> Variable) -> L5.E a -> State Supply L4V
 go _ (LitInt i)         = return $ L4 (VE . NumV $ fromIntegral i) []
 go f (Var v)            = return $ L4 (VE . VarV $ f v) []
 go f (L5.If e t g)      = do
   (L4 e' efs) <- go f e
   (L4 t' tfs) <- go f t
   (L4 g' gfs) <- go f g
-  return $ L4 (L4.IfStatement e' t' g') (efs++tfs++gfs)
+  return $ L4 (L4.If e' t' g') (efs++tfs++gfs)
 go f (L5.Begin e1 e2)   = do
   (L4 e1' e1fs) <- go f e1
   (L4 e2' e2fs) <- go f e2
@@ -80,10 +80,10 @@ go f (L5.NewTuple es)   = do
   (l4es, fs) <- goEs f es
   return $ L4 (L4.NewTuple l4es) (concat fs)
 go f (L5.Let v e b)     = do
-  v'          <- freshNameForS v
+  v'          <- freshNameFor v
   (L4 e' efs) <- go f e
   (L4 b' bfs) <- go (unvar (const v') f) (fromScope b)
-  return $ L4 (L4.Let v' e' b') (efs++bfs)
+  return $ L4 (L4.Let v' e' (error "b'")) (efs++bfs)
 {-
  We Turn (f +) => (f (lambda (x y) (+ x y)))
  So when we see a primitive function by itself,
@@ -95,11 +95,11 @@ go f (PrimE p) = go (unvar (primVars p !!) f) (primToLambda p)
  (+ x y z)  => (+ x y z)
  also a trivial case, but I wanted to keep this case close to the other App case.
 -}
-go f (App (PrimE p) es) = do
+go f (L5.App (PrimE p) es) = do
   (es', fs) <- goEs f es
   return $ L4 (L4.PrimApp p es') (concat fs)
-go f (App e es) = do
-  v' <- freshNameForS' "x"
+go f (L5.App e es) = do
+  v' <- freshNameFor' "x"
   -- compile the function position
   (L4 e' fs') <- go f e
   -- compile all of the arguments
@@ -107,7 +107,7 @@ go f (App e es) = do
   let ve = VE $ VarV v'
   return $ L4 (L4.Let v' e' (
     -- free variables go in the first argument.
-    L4.FunCall (L4.ClosureProc ve) $
+    L4.App (L4.ClosureProc ve) $
       -- if we can fit the rest of the arguments in, then great
       -- if not, they must also go into another tuple.
       L4.ClosureVars ve : if length es' <= 2 then es' else [L4.NewTuple es']
@@ -171,7 +171,7 @@ go f lam@(Lambda args body) = do
       liftedFunctionBody = if   usingArgsTuple 
                            then wrapWithLets argsVar args freeLets 
                            else freeLets
-  liftedLabel <- fmap toLabel (supplyNameFor' "x")
+  liftedLabel <- fmap toLabel (freshNameFor' "x")
   let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> (error "todo:163" frees))
       liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)
@@ -232,7 +232,6 @@ compileOld (App f args) = do
 {- Replace all occurrences of x for y in e. -}
 subst :: Variable -> L5 -> L5 -> L5
 subst _ _ = error "todo"
-{-
 subst x y = f where
   f (Lambda vs e)     = if x `elem` vs then Lambda vs e else Lambda vs (f e)
   f (Var v)           = if v == x then y else Var v
@@ -244,6 +243,5 @@ subst x y = f where
   f (L5.App e es)     = L5.App (f e) (f <$> es)
   f e@(LitInt _)      = e
   f e@(PrimE _)       = e
--}
 
 
