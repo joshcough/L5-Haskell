@@ -125,8 +125,8 @@ inout is =
       -- it's only used to find label declarations too... this should be easier.
       indeces = Map.fromList instructionsWithIndex
       findLabelDecIndex :: Label -> Int
-      findLabelDecIndex l = 
-        maybe (error $ "no such label: " ++ show l) id (Map.lookup (LabelDeclaration l) indeces) 
+      findLabelDecIndex l@(Label l') =
+        maybe (error $ "no such label: " ++ l') id (Map.lookup (LabelDeclaration l) indeces)
       succIndeces :: [Set Int]
       succIndeces = fmap succIndeces_ instructionsWithIndex where
         succIndeces_ :: (L2Instruction, Int) -> Set Int

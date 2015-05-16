@@ -26,7 +26,7 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1.L1L2AST hiding (Func)
-import L.Primitives (Label)
+import L.Primitives (Label(..))
 import L.Variable
 import Prelude hiding (print)
 
@@ -101,7 +101,8 @@ envLookup :: MonadHOComputer c m r => Variable -> Env r -> m r
 envLookup = forceLookup "variable"
 
 libLookup :: MonadHOComputer c m r => Label -> Lib f -> m f
-libLookup = forceLookup "function"
+--libLookup (Label l) = forceLookup "function" l
+libLookup = error "todo" --forceLookup "function"
 
 forceLookup :: (Show k, Ord k, MonadHOComputer c m r) => String -> k -> Map k v -> m v
 forceLookup kName k m =

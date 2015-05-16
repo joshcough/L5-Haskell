@@ -13,7 +13,6 @@ import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 import L.Parser.SExpr
 import L.Parser.Supply
-import L.Primitives (Label(..))
 import L.Variable hiding (freeVars)
 
 lambdaLift :: L5 -> L4
@@ -166,12 +165,12 @@ go lam@(Lambda args body) = do
       -- TODO: make this into a set?
       frees = freeVars lam
       -- then wrap it with the required let statements
-      freeLets = wrapWithLets freesVar (error "todo:158" frees) compiledLambdaBody
+      freeLets = wrapWithLets freesVar frees compiledLambdaBody
       liftedFunctionBody = if   usingArgsTuple 
                            then wrapWithLets argsVar args freeLets 
                            else freeLets
   liftedLabel <- fmap toLabel (freshNameFor' "x")
-  let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> (error "todo:163" frees))
+  let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> frees)
       liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)
 

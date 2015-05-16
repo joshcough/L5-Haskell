@@ -15,7 +15,7 @@ import Prelude hiding (print)
 
 -- TODO: probably can't have read and show instances here for parsing and printing reasons
 -- TODO: use the instances below
-newtype Label = Label String deriving (Eq, Ord, Read, Show)
+newtype Label = Label String deriving (Eq, Ord)
 
 parseLabel :: String -> ParseResult Label
 parseLabel l@(':' : ':' : _) = fail $ "invalid label: " ++ l

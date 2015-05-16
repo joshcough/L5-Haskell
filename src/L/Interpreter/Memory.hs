@@ -31,6 +31,7 @@ import Prelude hiding (read)
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1.L1L2AST
+import L.Primitives (Label(..))
 import L.Util.Utils
 
 data MemoryConfig = MemoryConfig {
@@ -142,7 +143,8 @@ print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1
         arr       <- readArray p
         contentsV <- loop arr depth 0
         return $ "{s:" ++ mkString ", " (show size : contentsV) ++ "}"
-      FunctionPointer bad -> exception $ "cannot print a label, but tried to print: " ++ show bad
+      FunctionPointer (Label bad) ->
+        exception $ "cannot print a label, but tried to print: " ++ show bad
 
 -- print an array error
 arrayError :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> m a
