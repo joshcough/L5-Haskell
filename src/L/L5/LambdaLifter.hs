@@ -179,7 +179,7 @@ goEs es = unzip <$> fmap extract <$> traverse go es where
   extract (L4 e fs) = (e, fs)
 
 toLabel :: Variable -> Label
-toLabel (Variable v) = Label v
+toLabel (Variable v) = Label (':' : v)
 
 -- | Wraps an array with lets that grab their value from the array
 -- | ex: let x = a !! 0 in let y = a !! 1 ... in e
