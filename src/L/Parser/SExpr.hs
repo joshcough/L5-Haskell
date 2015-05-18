@@ -105,12 +105,12 @@ class FromSExpr a where
 
 instance FromSExpr a => FromSExpr [a] where
   fromSExpr (List args) = sequence (fmap fromSExpr args)
-  fromSExpr bad         = fail $ "bad list" ++ show bad
+  fromSExpr bad         = Left $ "bad list" ++ show bad
 
-parseError :: Monad m => String -> String -> m a
-parseError msg  exp = fail $ concat ["Parse Error: '", msg, "' in: ", show exp]
+parseError :: String -> String -> ParseResult a
+parseError msg  exp = Left $ concat ["Parse Error: '", msg, "' in: ", show exp]
 -- TODO: rename this
-parseError_ :: Monad m => String -> SExpr -> m a
+parseError_ :: String -> SExpr -> ParseResult a
 parseError_ msg expr = parseError msg (show expr)
 
 trim :: String -> String

@@ -62,7 +62,7 @@ registerFromName :: String -> Either String Register
 registerFromName s = maybe (badRegister s) return (Map.lookup s registerNamesMap)
 
 badRegister :: String -> Either String Register
-badRegister s = fail $ "invalid register: " ++ s
+badRegister s = Left $ "invalid register: " ++ s
 
 instance AsSExpr Register where
   asSExpr = AtomSym . show 

@@ -64,7 +64,7 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     foldOp (jumpIfLess l1) (jumpIfLessThanOrEqual l1) (jumpIfEqual l1) op,
     jumpToLabel l2 ]
   genInst Return = return ["ret"]
-  genInst i = fail $ "bad instruction: " ++ show i
+  genInst i = Left $ "bad instruction: " ++ show i
   
   -- several assignment cases
   genAssignInst r (SRHS (LabelL1S (Label (':':l)))) = 
@@ -103,7 +103,7 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
     triple "movq" (genS s) (genReg rdi),
     triple "movq" (genS n) (genReg rsi),
     "call _print_error" ]
-  genAssignInst l r = fail $ "bad assignment statement: " ++ show (Assign l r)
+  genAssignInst l r = Left $ "bad assignment statement: " ++ show (Assign l r)
   
   genCompInst cx l r x = [
     triple "cmp" (genS l) (genS r),

@@ -18,16 +18,16 @@ import Prelude hiding (print)
 newtype Label = Label String deriving (Eq, Ord)
 
 parseLabel :: String -> ParseResult Label
-parseLabel l@(':' : ':' : _) = fail $ "invalid label: " ++ l
+parseLabel l@(':' : ':' : _) = Left $ "invalid label: " ++ l
 parseLabel l@(':' : _) = return $ Label l
-parseLabel l = fail $ "invalid label: " ++ l
+parseLabel l = Left $ "invalid label: " ++ l
 
 instance AsSExpr Label where
   asSExpr (Label l) = AtomSym l
 
 instance FromSExpr Label where
   fromSExpr (AtomSym l) = parseLabel l
-  fromSExpr bad = fail $ "bad label" ++ show bad
+  fromSExpr bad = Left $ "bad label" ++ show bad
 
 data Func a = Func { name :: Label, args :: [Variable], body :: a }
 

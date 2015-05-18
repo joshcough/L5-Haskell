@@ -133,7 +133,7 @@ compOpFromSym :: String -> Either String CompOp
 compOpFromSym "<"  = return LT
 compOpFromSym "<=" = return LTEQ
 compOpFromSym "="  = return EQ
-compOpFromSym s    = fail $ "not a comparison operator" ++ s
+compOpFromSym s    = Left $ "not a comparison operator" ++ s
 
 foldOp :: a -> a -> a -> CompOp -> a
 foldOp a _ _ LT   = a
@@ -199,12 +199,12 @@ instance FromSExpr X86Op where
 
 instance FromSExpr CompOp where
   fromSExpr (AtomSym s) = compOpFromSym s
-  fromSExpr bad         = fail $ "not a comparison operator" ++ show bad
+  fromSExpr bad         = Left $ "not a comparison operator" ++ show bad
 
 instance (FromSExpr s) => FromSExpr (Comp s) where
   fromSExpr (List [s1, cmp, s2]) = 
     Comp <$> fromSExpr s1 <*> fromSExpr cmp <*> fromSExpr s2
-  fromSExpr bad         = fail $ "not a comparison operator" ++ show bad
+  fromSExpr bad         = Left $ "not a comparison operator" ++ show bad
 
 instance (FromSExpr x, FromSExpr s) => FromSExpr (Program x s) where
   fromSExpr (List ((List main) : funcs)) = Program <$> parseMain main <*> traverse fromSExpr funcs
@@ -275,6 +275,8 @@ instance FromSExpr L1 where
   fromSExpr s = L1 <$> fromSExpr s
 
 parseL2X v r s = return $ either (\_ -> v s) r (registerFromName s)
+
+zzz s = parseL2X (VarL2X . Variable) RegL2X s
 
 instance FromSExpr L2X where
   fromSExpr (AtomSym s) = parseL2X (VarL2X . Variable) RegL2X s

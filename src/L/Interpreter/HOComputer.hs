@@ -98,12 +98,11 @@ showEnv :: Show r => Map Variable r -> String
 showEnv = show . Map.map show
 
 envLookup :: MonadHOComputer c m r => Variable -> Env r -> m r
-envLookup = forceLookup "variable"
+envLookup = forceLookup "variable" show
 
 libLookup :: MonadHOComputer c m r => Label -> Lib f -> m f
---libLookup (Label l) = forceLookup "function" l
-libLookup = error "todo" --forceLookup "function"
+libLookup l@(Label name) = forceLookup "function" (const name) l
 
-forceLookup :: (Show k, Ord k, MonadHOComputer c m r) => String -> k -> Map k v -> m v
-forceLookup kName k m =
-  maybe (exception $ concat ["unbound ", kName, ": ", show k]) return (Map.lookup k m)
+forceLookup :: (Ord k, MonadHOComputer c m r) => String -> (k -> String) -> k -> Map k v -> m v
+forceLookup kName kShow k m =
+  maybe (exception $ concat ["unbound ", kName, ": ", kShow k]) return (Map.lookup k m)

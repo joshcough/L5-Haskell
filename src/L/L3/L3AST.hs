@@ -59,7 +59,7 @@ instance FromSExpr V where
   fromSExpr (AtomSym l@(':' : _)) = Right . LabelV $ Label l
   fromSExpr (AtomSym v) = return . VarV $ Variable v
   fromSExpr (AtomNum n) = return $ NumV (fromIntegral n)
-  fromSExpr bad         = fail  $ concat ["Parse Error: 'bad V' in: ", show bad]
+  fromSExpr bad         = Left  $ concat ["Parse Error: 'bad V' in: ", show bad]
 
 instance AsSExpr V where
   asSExpr (VarV (Variable v)) = AtomSym v

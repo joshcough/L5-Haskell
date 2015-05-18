@@ -87,7 +87,7 @@ instance FromSExpr E where
     (Var <$> wellFormedArgString v) 
     (return . PrimE . primName) 
     (lookupPrim $ Variable v) -- TODO: can i create and used a FromSExpr PrimName?
-  fromSExpr bad = fail $ "bad L5-E: " ++ show bad
+  fromSExpr bad = Left $ "bad L5-E: " ++ show bad
 
 {-
 class BoundVars f where

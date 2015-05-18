@@ -34,7 +34,7 @@ import L.Parser.SExpr
 import L.Util.Utils
 
 tests = do
-  ts <- traverse tree [l5Tests]
+  ts <- traverse tree [l5TurtlesTests]
   return $ testGroup "Main" ts
 
 quickTests = [l1Tests, l2Tests, l3Tests, l4Tests, l5Tests]
