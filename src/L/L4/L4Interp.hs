@@ -14,37 +14,41 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L3.L3AST (V(..))
-import L.Primitives (PrimName(..), Func(..), name, isBiop)
 import L.L4.L4AST as L4
+import L.Parser.SExpr
+import L.Primitives (PrimName(..), Func(..), name, isBiop)
 import L.Util.Utils
 import Prelude hiding (print)
 
 interpL4 :: L4 -> String
-interpL4 (L4 e fs) = runST $ show <$> runComputation (interpE e) where
+interpL4 (L4 e fs) = runST $ show <$> runComputation (ie e) where
 
   lib = Map.fromList $ fmap (\f -> (name f, f)) fs
 
-  -- | interpret an E, building a monadic operation to be run.
   interpE :: MonadHOComputer c m Runtime => E -> m Runtime
-  interpE (Let v e b)       = do e' <- interpE e; locally (Map.insert v e') (interpE b)
-  interpE (If e te fe)      = do e' <- interpE e; interpE $ if e' /= lFalse then te else fe
-  interpE (App e es)        = interpApp e es
-  interpE (NewTuple es)     = traverse interpE es >>= newArray
-  interpE (MakeClosure l e) = interpE (NewTuple [VE $ LabelV l, e])
-  interpE (ClosureProc c)   = do c' <- interpE c; arrayRef c' (Num 0)
-  interpE (ClosureVars c)   = do c' <- interpE c; arrayRef c' (Num 1)
-  interpE (Begin e1 e2)     = interpE e1 >> interpE e2
-  interpE (VE v)            = interpV v
+  interpE = ie
+
+  -- | interpret an E, building a monadic operation to be run.
+  ie :: MonadHOComputer c m Runtime => E -> m Runtime
+  ie (Let v e b)       = do e' <- ie e; locally (Map.insert v e') (ie b)
+  ie (If e te fe)      = do e' <- ie e; ie $ if e' /= lFalse then te else fe
+  ie (App e es)        = interpApp e es
+  ie (NewTuple es)     = traverse ie es >>= newArray
+  ie (MakeClosure l e) = ie (NewTuple [VE $ LabelV l, e])
+  ie (ClosureProc c)   = do c' <- ie c; arrayRef c' (Num 0)
+  ie (ClosureVars c)   = do c' <- ie c; arrayRef c' (Num 1)
+  ie (Begin e1 e2)     = ie e1 >> ie e2
+  ie (VE v)            = interpV v
   -- Primitive applications (built in functions)
-  interpE (PrimApp IsNumber [e])        = isNumber <$> interpE e
-  interpE (PrimApp IsArray  [e])        = isArray  <$> interpE e
-  interpE (PrimApp NewArray [s, d])     = bind2 allocate (interpE s) (interpE d)
-  interpE (PrimApp ARef [a, loc])       = bind2 arrayRef (interpE a) (interpE loc)
-  interpE (PrimApp ASet [a, loc, v])    = bind3 arraySet (interpE a) (interpE loc) (interpE v)
-  interpE (PrimApp ALen [a])            = interpE a >>= arraySize "L4-alen"
-  interpE (PrimApp Print [e])           = interpE e >>= print False >> return (Num 0)
-  interpE (PrimApp b [l, r]) | isBiop b = bind2 (mathOp b) (interpE l) (interpE r)
-  interpE (PrimApp p es)                = exception $ show p ++ " applied to wrong args: " ++ show es
+  ie (PrimApp IsNumber [e])        = isNumber <$> ie e
+  ie (PrimApp IsArray  [e])        = isArray  <$> ie e
+  ie (PrimApp NewArray [s, d])     = bind2 allocate (ie s) (ie d)
+  ie (PrimApp ARef [a, loc])       = bind2 arrayRef (ie a) (ie loc)
+  ie (PrimApp ASet [a, loc, v])    = bind3 arraySet (ie a) (ie loc) (ie v)
+  ie (PrimApp ALen [a])            = ie a >>= arraySize "L4-alen"
+  ie (PrimApp Print [e])           = ie e >>= print False >> return (Num 0)
+  ie (PrimApp b [l, r]) | isBiop b = bind2 (mathOp b) (ie l) (ie r)
+  ie (PrimApp p es)                = exception $ show p ++ " applied to wrong args: " ++ showSExpr es
 
   interpV :: MonadHOComputer c m Runtime => V -> m Runtime
   interpV (VarV v)   = use env >>= envLookup v

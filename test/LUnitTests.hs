@@ -74,7 +74,7 @@ lParsingTests = TestDef {
  ,outputFileExt   = Nothing
  ,compute = \lFile _ -> do
    lCode <- readFile lFile
-   sread lCode @?= (sread . show $ sread lCode)
+   compareSExprs (sread lCode) (sread . showSExpr $ sread lCode)
 }
 spillTests = TestDef {
   name = "Spill"
@@ -84,8 +84,10 @@ spillTests = TestDef {
  ,compute = \spillFile (Just resFile) -> do
     s        <- readFile spillFile
     expected <- readFile resFile
-    sread (spillTest s) @?= sread expected
+    compareSExprs (sread $ spillTest s) (sread expected)
 }
+
+compareSExprs l r = assertBool (showSExpr l ++ "!=" ++ showSExpr r) (l == r)
 
 l1Tests        = oneLevelTestDef l1Language ["test/x86-64-tests"]
 
@@ -142,14 +144,21 @@ runAndCompareInterpVsNativeVsRes lang inputFile resFile = do
   let resultList = fmap strip $ [nativeRes, interpRes] ++ if resFileExists then [expectedRes] else []
   assertList resultList
 
+{-
+   TODO:
+     run interpreter and x86 code and compare results,
+     and then only run other languages if there is an incorrect value
+     and really, only go down to the first failure. this would require a pretty big rewrite
+-}
 runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> FilePath -> IO ()
 runAndCompareInterpTurtlesVsNative lang inputFile resFile = do
   nativeRes     <- return . strip . runVal <$> compileFileAndRunNative lang opts inputFile
   interpResList <- (fmap $ fmap strip) <$> (interpretTurtlesFile lang opts inputFile)
+  {- If there is no .res file for this thats okay.
+     Just make sure the interpreters and native results all agree. -}
   resFileExists <- doesFileExist resFile
   expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
-  let resultList = if resFileExists then [return expectedRes] else [] ++ (nativeRes : interpResList)
-  assertList $ resultList
+  assertList $    (if resFileExists then [return expectedRes] else []) ++ (nativeRes : interpResList)
 
 tree def = testGroup (name def) . fmap mkTest <$> testFiles where
   findFiles :: FilePath -> IO [FilePath]

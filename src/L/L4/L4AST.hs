@@ -2,6 +2,8 @@ module L.L4.L4AST where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.State
+import Data.Monoid
 import Data.Traversable hiding (sequence)
 import L.L3.L3AST (V(..))
 import L.Primitives
@@ -27,16 +29,32 @@ instance Show E  where show = showSExpr
 instance Show L4 where show = showSExpr
 
 instance AsSExpr E where
-  asSExpr (Let v e b)       = asSExpr (sym "let", (asSExpr v, e), b)
-  asSExpr (If v te fe)      = asSExpr (sym "if", v, te, fe)
-  asSExpr (Begin e1 e2)     = asSExpr (sym "begin", e1, e2)
-  asSExpr (NewTuple es)     = List    (sym "new-tuple" : fmap asSExpr es)
-  asSExpr (MakeClosure l e) = asSExpr (sym "make-closure", asSExpr l, e)
-  asSExpr (ClosureProc e)   = asSExpr (sym "closure-proc", e)
-  asSExpr (ClosureVars e)   = asSExpr (sym "closure-vars", e)
-  asSExpr (App e es)        = asSExpr (asSExpr e : fmap asSExpr es)
-  asSExpr (PrimApp p es)    = asSExpr (asSExpr p : fmap asSExpr es)
-  asSExpr (VE v)            = asSExpr v
+  asSExpr ex = fst $ runState (go ex) (newSupply mempty) where
+    go :: E -> State Supply SExpr
+    go (Let v e b)       = do
+      e' <- go e
+      b' <- go b
+      return $ asSExpr (sym "let", [(v, e')], b')
+    go (If v te fe)      = do
+      (v', te', fe') <- (,,) <$> go v <*> go te <*> go fe
+      return $ asSExpr (sym "if", v', te', fe')
+    go (App   e  es)     = do
+      e'       <- go e
+      List es' <- asSExpr <$> traverse go es
+      return $ asSExpr (e' : es')
+    go (PrimApp p es)    = do
+      List es' <- asSExpr <$> traverse go es
+      return $ asSExpr (asSExpr p : es')
+    go (NewTuple es)     = do
+      List es' <- asSExpr <$> traverse go es
+      return $ List (sym "new-tuple" : es')
+    go (Begin e1 e2)     = do
+      (e1', e2') <- (,) <$> go e1 <*> go e2
+      return $ asSExpr (sym "begin", e1', e2')
+    go (MakeClosure l e) = go e >>= \e' -> return $ asSExpr (sym "make-closure", asSExpr l, e')
+    go (ClosureProc e)   = go e >>= \e' -> return $ asSExpr (sym "closure-proc", e')
+    go (ClosureVars e)   = go e >>= \e' -> return $ asSExpr (sym "closure-vars", e')
+    go (VE v)            = return . asSExpr $ v
 
 instance AsSExpr L4 where
   asSExpr (L4 e fs) = List $ asSExpr e : fmap asSExpr fs
@@ -44,7 +62,7 @@ instance AsSExpr L4 where
 -- p ::= (e (l (x ...) e) ...)
 instance FromSExpr L4 where
   fromSExpr (List (main : funcs)) = liftM2 L4 (fromSExpr main) (traverse fromSExpr funcs)
-  fromSExpr bad = Left $ concat ["Bad L4 Program: ", show bad]
+  fromSExpr bad = Left $ concat ["Bad L4 Program: ", showSExpr bad]
 
 instance FromSExpr E where
   fromSExpr = f where
@@ -70,6 +88,8 @@ instance FromSExpr E where
     f (List [AtomSym "=",    l, r])         = parsePrimApp2 EqualTo l r
     f (List [AtomSym "number?", e])         = parsePrimApp1 IsNumber e
     f (List [AtomSym "a?",      e])         = parsePrimApp1 IsArray e
+    -- TODO: check for all keywords here
+    f hmm@(List (AtomSym "let" : _))      = error $ "got a let here: " ++ showSExpr hmm
     f (List (e : es))                       = liftM2 App (f e) (traverse f es)
     f v                                     = VE <$> fromSExpr v
 

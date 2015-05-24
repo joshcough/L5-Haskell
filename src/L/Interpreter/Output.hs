@@ -1,6 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -69,6 +71,9 @@ instance Monad m => Monad (OutputT m) where
 
 instance MonadTrans OutputT where
   lift m = OutputT $ do a <- m; return ([], a)
+
+instance MonadFix m => MonadFix (OutputT m) where
+  mfix f = OutputT $ mfix $ \ ~(_, a) -> runOutputT (f a)
 
 data Halt = Normal | Exceptional String deriving Show
 halt :: MonadError Halt m => m a

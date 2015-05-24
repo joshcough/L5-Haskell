@@ -40,7 +40,7 @@ data FrozenHOComputer r = FrozenHOComputer { _envFrozen :: Env r, _memFrozen :: 
 makeClassy ''FrozenHOComputer
 
 instance HasMemory (HOComputer s r) s where memory = mem
-type MonadHOComputer c m r = (Applicative m, HasHOComputer c (World m) r, MonadMemory c m, MonadOutput m)
+type MonadHOComputer c m r = (MonadFix m, Applicative m, HasHOComputer c (World m) r, MonadMemory c m, MonadOutput m)
 
 -- numbers not encoded, and not word indexed.
 hoMemConfig :: MemoryConfig

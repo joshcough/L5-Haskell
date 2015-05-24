@@ -7,6 +7,7 @@ module L.Parser.SExpr
   ,	SExpr(..)
   , AsSExpr(..)
   , FromSExpr(..)
+  , debugShowSExpr
   , flatten
   , intParser
   , liftParser
@@ -50,13 +51,21 @@ num = AtomNum
 list :: AsSExpr a => [a] -> SExpr
 list = List . fmap asSExpr
 
-instance Show SExpr where
-  show (AtomSym s) = s
-  show (AtomNum i) = show i
-  show (List exps) = showAsList $ fmap show exps
+debugShowSExpr_ :: SExpr -> String
+debugShowSExpr_ (AtomSym s) = "(AtomSym " ++ s ++ ")"
+debugShowSExpr_ (AtomNum i) = "(AtomNum " ++ show i ++ ")"
+debugShowSExpr_ (List exps) = "(List " ++ (showAsList $ fmap debugShowSExpr_ exps) ++ ")"
+
+debugShowSExpr :: AsSExpr a => a -> String
+debugShowSExpr = debugShowSExpr_ . asSExpr
+
+showSExpr_ :: SExpr -> String
+showSExpr_ (AtomSym s) = s
+showSExpr_ (AtomNum i) = show i
+showSExpr_ (List exps) = showAsList $ fmap showSExpr_ exps
 
 showSExpr :: AsSExpr a => a -> String
-showSExpr = show . asSExpr
+showSExpr = showSExpr_ . asSExpr
 
 class AsSExpr a where
   asSExpr :: a -> SExpr
@@ -105,13 +114,13 @@ class FromSExpr a where
 
 instance FromSExpr a => FromSExpr [a] where
   fromSExpr (List args) = sequence (fmap fromSExpr args)
-  fromSExpr bad         = Left $ "bad list" ++ show bad
+  fromSExpr bad         = Left $ "bad list" ++ showSExpr_ bad
 
 parseError :: String -> String -> ParseResult a
 parseError msg  exp = Left $ concat ["Parse Error: '", msg, "' in: ", show exp]
 -- TODO: rename this
 parseError_ :: String -> SExpr -> ParseResult a
-parseError_ msg expr = parseError msg (show expr)
+parseError_ msg expr = parseError msg (showSExpr_ expr)
 
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace

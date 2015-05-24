@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module L.L5.LambdaLifter (lambdaLift) where
 
@@ -12,11 +13,12 @@ import L.L3.L3AST (V(..))
 import L.L4.L4AST as L4
 import L.L5.L5AST as L5
 import L.Parser.SExpr
-import L.Parser.Supply
+import L.Parser.Supply (Supply(..))
+import qualified L.Parser.Supply as Supply
 import L.Variable hiding (freeVars)
 
 lambdaLift :: L5 -> L4
-lambdaLift l5 = fst $ runState (go l5) (newSupply mempty)
+lambdaLift l5 = fst $ runState (go l5) (Supply.newSupply mempty)
 
 {-
 L5Compiler is a lambda lifter (http://en.wikipedia.org/wiki/Lambda_lifting).
@@ -47,7 +49,7 @@ The remainder of the cases are each documented in place.
          the functions are the lifted lambdas.
 -}
 l5c :: String -> L4
-l5c s = fst $ runState (go l5e) (newSupply mempty) where
+l5c s = fst $ runState (go l5e) (Supply.newSupply mempty) where
   l5e = (either error id) . fromSExpr $ sread s
 
 go :: L5.E -> State Supply L4
@@ -66,23 +68,23 @@ go (L5.NewTuple es)   = do
   (l4es, fs) <- goEs es
   return $ L4 (L4.NewTuple l4es) (concat fs)
 go (L5.Let v e b)     = do
-  v'          <- freshNameFor v
+  Supply.insert v
   (L4 e' efs) <- go e
   (L4 b' bfs) <- go b
-  return $ L4 (L4.Let v' e' b') (efs++bfs)
+  return $ L4 (L4.Let v e' b') (efs++bfs)
 {-
  letrec doesn't exist in L4, so we do this simple transformation.
- (letrec ([x e1]) e2)
+ (letrec ([f e1]) e2)
   =>
- (let ([x (new-tuple 0)])
-   (begin (aset x 0 e1[x:=(aref x 0)])
-          e2[x:=(aref x 0)]))
+ (let ([f (new-tuple 0)])
+   (begin (aset f 0 e1[f:=(aref f 0)])
+          e2[f:=(aref f 0)]))
 -}
-go (LetRec v e b) = go $
-  L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
-    (L5.App (PrimE ASet) [Var v, LitInt 0, subst v (L5.App (PrimE ARef) [Var v, LitInt 0]) e])
-    (subst v (L5.App (PrimE ARef) [Var v, LitInt 0]) b)
-  )
+go (LetRec v e b) = do
+  Supply.insert v
+  go $ L5.Let v (L5.NewTuple [LitInt 0]) (L5.Begin
+        (L5.App (PrimE ASet) [Var v, LitInt 0, subst v (L5.App (PrimE ARef) [Var v, LitInt 0]) e])
+        (subst v (L5.App (PrimE ARef) [Var v, LitInt 0]) b))
 {-
  We Turn (f +) => (f (lambda (x y) (+ x y)))
  So when we see a primitive function by itself,
@@ -98,7 +100,7 @@ go (L5.App (PrimE p) es) = do
   (es', fs) <- goEs es
   return $ L4 (L4.PrimApp p es') (concat fs)
 go (L5.App e es) = do
-  v' <- freshNameFor' "x"
+  v' <- Supply.freshNameFor' "l5var_"
   -- compile the function position
   (L4 e' fs') <- go e
   -- compile all of the arguments
@@ -153,6 +155,7 @@ go (L5.App e es) = do
  in the very same way.
  -}
 go lam@(Lambda args body) = do
+  traverse Supply.insert args
   {- build the body of the new function -}
   -- compile the body of the lambda
   (L4 compiledLambdaBody moreFunctions) <- go body
@@ -169,7 +172,7 @@ go lam@(Lambda args body) = do
       liftedFunctionBody = if   usingArgsTuple 
                            then wrapWithLets argsVar args freeLets 
                            else freeLets
-  liftedLabel <- fmap toLabel (freshNameFor' "x")
+  liftedLabel <- fmap toLabel $ Supply.freshNameFor' "l5lbl_"
   let closure = L4.MakeClosure liftedLabel $ L4.NewTuple (VE . VarV <$> frees)
       liftedFunction = Func liftedLabel fArgs $ liftedFunctionBody
   return $ L4 closure (liftedFunction : moreFunctions)

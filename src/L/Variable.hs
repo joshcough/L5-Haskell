@@ -3,7 +3,6 @@ module L.Variable where
 import Control.Lens
 import L.Parser.SExpr
 import Data.Set (Set)
-import qualified Data.Set as Set
 
 type Hint = Variable
 
@@ -14,7 +13,7 @@ instance AsSExpr Variable where
 
 instance FromSExpr Variable where
   fromSExpr (AtomSym s) = return $ Variable s
-  fromSExpr bad = Left $ "invalid variable name: " ++ show bad
+  fromSExpr bad = Left $ "invalid variable name: " ++ showSExpr bad
 
 class AsVariable t where
   _Variable :: Prism' t Variable
@@ -31,7 +30,7 @@ wellFormedArgList = traverse wellFormedArg where
 
 wellFormedArg :: SExpr -> Either String Variable
 wellFormedArg (AtomSym arg) = wellFormedArgString arg
-wellFormedArg bad           = Left $ "invalid argument name: " ++ show bad
+wellFormedArg bad           = Left $ "invalid argument name: " ++ showSExpr bad
 
 -- TODO: test for valid variable name?
 -- it might sort of be handled automatically in Read, but

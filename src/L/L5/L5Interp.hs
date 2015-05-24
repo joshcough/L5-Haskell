@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RecursiveDo #-}
 
 module L.L5.L5Interp (interpL5) where
 
@@ -46,13 +47,18 @@ interpE = ie where
   ie (Lambda vs e)      = use env >>= return . Closure vs e
   ie (Var v)            = use env >>= envLookup v
   ie (Let v e body)     = ie $ App (Lambda [v] body) [e]
-  ie (LetRec v e body)  = locally newEnv (interpE body) where
-     -- todo: this is all weird now that letrec doesnt have a list of functions...
-     newEnv old = new where new = Map.union (Map.fromList ([toClosure (v, e)])) old
-                            toClosure (v, Lambda vs e) = (v, Closure vs e new)
-                            toClosure (v, e) = error $ "non-lambda in letrec: " ++ show (v, e)
-  ie (If p t f)         = do r <- ie p; ie $ if r == RT lTrue then t else f
-  ie (NewTuple es)      = RT <$> (traverse asRun es >>= newArray)
+  ie (LetRec v (Lambda v' e) body) = locally newEnv (ie body) where
+    newEnv old = new where new = Map.insert v (Closure v' e new) old
+  ie (LetRec v e body) = do
+    rec newEnv <- use env >>= return . Map.insert v e'
+        e'     <- locally (const newEnv) (ie e)
+    locally (const newEnv) (ie body)
+  ie (If p t f)         = do r <- ie p; ie $ if r /= RT lFalse then t else f
+
+  -- new-tuple is fatally flawed, it can't store closures, but it obviously should be able to
+  --ie (NewTuple es)      = RT <$> (traverse ie es >>= newArray)
+  ie (NewTuple es)      = RT <$> (traverse (asRun "es") es >>= newArray)
+
   ie (Begin e1 e2)      = ie e1 >> ie e2
   ie (LitInt i)         = return . RT $ Num i
   ie (PrimE p)          = ie $ Lambda vs (App (PrimE p) $ Var <$> vs) where vs = primVars p
@@ -64,24 +70,24 @@ interpE = ie where
 
   interpPrim :: MonadHOComputer c m L5Runtime => PrimName -> [E] -> m L5Runtime
   interpPrim = ip where
-    ip Print    [e]         = asRun e >>= print False >> return (RT $ Num 0)
+    ip Print    [e]         = (asRun "print") e >>= print False >> return (RT $ Num 0)
     ip IsNumber [e]         = foldRT (RT . isNumber) (RT lFalse) <$> interpE e
     ip IsArray  [e]         = foldRT (RT . isArray)  (RT lFalse) <$> interpE e
-    ip NewArray [e1,e2]     = RT <$> bind2 allocate (asRun e1) (asRun e2)
-    ip ARef     [e1,e2]     = RT <$> bind2 arrayRef (asRun e1) (asRun e2)
-    ip ASet     [e1,e2,e3]  = RT <$> bind3 arraySet (asPtr e1) (asNum e2) (asRun e3)
-    ip ALen     [e]         = RT <$> (asRun e >>= arraySize "L5-alen")
-    ip p [e1,e2] | isBiop p = RT <$> bind2 (mathOp p) (asRun e1) (asRun e2)
-    ip p args               = exception $ "wrong arguments to prim: " ++ mkString "," (show <$> args)
+    ip NewArray [e1,e2]     = RT <$> bind2 allocate (asRun "newArray/e1" e1) (asRun "newArray/e2" e2)
+    ip ARef     [e1,e2]     = RT <$> bind2 arrayRef (asRun "aRef" e1) (asRun "aRef" e2)
+    ip ASet     [e1,e2,e3]  = RT <$> bind3 arraySet (asPtr "aSet/e1" e1) (asNum "aSet/e2" e2) (asRun "aSet/e3" e3)
+    ip ALen     [e]         = RT <$> (asRun "aLen" e >>= arraySize "L5-alen")
+    ip p [e1,e2] | isBiop p = RT <$> bind2 (mathOp p) (asRun "primop" e1) (asRun "primop" e2)
+    ip p args               = exception $ "wrong arguments to prim: " ++ show p ++ " " ++ mkString "," (show <$> args)
 
-  asRun :: MonadHOComputer c m L5Runtime => E -> m Runtime
+  asRun :: MonadHOComputer c m L5Runtime => String -> E -> m Runtime
   asRun = asRunM return
-  asNum :: MonadHOComputer c m L5Runtime => E -> m Runtime
+  asNum :: MonadHOComputer c m L5Runtime => String -> E -> m Runtime
   asNum = asRunM (\r -> Num <$> expectNum r)
-  asPtr :: MonadHOComputer c m L5Runtime => E -> m Runtime
+  asPtr :: MonadHOComputer c m L5Runtime => String -> E -> m Runtime
   asPtr = asRunM (\r -> Pointer <$> expectPointer "L5/asPtr" r)
-  asRunM :: MonadHOComputer c m L5Runtime => (Runtime -> m Runtime) -> E -> m Runtime
-  asRunM f e = interpE e >>= foldRT f (exception $ "expected Runtime, but got a Closure")
+  asRunM :: MonadHOComputer c m L5Runtime => (Runtime -> m Runtime) -> String -> E -> m Runtime
+  asRunM f caller e = interpE e >>= foldRT f (exception $ caller ++ " expected Runtime, but got a Closure.")
 
 evalClosure :: MonadHOComputer c m L5Runtime => L5 -> m L5Runtime
 evalClosure e = interpE e >>= evalClosure' where

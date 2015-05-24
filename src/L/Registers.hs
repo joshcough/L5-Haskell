@@ -69,7 +69,7 @@ instance AsSExpr Register where
 
 instance FromSExpr Register where
   fromSExpr (AtomSym s) = registerFromName s
-  fromSExpr bad = badRegister $ show bad
+  fromSExpr bad = badRegister $ showSExpr bad
 
 low8 :: Register -> String
 low8 Rax = "al"

@@ -6,9 +6,6 @@ import Data.Int
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Traversable hiding (sequence)
 import L.Parser.SExpr
 import L.Variable
 import Prelude hiding (print)
@@ -27,7 +24,7 @@ instance AsSExpr Label where
 
 instance FromSExpr Label where
   fromSExpr (AtomSym l) = parseLabel l
-  fromSExpr bad = Left $ "bad label" ++ show bad
+  fromSExpr bad = Left $ "bad label" ++ showSExpr bad
 
 data Func a = Func { name :: Label, args :: [Variable], body :: a }
 
