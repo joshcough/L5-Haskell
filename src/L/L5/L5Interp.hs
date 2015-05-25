@@ -17,7 +17,6 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L5.L5AST
-import L.Parser.SExpr
 import L.Variable
 import L.Util.Utils
 import Prelude hiding (print)

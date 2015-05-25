@@ -16,6 +16,7 @@ import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
+import Control.Monad.Writer
 import Data.Bits
 import Data.Int
 import Data.List.NonEmpty hiding (length)
@@ -64,7 +65,7 @@ runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult (Frozen
 runL2Computation (L2 p) = do
   c   <- newX86Computer $ adjustMain p
   let ce = (Map.empty :| [], c)
-  (output, (haltEither, (_, comp))) <- runOutputT $ runStateT (runErrorT $ runX86Computer step) ce
+  ((haltEither, (_, comp)), output) <- runWriterT $ runStateT (runErrorT $ runX86Computer step) ce
   fzc <- freezeX86Computer comp
   return $ mkComputationResult (output, (haltEither, fzc))
 
