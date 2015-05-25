@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -5,31 +7,23 @@ module L.Interpreter.Runtime where
 
 import Control.Monad.Error.Class
 import Data.Bits
+import Data.Foldable hiding (concat)
 import Data.Int
 import L.Interpreter.Output
 import L.L1.L1L2AST
 import L.L3.L3AST
 
-data Runtime a = Num Int64 | Pointer Int64 | Runtime a deriving Eq --FunctionPointer Label deriving Eq
+data Runtime a = Num Int64 | Pointer Int64 | Runtime a deriving (Eq, Functor, Foldable, Show)
 
--- TODO: original code had this question: should label return true here?
--- This goes back to when Runtime had this constructor: FunctionPointer Label
--- the code did have it returning true, and i'm still not sure if that was needed.
-class IsPointer a where
-  isPointer :: a -> Bool
+instance Monad Runtime where
+  return = Runtime
+  Num i     >>= _ = Num i
+  Pointer i >>= _ = Pointer i
+  Runtime a >>= f = f a
 
-instance IsPointer a => IsPointer (Runtime a) where
-  isPointer (Pointer _) = True
-  isPointer (Runtime a) = isPointer a
-  isPointer (Num _)     = False
-
--- TODO: make this false and see what happens :)
-instance IsPointer Label where isPointer _ = True
-
-instance Show a => Show (Runtime a) where
-  show (Num i)     = "(Num "     ++ show i ++ ")"
-  show (Pointer i) = "(Pointer " ++ show i ++ ")"
-  show (Runtime a) = "(Runtime " ++ show a ++ ")"
+isPointer :: Runtime a -> Bool
+isPointer (Pointer _) = True
+isPointer _           = False
 
 type MonadRuntime m = MonadError Halt m
 
@@ -70,7 +64,7 @@ isNumber :: Runtime a -> Runtime a
 isNumber (Num _) = lTrue
 isNumber _       = lFalse
 
-isArray :: IsPointer a => Runtime a -> Runtime a
+isArray :: Runtime a -> Runtime a
 isArray = boolToNum . isPointer
 
 expectNum :: (Show a, MonadRuntime m) => Runtime a -> m Int64

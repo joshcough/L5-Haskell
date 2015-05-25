@@ -40,7 +40,6 @@ interpL5 e = runST $ show <$> runComputation (interpE e) where
 
 data Closure = Closure [Variable] L5 (Env Closure) deriving Eq
 instance Show Closure where show _ = "<function>"
-instance IsPointer Closure where isPointer _ = False
 
 -- | interpret an E, building a monadic operation to be run.
 interpE :: L5Monad c m => E -> m (Runtime Closure)
