@@ -21,10 +21,6 @@ instance Monad Runtime where
   Pointer i >>= _ = Pointer i
   Runtime a >>= f = f a
 
-isPointer :: Runtime a -> Bool
-isPointer (Pointer _) = True
-isPointer _           = False
-
 type MonadRuntime m = MonadError Halt m
 
 lTrue, lFalse :: Runtime a
@@ -74,3 +70,7 @@ expectNum r       = exception $ "expected a Num, but got: " ++ show r
 expectPointer :: (Show a, MonadRuntime m) => String -> Runtime a -> m Int64
 expectPointer _ (Pointer i) = return i
 expectPointer caller r      = exception $ caller ++ " expected Pointer, but got: " ++ show r
+
+isPointer :: Runtime a -> Bool
+isPointer (Pointer _) = True
+isPointer _           = False
