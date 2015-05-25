@@ -148,5 +148,5 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
   showLabel l = (if os == Darwin then "_" else "") ++ "L1_" ++ l
 
   withLabel :: String -> (String -> a) -> Label -> a
-  withLabel _ f l@(Label (':' : label)) = f (showLabel label) where
-  withLabel caller _ (Label contents)   = error $ "bad label: " ++ contents ++ " in: " ++ caller
+  withLabel _ f (Label (':' : label)) = f (showLabel label) where
+  withLabel caller _ (Label contents) = error $ "bad label: " ++ contents ++ " in: " ++ caller

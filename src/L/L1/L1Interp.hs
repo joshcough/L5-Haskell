@@ -5,6 +5,7 @@ module L.L1.L1Interp (interpL1) where
 
 import Control.Applicative
 import Control.Lens hiding (set)
+import Control.Monad.Error.Class
 import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
@@ -19,6 +20,7 @@ import L.Interpreter.Runtime
 import L.Interpreter.X86Computer
 import L.L1.L1L2AST
 import L.L1.L1L2MainAdjuster (adjustMain)
+import L.Primitives (Label(..))
 import L.Registers
 import L.Util.Utils (bind2)
 import Prelude hiding (length, print)
@@ -47,7 +49,8 @@ step (Assign x1 (MemRead (MemLoc x2 offset))) = do
 step (Assign x (Allocate size datum)) =
   bind2 allocate (readS size >>= encodeNum) (readS datum) >>= nextInstWX x
 step (Assign x (Print s)) = readS s >>= print True >>= nextInstWX x
-step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2 >>= encodeNum)
+step (Assign _ (ArrayError s1 s2)) =
+  bind2 arrayError (readS s1) (readS s2 >>= encodeNum) >> return ()
 step (Assign r (SRHS s)) = readS s >>= nextInstWX r
 step (MathInst x op s) = do
   xv     <- readX x
@@ -57,13 +60,13 @@ step (MathInst x op s) = do
 step (CJump (Comp s1 op s2) l1 l2) = do
   s1' <- readNum s1
   s2' <- readNum s2
-  goto (FunctionPointer $ if cmp op s1' s2' then l1 else l2)
+  goto (Runtime $ if cmp op s1' s2' then l1 else l2)
 step (MemWrite (MemLoc x offset) s) = do
   x'    <- readX x
   index <- runOp x' Increment (Num $ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
-step (Goto l) = goto (FunctionPointer l)
+step (Goto l) = goto (Runtime l)
 step (LabelDeclaration _) = nextInst
 step (Call s) = do
   func <- readS s
@@ -79,23 +82,23 @@ step Return = do
   if done then halt else readMem "Return" (Pointer rspVal) >>= goto
 
 -- goto the next instruction after writing a register
-nextInstWX :: MonadX86Computer c m a => Register -> Runtime -> m ()
+nextInstWX :: MonadX86Computer c m a => Register -> Runtime Label -> m ()
 nextInstWX r i = writeX r i >> nextInst
 
-readS :: (MonadOutput m, MonadX86Computer c m a) => L1S -> m Runtime
+readS :: (MonadOutput m, MonadX86Computer c m a) => L1S -> m (Runtime Label)
 readS (NumberL1S n) = return $ Num n
 readS (RegL1S r)    = readX r
-readS (LabelL1S l)  = return $ FunctionPointer l
+readS (LabelL1S l)  = return $ Runtime l
 
-readX :: MonadX86Computer c m a => Register -> m Runtime
+readX :: MonadX86Computer c m a => Register -> m (Runtime Label)
 readX = readReg
 
-writeX :: MonadX86Computer c m a => Register -> Runtime -> m ()
+writeX :: MonadX86Computer c m a => Register -> Runtime Label -> m ()
 writeX = writeReg
 
 readNum :: (MonadOutput m, MonadX86Computer c m a) => L1S -> m Int64
 readNum s = readS s >>= expectNum
 
-encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
+encodeNum :: (MonadError Halt m, Show a) => Runtime a -> m (Runtime a)
 encodeNum (Num n) = return . Num $ shiftR n 1
 encodeNum r = exception $ "tried to encode non-number: " ++ show r

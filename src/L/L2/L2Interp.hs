@@ -11,6 +11,7 @@ module L.L2.L2Interp where --(interpL2, runL2Computation) where
 
 import Control.Applicative
 import Control.Lens hiding (cons, set)
+import Control.Monad.Error.Class
 import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
@@ -29,6 +30,7 @@ import L.Interpreter.Runtime
 import L.Interpreter.X86Computer
 import L.L1.L1L2AST
 import L.L1.L1L2MainAdjuster
+import L.Primitives (Label(..))
 import L.Registers
 import L.Util.Utils (bind2)
 import L.Variable
@@ -42,7 +44,7 @@ interpL2 p = runST $ show <$> runL2Computation p
 -- TODO: hmmmmm cant i use HOComputer here? instead of CE?
 -- TODO: they are similar, but HOComputer doesnt have registers...but could it?
 -- Env, and some Env operations
-type Env = Map Variable Runtime
+type Env = Map Variable (Runtime Label)
 replaceHeadEnv :: MonadState (NonEmpty a, t) m => a -> m ()
 replaceHeadEnv e = do (es, c) <- get; put (e :| tail es, c)
 addEnv :: MonadState (NonEmpty a, t) m => a -> m ()
@@ -55,7 +57,7 @@ type CE m = (NonEmpty Env, X86Computer (World m) L2Instruction)
 instance HasX86Computer r t a => HasX86Computer (l, r) t a where
   x86Computer = _2.x86Computer
 
-instance HasMemory r a => HasMemory (l, r) a where
+instance HasMemory r s a => HasMemory (l, r) s a where
   memory = _2.memory
 
 runL2Computation :: (MonadST m, Functor m) => L2 -> m (ComputationResult (FrozenX86Computer L2Instruction))
@@ -78,7 +80,7 @@ step (Assign x1 (MemRead (MemLoc x2 offset))) = do
 step (Assign x (Allocate size datum)) =
   bind2 allocate (readS size >>= encodeNum) (readS datum) >>= nextInstWX x
 step (Assign x (Print s)) = readS s >>= print True >>= nextInstWX x
-step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2 >>= encodeNum)
+step (Assign _ (ArrayError s1 s2)) = bind2 arrayError (readS s1) (readS s2 >>= encodeNum) >> return ()
 step (Assign r (SRHS s)) = readS s >>= nextInstWX r
 step (MathInst x op s) = do
   xv     <- readX x
@@ -88,13 +90,13 @@ step (MathInst x op s) = do
 step (CJump (Comp s1 op s2) l1 l2) = do
   s1' <- readNum s1
   s2' <- readNum s2
-  goto (FunctionPointer $ if cmp op s1' s2' then l1 else l2)
+  goto (Runtime $ if cmp op s1' s2' then l1 else l2)
 step (MemWrite (MemLoc x offset) s) = do
   x'    <- readX x
   index <- runOp x' Increment (Num $ fromIntegral offset)
   readS s >>= writeMem "step MemWrite" index
   nextInst
-step (Goto l) = goto (FunctionPointer l)
+step (Goto l) = goto (Runtime l)
 step (LabelDeclaration _) = nextInst
 step (Call s) = do
   func <- readS s
@@ -138,27 +140,27 @@ step Return = do
       readMem "Return" (Pointer rspVal) >>= goto
 
 -- goto the next instruction after writing an x value
-nextInstWX :: MonadX86Computer (CE m) m a => L2X -> Runtime -> m ()
+nextInstWX :: MonadX86Computer (CE m) m a => L2X -> Runtime Label -> m ()
 nextInstWX x i = writeX x i >> nextInst
 
-readS :: MonadX86Computer (CE m) m a => L2S -> m Runtime
+readS :: MonadX86Computer (CE m) m a => L2S -> m (Runtime Label)
 readS (NumberL2S n) = return $ Num n
 readS (XL2S x)      = readX x
-readS (LabelL2S l)  = return $ FunctionPointer l
+readS (LabelL2S l)  = return $ Runtime l
 
-readX :: MonadX86Computer (CE m) m a => L2X -> m Runtime
+readX :: MonadX86Computer (CE m) m a => L2X -> m (Runtime Label)
 readX (RegL2X r) = readReg r
 readX (VarL2X v) = do
   e <- (head . fst) <$> get
   maybe (exception $ "unbound variable: " ++ show v) return (Map.lookup v e)
 
-writeX :: MonadX86Computer (CE m) m a => L2X -> Runtime -> m ()
+writeX :: MonadX86Computer (CE m) m a => L2X -> Runtime Label -> m ()
 writeX (RegL2X r) i = writeReg r i
 writeX (VarL2X v) i = (head . fst) <$> get >>= replaceHeadEnv . Map.insert v i
 
 readNum :: (MonadOutput m, MonadX86Computer (CE m) m a) => L2S -> m Int64
 readNum s = readS s >>= expectNum
 
-encodeNum :: MonadX86Computer c m a => Runtime -> m Runtime
+encodeNum :: (MonadError Halt m, Show a) => Runtime a -> m (Runtime a)
 encodeNum (Num n) = return . Num $ shiftR n 1
 encodeNum r = exception $ "tried to encode non-number: " ++ show r

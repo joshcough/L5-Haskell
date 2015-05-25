@@ -33,30 +33,30 @@ import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 
-type RegisterState = Map Register Runtime
+type RegisterState = Map Register (Runtime Label)
 type Ip = Int64 -- instruction pointer
 
-data X86Computer s a = X86Computer {
+data X86Computer s i = X86Computer {
    _registers   :: RegisterState    -- contains runtime values (Int64 for L1/L2, but probably a data type for other languages)
- , _computerMem :: Memory s         -- "" (same as registers)
- , _program     :: Vector a         -- ok...non-linear programs (L3 and above) might have trouble here.
+ , _computerMem :: Memory s Label -- "" (same as registers)
+ , _program     :: Vector i         -- ok...non-linear programs (L3 and above) might have trouble here.
  , _labels      :: Map Label Int64  -- however, this could me a map from label to something else
  , _ip          :: Ip               -- Ip might mean nothing to L3 and above, but then again maybe theres a way to make use of it.
 }
 makeClassy ''X86Computer
 
-data FrozenX86Computer a = FrozenX86Computer {
+data FrozenX86Computer i = FrozenX86Computer {
   frozenRegisters :: RegisterState
- ,frozenMemory    :: Vector Runtime
+ ,frozenMemory    :: Vector (Runtime Label)
  ,frozenHeapP     :: Int64
  ,frozenIp        :: Ip
- ,frozenInst      :: a
+ ,frozenInst      :: i
 }
 
 -- TODO: we have the ability to distinguish between stdout and stderr
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
-instance Show a => Show (ComputationResult (FrozenX86Computer a)) where
+instance (Eq a, Show a) => Show (ComputationResult (FrozenX86Computer a)) where
   -- no need to show anything other than the output, if halted normally.
   show (ComputationResult output (Halted Normal) _) = concat $ fmap outputText output
   show (ComputationResult output rs c) = intercalate "\n" [
@@ -68,22 +68,22 @@ instance Show a => Show (ComputationResult (FrozenX86Computer a)) where
     "Inst Ptr:   " ++ show (frozenIp c),
     "Final Inst: " ++ show (frozenInst c) ] where
     memDisplay = show . map (second show) $ memList
-    memList :: [(Int, Runtime)]
+    memList :: [(Int, Runtime Label)]
     memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] . Vector.toList $ frozenMemory c
 
-instance HasMemory (X86Computer s a) s where memory = computerMem
+instance HasMemory (X86Computer s i) s Label where memory = computerMem
 
-freezeX86Computer :: MonadST m => X86Computer (World m) a -> m (FrozenX86Computer a)
+freezeX86Computer :: (HasX86Computer c (World m) i, MonadST m) => c -> m (FrozenX86Computer i)
 freezeX86Computer c = do
   m <- liftST $ freeze (c^.computerMem^.runMemory)
   return $ FrozenX86Computer (c^.registers) m (c^.computerMem^.heapP) (c^.ip) ((c^.program) Vector.! fromIntegral (c^.ip))
 
-type MonadX86Computer c m a = (HasX86Computer c (World m) a, MonadMemory c m)
+type MonadX86Computer c m a = (HasX86Computer c (World m) a, MonadMemory c m Label, Show a)
 
 rspStart :: Int64
 rspStart = fromIntegral memSize * 8
 
-registerStartState :: Map Register Runtime
+registerStartState :: Map Register (Runtime Label)
 registerStartState = Map.insert rsp (Pointer rspStart) $ Map.fromList $ zip registersList (repeat $ Num 0)
 
 newX86Computer :: (MonadST m, Show x, Show s) => Program x s -> m (X86Computer (World m) (Instruction x s))
@@ -98,7 +98,7 @@ newX86Computer p = do
   } where insts = programToList p
 
 -- set the value of a register to an int value
-writeReg :: MonadX86Computer c m a => Register -> Runtime -> m ()
+writeReg :: MonadX86Computer c m a => Register -> (Runtime Label) -> m ()
 writeReg reg newValue = registers.at reg ?= newValue
 
 -- set the value of r1 to the value of r2
@@ -106,7 +106,7 @@ set :: MonadX86Computer c m a => Register -> Register -> m ()
 set r1 r2 = (registers.at r1) <~ use (registers.at r2)
 
 -- read the value of a register
-readReg :: MonadX86Computer c m a => Register -> m Runtime
+readReg :: MonadX86Computer c m a => Register -> m (Runtime Label)
 readReg r = use (registers.at r) >>=
   maybe (throwError . Exceptional $ "error: unitialized register: " ++ show r) return
 
@@ -115,7 +115,7 @@ readReg r = use (registers.at r) >>=
 -- from: http://www.cs.virginia.edu/~evans/cs216/guides/x86.html
 -- "push first decrements ESP by 4, then places its operand 
 --  into the contents of the 32-bit location at address [ESP]."
-push :: MonadX86Computer c m a => Runtime -> m ()
+push :: MonadX86Computer c m a => Runtime Label -> m ()
 push value = do
   rspVal  <- readReg rsp >>= expectPointer "push"
   writeReg rsp (Pointer $ rspVal - 8)
@@ -135,10 +135,10 @@ findLabelIndex :: MonadX86Computer c m a => Label -> m Int64
 findLabelIndex l@(Label l') =
   use (labels.at l) >>= maybe (exception $ "no such label: " ++ l') return
 
-goto :: MonadX86Computer c m a => Runtime -> m ()
-goto (Num i) = ip .= i
+goto :: MonadX86Computer c m a => Runtime Label -> m ()
+goto (Num i)     = ip .= i
 goto (Pointer p) = exception $ "goto called with pointer: " ++ show p
-goto (FunctionPointer l) = do i <- findLabelIndex l; ip .= i
+goto (Runtime l) = do i <- findLabelIndex l; ip .= i
 
 currentInst :: MonadX86Computer c m a => m a
 currentInst = do

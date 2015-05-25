@@ -10,21 +10,35 @@ import L.Interpreter.Output
 import L.L1.L1L2AST
 import L.L3.L3AST
 
-data Runtime = Num Int64 | Pointer Int64 | FunctionPointer Label deriving Eq
+data Runtime a = Num Int64 | Pointer Int64 | Runtime a deriving Eq --FunctionPointer Label deriving Eq
 
-instance Show Runtime where
-  show (Num i)                     = "(Num " ++ show i ++ ")"
-  show (Pointer i)                 = "(Pointer " ++ show i ++ ")"
-  show (FunctionPointer (Label l)) = "(FunctionPointer " ++ show l ++ ")"
+-- TODO: original code had this question: should label return true here?
+-- This goes back to when Runtime had this constructor: FunctionPointer Label
+-- the code did have it returning true, and i'm still not sure if that was needed.
+class IsPointer a where
+  isPointer :: a -> Bool
+
+instance IsPointer a => IsPointer (Runtime a) where
+  isPointer (Pointer _) = True
+  isPointer (Runtime a) = isPointer a
+  isPointer (Num _)     = False
+
+-- TODO: make this false and see what happens :)
+instance IsPointer Label where isPointer _ = True
+
+instance Show a => Show (Runtime a) where
+  show (Num i)     = "(Num "     ++ show i ++ ")"
+  show (Pointer i) = "(Pointer " ++ show i ++ ")"
+  show (Runtime a) = "(Runtime " ++ show a ++ ")"
 
 type MonadRuntime m = MonadError Halt m
 
-lTrue, lFalse :: Runtime
+lTrue, lFalse :: Runtime a
 lTrue  = Num 1
 lFalse = Num 0
 
 --TODO: rename to x86Op
-runOp :: MonadRuntime m => Runtime -> X86Op -> Runtime -> m Runtime
+runOp :: (Show a, MonadRuntime m) => Runtime a -> X86Op -> Runtime a -> m (Runtime a)
 runOp (Num l)     Increment  (Num r)      = return $ Num     (l + r)
 runOp (Num l)     Increment  (Pointer r)  = return $ Pointer (l + r)
 runOp (Pointer l) Increment  (Num r)      = return $ Pointer (l + r)
@@ -36,11 +50,9 @@ runOp (Num i)     RightShift (Num amount) = return $ Num $   shiftR i (fromInteg
 runOp (Num l)     BitwiseAnd (Num r)      = return $ Num     (l .&. r)
 -- If you're going to mess with pointers like this, you're just going to get back a Num.
 runOp (Pointer l) BitwiseAnd (Num r)      = return $ Num     (l .&. r)
-runOp l op r  = exception $
-  "cannot do " ++ show l ++ " " ++ x86OpSymbol op ++ " " ++ show r
+runOp l op r  = exception $ "cannot do " ++ show l ++ " " ++ x86OpSymbol op ++ " " ++ show r
 
-
-mathOp :: MonadRuntime m => PrimName -> Runtime -> Runtime -> m Runtime
+mathOp :: (Show a, MonadRuntime m) => PrimName -> Runtime a -> Runtime a -> m (Runtime a)
 mathOp Add      (Num l) (Num r) = return . Num $ l + r
 mathOp Sub      (Num l) (Num r) = return . Num $ l - r
 mathOp Mult     (Num l) (Num r) = return . Num $ l * r
@@ -50,33 +62,21 @@ mathOp EqualTo  (Num l) (Num r) = return . boolToNum $ l == r
 mathOp b l r = exception $
   concat ["invalid arguments to ", show b, " :", show l, ", " , show r]
 
-boolToNum :: Bool -> Runtime
+boolToNum :: Bool -> Runtime a
 boolToNum True  = Num 1
 boolToNum False = Num 0
 
-isNumber :: Runtime -> Runtime
+isNumber :: Runtime a -> Runtime a
 isNumber (Num _) = lTrue
 isNumber _       = lFalse
 
-isArray :: Runtime -> Runtime
-isArray = isPointer
+isArray :: IsPointer a => Runtime a -> Runtime a
+isArray = boolToNum . isPointer
 
--- TODO: should label return true here?
-isPointer :: Runtime -> Runtime
-isPointer (Pointer _)         = lTrue
-isPointer (FunctionPointer _) = lTrue
-isPointer _                   = lFalse
-
-expectNum :: MonadRuntime m => Runtime -> m Int64
+expectNum :: (Show a, MonadRuntime m) => Runtime a -> m Int64
 expectNum (Num i) = return i
 expectNum r       = exception $ "expected a Num, but got: " ++ show r
 
-expectPointer :: MonadRuntime m => String -> Runtime -> m Int64
+expectPointer :: (Show a, MonadRuntime m) => String -> Runtime a -> m Int64
 expectPointer _ (Pointer i) = return i
 expectPointer caller r      = exception $ caller ++ " expected Pointer, but got: " ++ show r
-
-foldRuntime :: (Runtime -> a) -> (Runtime -> a) -> (Runtime -> a) -> Runtime -> a
-foldRuntime fn fp fc = f where
-  f n@(Num _)             = fn n
-  f p@(Pointer _)         = fp p
-  f c@(FunctionPointer _) = fc c

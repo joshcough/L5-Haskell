@@ -12,21 +12,9 @@
 
 module L.Interpreter.ComputationResult where
 
-import Control.Arrow (second)
-import Control.Lens hiding (set)
-import Control.Monad.Error.Class
 import Control.Monad.Reader
-import Control.Monad.ST.Class
-import Data.Int
-import Data.List (intercalate)
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Monoid()
-import Data.Vector (Vector, freeze)
-import qualified Data.Vector as Vector
 import Prelude hiding (read)
-import L.L1.L1L2AST
-import L.Interpreter.Memory
 import L.Interpreter.Output
 
 data ComputationResult a = ComputationResult {

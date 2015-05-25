@@ -26,12 +26,10 @@ import Data.Vector.Fusion.Stream hiding ((++))
 import Data.Vector.Generic.Mutable (update)
 import Data.Vector.Mutable (STVector, read, write)
 import qualified Data.Vector.Mutable as MV
-import Debug.Trace
 import Prelude hiding (read)
 import L.Interpreter.Output
 import L.Interpreter.Runtime
 import L.L1.L1L2AST
-import L.Primitives (Label(..))
 import L.Util.Utils
 
 data MemoryConfig = MemoryConfig {
@@ -40,16 +38,16 @@ data MemoryConfig = MemoryConfig {
 }
 makeClassy ''MemoryConfig
 
-data Memory s = Memory {
-  _runMemory :: STVector s Runtime
+data Memory s a = Memory {
+  _runMemory :: STVector s (Runtime a)
  ,_heapP     :: Int64 -- pointer to top of heap
  ,_memConfig :: MemoryConfig
 }
 makeClassy ''Memory
 
-instance HasMemoryConfig (Memory s) where memoryConfig = memConfig
+instance HasMemoryConfig (Memory s a) where memoryConfig = memConfig
 
-type MonadMemory mem m = (Functor m, MonadST m, MonadError Halt m, MonadState mem m, HasMemory mem (World m))
+type MonadMemory mem m a = (Functor m, MonadST m, MonadError Halt m, MonadState mem m, HasMemory mem (World m) a, Show a)
 
 oneMeg, twoMeg, memSize :: Int64
 oneMeg = 1048576
@@ -60,20 +58,20 @@ zero = 0
 memSizeAsInt :: Int
 memSizeAsInt = fromIntegral memSize
 
-newMem :: MonadST m => MemoryConfig -> m (Memory (World m))
+newMem :: MonadST m => MemoryConfig -> m (Memory (World m) a)
 newMem config = liftST $ Memory <$> MV.replicate memSizeAsInt (Num zero) <*> pure 0 <*> pure config
 
-divideIndex :: MonadMemory mem m => Int64 -> m Int64
+divideIndex :: MonadMemory mem m a => Int64 -> m Int64
 divideIndex = withMemIndex div
 
-multiplyIndex :: MonadMemory mem m => Int64 -> m Int64
+multiplyIndex :: MonadMemory mem m a => Int64 -> m Int64
 multiplyIndex = withMemIndex (*)
 
-withMemIndex :: MonadMemory mem m => (Int64 -> Int64 -> Int64) -> Int64 -> m Int64
+withMemIndex :: MonadMemory mem m a => (Int64 -> Int64 -> Int64) -> Int64 -> m Int64
 withMemIndex f i = do m <- use memory; return $ if (m^.memoryConfig^.wordIndexed) then f i 8 else i
 
 -- write an int into memory at the given address
-writeMem :: MonadMemory mem m => String -> Runtime -> Runtime -> m ()
+writeMem :: MonadMemory mem m a => String -> Runtime a -> Runtime a -> m ()
 writeMem caller addr value = do
   p     <- expectPointer (caller ++ "/writeMem") addr
   index <- divideIndex p
@@ -82,7 +80,7 @@ writeMem caller addr value = do
     else exception $ caller ++ "tried to write out of bounds memory index: " ++ show index
 
 -- read a single int from memory
-readMem :: MonadMemory mem m => String -> Runtime -> m Runtime
+readMem :: MonadMemory mem m a => String -> Runtime a -> m (Runtime a)
 readMem caller addr = do
   p     <- expectPointer (caller ++ "/readMem") addr
   index <- divideIndex p
@@ -91,7 +89,7 @@ readMem caller addr = do
     else exception $ caller ++ "tried to access out of bounds memory index: " ++ show index
 
 -- read an array from memory
-readArray :: MonadMemory mem m => Runtime -> m (STVector (World m) Runtime)
+readArray :: MonadMemory mem m a => Runtime a -> m (STVector (World m) (Runtime a))
 readArray addr = do
   p          <- expectPointer "readArray" addr
   startIndex <- divideIndex p <&> (+ 1)
@@ -100,17 +98,17 @@ readArray addr = do
     then uses memory (MV.slice (fromIntegral startIndex) (fromIntegral size) . _runMemory)
     else exception $ "readArray tried to access out of bounds memory index: " ++ show startIndex
 
-evalAddrToNum :: MonadMemory mem m => String -> Int64 -> m Int64
+evalAddrToNum :: MonadMemory mem m a => String -> Int64 -> m Int64
 evalAddrToNum caller addr = readMem caller (Pointer addr) >>= expectNum
 
 -- TODO: test if heap runs into stack, and vice-versa
 -- NOTE: allocate is Haskell's replicate
-allocate :: (MonadState mem m, MonadMemory mem m) => Runtime -> Runtime -> m Runtime
+allocate :: (MonadState mem m, MonadMemory mem m a) => Runtime a -> Runtime a -> m (Runtime a)
 allocate size r = do
   size' <- expectNum size
   newArray $ Prelude.replicate (fromIntegral size') r
 
-newArray :: (MonadState mem m, MonadMemory mem m) => [Runtime] -> m Runtime
+newArray :: (MonadState mem m, MonadMemory mem m a) => [Runtime a] -> m (Runtime a)
 newArray rs = do
   hp    <- use heapP
   index <- divideIndex hp
@@ -125,7 +123,7 @@ newArray rs = do
 -- print a number or an array
 --   if argument is an int, prints the int
 --   else it's an array, print the contents of the array (and recur)
-print :: forall mem m. (MonadOutput m, MonadMemory mem m) => Bool -> Runtime -> m Runtime
+print :: forall mem m a. (MonadOutput m, MonadMemory mem m a, Show a) => Bool -> Runtime a -> m (Runtime a)
 print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1) where
   loop v depth index
     | index >= MV.length v = return []
@@ -133,7 +131,7 @@ print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1
       h <- liftST (read v index) >>= printContent depth
       t <- loop v depth (index + 1)
       return $ h : t
-  printContent :: Int -> Runtime -> m String
+  printContent :: Int -> Runtime a -> m String
   printContent depth r
     | depth >= 4   = return "..."
     | otherwise = case r of
@@ -143,11 +141,10 @@ print encoded n = printContent 0 n >>= \s -> stdOut (s ++ "\n") >> return (Num 1
         arr       <- readArray p
         contentsV <- loop arr depth 0
         return $ "{s:" ++ mkString ", " (show size : contentsV) ++ "}"
-      FunctionPointer (Label bad) ->
-        exception $ "cannot print a label, but tried to print: " ++ show bad
+      Runtime bad -> exception $ "impossible to print: " ++ show bad
 
 -- print an array error
-arrayError :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> m a
+arrayError :: (MonadOutput m, MonadMemory mem m a) => Runtime a -> Runtime a -> m (Runtime a)
 arrayError a x = do
   size  <- arraySizeNum "arrayError" a
   index <- expectNum x
@@ -155,14 +152,14 @@ arrayError a x = do
     "attempted to use position ", show index, " in an array that only has ", show size, " positions"]
   halt
 
-arraySize :: MonadMemory mem m => String -> Runtime -> m Runtime
+arraySize :: MonadMemory mem m a => String -> Runtime a -> m (Runtime a)
 arraySize caller = readMem caller
 
-arraySizeNum :: MonadMemory mem m => String -> Runtime -> m Int64
+arraySizeNum :: MonadMemory mem m a => String -> Runtime a -> m Int64
 arraySizeNum caller a = readMem caller a >>= expectNum
 
 -- TODO: refactor out safeMem or safeWithMem or whatever.
-safeReadMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> m Runtime
+safeReadMem :: (MonadOutput m, MonadMemory mem m a) => String -> Runtime a -> Runtime a -> m (Runtime a)
 safeReadMem caller p i = do
   size  <- arraySizeNum caller p
   index <- expectNum i <&> (+1)
@@ -171,21 +168,21 @@ safeReadMem caller p i = do
     else arrayError p (Num $ index-1)
 
 -- | sets the (arr[i] = e)
-safeWriteMem :: (MonadOutput m, MonadMemory mem m) => String -> Runtime -> Runtime -> Runtime -> m ()
+safeWriteMem :: (MonadOutput m, MonadMemory mem m a) => String -> Runtime a -> Runtime a -> Runtime a -> m ()
 safeWriteMem caller p i v = do
   size  <- arraySizeNum caller p
   index <- expectNum i <&> (+1)
   if index <= size
     then runOp p Increment (Num index) >>= flip (writeMem caller) v
-    else arrayError p (Num $ index-1)
+    else arrayError p (Num $ index-1) >> return ()
 
 -- | array reference (arr[i])
-arrayRef :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> m Runtime
+arrayRef :: (MonadOutput m, MonadMemory mem m a) => Runtime a -> Runtime a -> m (Runtime a)
 arrayRef arr i = safeReadMem "L4-aref" arr i
 
 -- | sets the (arr[i] = e)
-arraySet :: (MonadOutput m, MonadMemory mem m) => Runtime -> Runtime -> Runtime -> m Runtime
+arraySet :: (MonadOutput m, MonadMemory mem m a) => Runtime a -> Runtime a -> Runtime a -> m (Runtime a)
 arraySet arr i r = safeWriteMem "Memory Array set" arr i r >> return lTrue
 
-freezeMem :: MonadST m => Memory (World m) -> m (Vector Runtime)
+freezeMem :: MonadST m => Memory (World m) a -> m (Vector (Runtime a))
 freezeMem m = liftST $ freeze (m^.runMemory)

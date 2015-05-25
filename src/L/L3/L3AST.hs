@@ -11,14 +11,9 @@ module L.L3.L3AST (
 import Control.Applicative
 import Control.Monad
 import Data.Int
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Maybe (fromJust)
 import Data.Monoid
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Traversable hiding (sequence)
-import L.L1.L1L2AST hiding (Func, Print)
 import L.Primitives
 import L.Parser.SExpr
 import L.Variable
@@ -31,7 +26,6 @@ data D    = App V [V]        | PrimApp PrimName [V] | VD V |
             NewTuple  [V]    | MakeClosure Label V  | ClosureProc V | ClosureVars V
 data V = VarV Variable | NumV Int64 | LabelV Label
 
-instance (AsSExpr a, Show a) => Show (Func a) where show = showSExpr
 instance Show V        where show = showSExpr
 instance Show D        where show = showSExpr
 instance Show E        where show = showSExpr

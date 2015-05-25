@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
@@ -11,10 +12,10 @@ module L.Interpreter.HOComputer where
 import Control.Applicative
 import Control.Arrow (second)
 import Control.Lens
+import Control.Monad.Error.Class
 import Control.Monad.State
 import Control.Monad.ST.Class
 import Control.Monad.Trans.Error
-import Data.Int
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -25,33 +26,32 @@ import L.Interpreter.ComputationResult
 import L.Interpreter.Memory
 import L.Interpreter.Output
 import L.Interpreter.Runtime
-import L.L1.L1L2AST hiding (Func)
 import L.Primitives (Label(..))
 import L.Variable
 import Prelude hiding (print)
 
-type Env r = Map Variable r
+type Env e = Map Variable (Runtime e)
 type Lib func = Map Label func
 
-data HOComputer s r = HOComputer { _env :: Env r, _mem :: Memory s }
+data HOComputer s e a = HOComputer { _env :: Env e, _mem :: Memory s a }
 makeClassy ''HOComputer
 
-data FrozenHOComputer r = FrozenHOComputer { _envFrozen :: Env r, _memFrozen :: Vector Runtime }
+data FrozenHOComputer e a = FrozenHOComputer { _envFrozen :: Env e, _memFrozen :: Vector (Runtime a) }
 makeClassy ''FrozenHOComputer
 
-instance HasMemory (HOComputer s r) s where memory = mem
-type MonadHOComputer c m r = (MonadFix m, Applicative m, HasHOComputer c (World m) r, MonadMemory c m, MonadOutput m)
+instance HasMemory (HOComputer s e a) s a where memory = mem
+type MonadHOComputer c m e a = (MonadFix m, Applicative m, HasHOComputer c (World m) e a, MonadMemory c m a, MonadOutput m)
 
 -- numbers not encoded, and not word indexed.
 hoMemConfig :: MemoryConfig
 hoMemConfig = MemoryConfig False False
 
-newHOComputer :: (Functor m, MonadST m) => m (HOComputer (World m) r)
+newHOComputer :: (Functor m, MonadST m) => m (HOComputer (World m) r a)
 newHOComputer = HOComputer (Map.empty) <$> newMem hoMemConfig
 
 runComputation :: (MonadST m, Functor m) =>
-  ErrorT Halt (StateT (HOComputer (World m) r) (OutputT m)) a ->
-  m (ComputationResult (FrozenHOComputer r))
+  ErrorT Halt (StateT (HOComputer (World m) e a) (OutputT m)) b ->
+  m (ComputationResult (FrozenHOComputer e a))
 runComputation compuation = do
   c <- newHOComputer
   (output, (eHaltRuntime, finalComputer)) <- runOutputT $ flip runStateT c $ runErrorT $ compuation
@@ -60,8 +60,8 @@ runComputation compuation = do
 
 -- | like local on reader, only in my state monad.
 -- | notice that putEnv is hidden here, so that it can't be used unsafely.
-locally :: MonadHOComputer c m r => (Env r -> Env r) -> m a -> m a
-locally modifyEnv action = do 
+locally :: (HasHOComputer s s1 e a, MonadState s m) => (Env e -> Env e) -> m b -> m b
+locally modifyEnv action = do
   e   <- use env
   env .= modifyEnv e
   res <- action
@@ -72,7 +72,7 @@ locally modifyEnv action = do
 -- TODO: this doesnt show the heap pointer!
 --       we shold be able to use that
 --       but forcing us into a string here makes this difficult.
-instance Show r => Show (ComputationResult (FrozenHOComputer r)) where
+instance (Show r, Eq a, Show a) => Show (ComputationResult (FrozenHOComputer r a)) where
   {-
     normally in L3, thec computer thinks it's still running.
     Halted Normal only happens on an expected arrayError.
@@ -89,20 +89,19 @@ instance Show r => Show (ComputationResult (FrozenHOComputer r)) where
     "Environment: " ++ showEnv (c^.envFrozen) ] where
     --"Heap Ptr:   " ++ show (frozenHeapP c) ] where
 
-showMem :: Vector Runtime -> String
+showMem :: (Eq a, Show a) => Vector (Runtime a) -> String
 showMem m = show $ map (second show) memList where
-  memList :: [(Int, Runtime)]
   memList = filter (\(_,r) -> Num 0 /= r) . zip [0..] $ Vector.toList m
 
-showEnv :: Show r => Map Variable r -> String
+showEnv :: Show e => Env e -> String
 showEnv = show . Map.map show
 
-envLookup :: MonadHOComputer c m r => Variable -> Env r -> m r
+envLookup :: (Monad m, MonadError Halt m) => Variable -> Env e -> m (Runtime e)
 envLookup = forceLookup "variable" show
 
-libLookup :: MonadHOComputer c m r => Label -> Lib f -> m f
+libLookup :: (Monad m, MonadError Halt m) => Label -> Lib f -> m f
 libLookup l@(Label name) = forceLookup "function" (const name) l
 
-forceLookup :: (Ord k, MonadHOComputer c m r) => String -> (k -> String) -> k -> Map k v -> m v
+forceLookup :: (Ord k, Monad m, MonadError Halt m) => String -> (k -> String) -> k -> Map k v -> m v
 forceLookup kName kShow k m =
   maybe (exception $ concat ["unbound ", kName, ": ", kShow k]) return (Map.lookup k m)
