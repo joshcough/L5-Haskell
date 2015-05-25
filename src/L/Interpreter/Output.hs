@@ -14,14 +14,12 @@
 
 module L.Interpreter.Output where
 
-import Control.Applicative
 import Control.Monad.Error.Class
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Trans.Error hiding (throwError)
+import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 import Control.Monad.Writer
-import Data.Bifunctor
 import Data.Monoid()
 import System.IO
 
@@ -44,7 +42,7 @@ instance Monad m => MonadOutput (OutputT m) where
 instance MonadOutput m => MonadOutput (IdentityT m)
 instance MonadOutput m => MonadOutput (StateT s m)
 instance MonadOutput m => MonadOutput (ReaderT s m)
-instance (Error s, MonadOutput m)  => MonadOutput (ErrorT s m)
+instance (Error s, MonadOutput m) => MonadOutput (ExceptT s m)
 
 data Output = StdOut String | StdErr String
 outputText :: Output -> String

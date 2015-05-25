@@ -15,7 +15,7 @@ import Control.Lens
 import Control.Monad.Error.Class
 import Control.Monad.State
 import Control.Monad.ST.Class
-import Control.Monad.Trans.Error
+import Control.Monad.Trans.Except
 import Control.Monad.Writer
 import Data.List
 import Data.Map (Map)
@@ -51,11 +51,11 @@ newHOComputer :: (Functor m, MonadST m) => m (HOComputer (World m) r a)
 newHOComputer = HOComputer (Map.empty) <$> newMem hoMemConfig
 
 runComputation :: (MonadST m, Functor m) =>
-  ErrorT Halt (StateT (HOComputer (World m) e a) (WriterT [Output] m)) b ->
+  ExceptT Halt (StateT (HOComputer (World m) e a) (WriterT [Output] m)) b ->
   m (ComputationResult (FrozenHOComputer e a))
 runComputation compuation = do
   c <- newHOComputer
-  ((eHaltRuntime, finalComputer), output) <- runWriterT $ flip runStateT c $ runErrorT $ compuation
+  ((eHaltRuntime, finalComputer), output) <- runWriterT $ flip runStateT c $ runExceptT $ compuation
   mem <- freezeMem $ finalComputer^.mem
   return $ mkComputationResult (output, (eHaltRuntime, FrozenHOComputer (finalComputer^.env) mem))
 

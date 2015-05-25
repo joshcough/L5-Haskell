@@ -9,7 +9,7 @@ import Control.Monad.Error.Class
 import Control.Monad.State
 import Control.Monad.ST
 import Control.Monad.ST.Class
-import Control.Monad.Trans.Error
+import Control.Monad.Trans.Except
 import Control.Monad.Writer
 import Data.Bits
 import Data.Int
@@ -34,7 +34,7 @@ interpL1 p = runST $ show <$> runL1Computation p
 runL1Computation :: (Functor m, MonadST m) => L1 -> m (ComputationResult (FrozenX86Computer L1Instruction))
 runL1Computation (L1 p) = do
   c    <- newX86Computer $ adjustMain p
-  ((haltEither, comp), output) <- runWriterT $ runStateT (runErrorT $ runX86Computer step) c
+  ((haltEither, comp), output) <- runWriterT $ runStateT (runExceptT $ runX86Computer step) c
   fzc  <- freezeX86Computer comp
   return $ mkComputationResult (output, (haltEither, fzc))
 

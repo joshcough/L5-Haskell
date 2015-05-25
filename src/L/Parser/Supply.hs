@@ -15,7 +15,6 @@ import Control.Monad.State
 import Data.Char (isDigit)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as Nel
-import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 import L.Variable

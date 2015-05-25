@@ -1,7 +1,9 @@
-module L.L1.L1X86 (genX86Code) where
+module L.L1.L1X86 (genX86Code, X86(..)) where
 
-import Control.Monad.State
+import Control.Applicative
 import Control.Monad.Error
+import Control.Monad.State
+import Control.Monad.Trans.Except
 import Data.Traversable
 import L.L1.L1L2AST
 import L.OS
@@ -10,17 +12,19 @@ import L.Registers
 import L.Util.Utils
 
 -- X86 Generation code
+newtype X86      = X86 String
+instance Show X86 where show (X86 s) = s
 type X86Inst     = String
 type ProgramName = String
 
-genX86Code :: ProgramName -> OS -> L1 -> Either String String
-genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
-  genCodeS :: L1 -> ErrorT String (State Int) String
+genX86Code :: ProgramName -> OS -> L1 -> Either String X86
+genX86Code name os l1 = X86 <$> (fst $ runState (runExceptT $ genCodeS l1) 0) where
+  genCodeS :: L1 -> ExceptT String (State Int) String
   genCodeS (L1 (Program main funcs)) = do
     x86Funcs <- compiledFunctions
     return $ dump $ concat [mainHeader, concat x86Funcs, ["\n"]] where
 
-    compiledFunctions :: ErrorT String (State Int) [[X86Inst]]
+    compiledFunctions :: ExceptT String (State Int) [[X86Inst]]
     compiledFunctions = Data.Traversable.sequence $ fmap compile (main : funcs)
 
     dump :: [X86Inst] -> String
@@ -32,10 +36,10 @@ genX86Code name os l1 = fst $ runState (runErrorT $ genCodeS l1) 0 where
       ".globl _go",
       "_go:" ]
 
-  compile :: L1Func -> ErrorT String (State Int) [X86Inst]
+  compile :: L1Func -> ExceptT String (State Int) [X86Inst]
   compile f = traverse genInstS (body f) >>= return . concat where
 
-  genInstS :: L1Instruction -> ErrorT String (State Int) [X86Inst]
+  genInstS :: L1Instruction -> ExceptT String (State Int) [X86Inst]
   genInstS (Call s) = return [call s]
   genInstS i = either throwError return $ genInst i
 
