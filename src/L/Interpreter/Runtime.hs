@@ -5,6 +5,7 @@
 
 module L.Interpreter.Runtime where
 
+import Control.Applicative
 import Control.Monad.Error.Class
 import Data.Bits
 import Data.Foldable hiding (concat)
@@ -14,6 +15,10 @@ import L.L1.L1L2AST
 import L.L3.L3AST
 
 data Runtime a = Num Int64 | Pointer Int64 | Runtime a deriving (Eq, Functor, Foldable, Show)
+
+instance Applicative Runtime where
+  pure = Runtime
+  Runtime f <*> Runtime a = Runtime (f a)
 
 instance Monad Runtime where
   return = Runtime

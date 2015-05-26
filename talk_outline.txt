@@ -1,0 +1,66 @@
+L5-Haskell Talk Outline
+
+What is L5-Haskell
+  It's a lot of things.
+    * It's compiler for a simple language. (show the grammar for L5)
+  But what is it really?
+    * It's a playground for me to learn Haskell that happens to contain
+    * A compiler for a tower of languages
+    * An interpreter for each language
+
+Architecture Notes
+  Bottom up [L1..L5]
+  Philosophy: 
+    Working bottom up you always have a strong foundation. This is akin to proving a sub-lemma before continuing on.
+    Advantages:
+      Always have something working. You can can always test your languages by running them on the metal AND your interpreters.
+    Disadvantages:
+      What if your bottom language doesn't have enough primitives to support the higher level language?
+      Akin to proving some sub-lemmas that turn out be meaningless/unhelpful.
+
+  What if we worked top down [L5..L1]?
+    Well, we can't run things on the metal, we can only interpret them. Blah.
+
+
+hold on, lets just have a list of things to talk about
+  Each of the language (the grammar)
+  The compiler for each of the languages
+  The interpreters for each language
+  The tests for each language
+  The reader, the parsers
+  What is a language in this world?
+    input language i,
+    surface syntax for that language,
+    parser for that syntax from SExpr -> i,
+    sub-language o,
+    a compiler (i -> o),
+    an interpreter (i -> Output),
+    an extention (eg .L5)
+    a pile of tests for each language
+
+L1:
+  What is L1?
+    A simple x86-64 like language (a subset) with
+      registers, ints, some primitive functions (print, alloc, array-error)
+    expand..
+  How is L1 compiled?
+    L1 to x86 is just a straight forward transformation.
+  Why does L1 exist (as opposed to just compiling to x86?)
+    Well, mainly because it gives us an easy AST to compile L2 to.
+
+L2:
+  What is L2?
+    L2 is L1 with variables (and in addition to registers)
+  How is L2 compiled?
+    L2 is a register allocator for the variables introduced.
+      register allocation includes liveness analysis, graph coloring, spilling variables ... TODO expand
+
+L3:
+  What is L3?
+    L3 its an expression language in ANormal form.
+  How is L3 compiled?
+    Linearizing the expressions to L2 instruction lists (TODO rewrite this sentence)
+
+
+
+

@@ -1,0 +1,9 @@
+((let ([x (:f1 1 2 3)]) (print x)) 
+  (:f1 (a b c) 
+    (if a 
+      (let ([t (new-tuple)]) (:idf b t)) 
+      (let ([t (new-tuple)]) (:idf c t))
+    )
+  ) 
+  (:idf (x frees) x)
+)

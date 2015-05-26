@@ -111,6 +111,7 @@ library
     primitive                 >= 0.5.3.0,
     process                   >= 1.1.0.2,
     text                      >= 1.1.1.1,
+    thrist                    >= 0.3.0.2,
     transformers              >= 0.2       && < 0.5,
     trifecta                  >= 1.5.1,
     semigroups                >= 0.8.3.1   && < 1,

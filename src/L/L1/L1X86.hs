@@ -12,8 +12,6 @@ import L.Registers
 import L.Util.Utils
 
 -- X86 Generation code
-newtype X86      = X86 String
-instance Show X86 where show (X86 s) = s
 type X86Inst     = String
 type ProgramName = String
 

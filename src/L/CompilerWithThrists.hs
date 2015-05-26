@@ -44,7 +44,7 @@ instance Cat Thrist where
   foldCat f Nil = id
   foldCat f (Snoc xs x) = foldCat f xs . f x
   mapCat f Nil = Nil
-  mapCat f (Snoc xs x) = Snoc (mapCat f xs) (f x)
+  i
   traverseCat f Nil = pure Nil
   traverseCat f (Snoc xs x) = Snoc <$> traverseCat f xs <*> f x
 
@@ -334,4 +334,14 @@ compileFileAndRunNative lang opts inputFile = do
   munge (compileAndRunNative lang opts inputFile) (fromString code)
 
 
+-}
+
+{-
+extra things that could be tried:
+
+data Horizontal :: (k -> k -> *) -> [k] -> * where
+  Last :: f a b -> Horizontal f '[a,b];
+  Cons :: f a b -> Horizontal f (b ': cs) -> Horizontal f (a ': b ': cs)
+
+data Showable f i o where Showable :: (Show i, Show o) => f i o -> Showable f i o
 -}

@@ -1,10 +1,13 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Main where
 
 import Control.Lens
 import L.CommandLine
 import L.Compiler
+import L.Parser.SExpr
+import L.Primitives (X86)
 import L.Util.IOHelpers
 import L.Util.NativeRunner
 import L.L1.L1
@@ -35,17 +38,17 @@ main' (exec, turtles, opts, file) = case (file^.extension) of
   "S" -> runSFileNative (file^.filename) (file^.directory) >>= putStrLn
   ext -> g ext where
     go lang = c exec lang opts file
-    g ".L1" = go l1Language
-    g ".L2" = go l2Language
-    g ".L3" = go l3Language
-    g ".L4" = go l4Language
-    g ".L5" = go l5Language
+    g ".L1" = go l1CompilerShowable
+    g ".L2" = go l2CompilerShowable
+    g ".L3" = go l3CompilerShowable
+    g ".L4" = go l4CompilerShowable
+    g ".L5" = go l5CompilerShowable
     g bad  = error $ "LC: bad input file: " ++ file
 
-c :: Show o => Bool -> Language i o -> CompilationOptions -> FilePath -> IO ()
-c False lang opts file = do
-  res <- compileFileAndWriteResult lang (opts & outputDir %~ (<|> (Just $ file^.directory))) file
+c :: FromSExpr i => Bool -> Thrist (Show :=> Compiler1) i X86 -> CompilationOptions -> FilePath -> IO ()
+c False comp opts file = do
+  res <- compileFileAndWriteResult (unconstrain comp) (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error (const $ return ()) res
-c True lang opts file = do
-  res <- compileFileAndRunNative   lang (opts & outputDir %~ (<|> (Just $ file^.directory))) file
+c True comp opts file = do
+  res <- compileFileAndRunNative   (unconstrain comp) (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error putStrLn res

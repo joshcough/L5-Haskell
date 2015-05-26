@@ -1,12 +1,18 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module L.Compiler (
+module L.Compiler {-(
    Val 
   ,ProgramName
+  ,Compiler(..)
+  ,Compiler1(..)
   ,CompilationOptions(..), os, outputDir
   ,Language(..)
+  ,Language1(..)
+  ,Thrist(..)
   ,compile
   ,compileString
   ,compileFile
@@ -18,7 +24,6 @@ module L.Compiler (
   ,compileTurtlesFile
   ,compOpts
   ,ext
-  ,interpret
   ,interpretString
   ,interpretFile
   ,interpretTurtles
@@ -26,10 +31,9 @@ module L.Compiler (
   ,interpretTurtlesFile
   ,osFromString
   ,parseFile
-  ,parseString
   ,runVal
   ,munge
-) where
+) -} where
 
 import Control.Applicative
 import Control.Category
@@ -38,6 +42,7 @@ import Data.Default
 import Data.Maybe
 import L.OS
 import L.Parser.SExpr
+import L.Primitives (X86(..))
 import L.Util.NativeRunner
 import Prelude hiding ((.),id)
 import System.FilePath.Lens
@@ -65,196 +70,202 @@ type Output           = String
 type ProgramName      = String
 type Val a            = Either String a
 type Parser         i = SExpr -> Val i
-type Compiler     i o = CompilationOptions -> ProgramName -> i -> Val o
 type Interpreter    i = i -> Output
 type Extension        = String
 
-data Language i o where
-  Language :: (Show i, Show o) =>
-    Parser i      ->
-    Compiler  i o ->
-    Interpreter i ->
-    Extension     ->
-    Maybe (Language o a) ->
-    Language i o
+data Compiler1 i o = Compiler1 {
+  compile1 :: CompilationOptions -> ProgramName -> i -> Val o
+ ,ext1     :: Extension
+}
 
-parser      :: Language i o -> Parser i
-parser        (Language p _ _ _ _) = p
-compiler    :: Language i o -> Compiler i o
-compiler      (Language _ c _ _ _) = c
-interpreter :: Language i o -> Interpreter i
-interpreter   (Language _ _ i _ _) = i
-ext         :: Language i o -> Extension
-ext           (Language _ _ _ e _) = e
+data Language1 i o where
+  Language1 :: Compiler1 i o -> Interpreter i -> Language1 i o
+
+data (p :=> f) i o where Constrained :: (p i, p o) => f i o -> (:=>) p f i o
+
+data Thrist l i k where
+  Nil  :: l i i -> Thrist l i i
+  Cons :: l i j -> Thrist l j k -> Thrist l i k
+
+mapThrist :: (forall x y. f x y -> g x y) -> Thrist f a b -> Thrist g a b
+mapThrist f (Nil  lii)   = Nil  (f lii)
+mapThrist f (Cons lij t) = Cons (f lij) (mapThrist f t)
+
+type Compiler i o = Thrist Compiler1 i o
+type Language i o = Thrist Language1 i o
+
+constrain :: (p i, p o) => f i o -> (:=>) p f i o
+constrain = Constrained
+
+unconstrain :: Thrist (c :=> f) i o -> Thrist f i o
+unconstrain = mapThrist (\(Constrained f) -> f)
+
+unconstrain2 :: Thrist (c1 :=> (c2 :=> f)) i o -> Thrist f i o
+unconstrain2 = mapThrist (\(Constrained (Constrained f)) -> f)
 
 -- helpers
 runVal :: Val a -> a
 runVal = either error id
-
-{-
-sequenceA :: (Traversable t, Applicative f) => t (f a) -> f (t a)
-sequence :: (Traversable t, Monad m) => t (m a) -> m (t a)
-
-munge' :: (b -> m1 (m2 a b1)) -> m2 a b -> m1 (m2 a b1)
-munge' = either (return . Left)
-
-munge' :: (a -> m1 (m2 b)) -> m2 a -> m1 (m2 b)
-munge' = ???
--}
 
 munge :: (b -> IO (Either a b1)) -> Either a b -> IO (Either a b1)
 munge = either (return . Left)
 mungeList :: (b -> [Either a b1]) -> Either a b -> [Either a b1]
 mungeList = either (\msg -> [Left msg]) 
 
-outputExtension :: Language i o -> String
-outputExtension (Language _ _ _ _ subLang) = maybe "S" ext subLang
-
-showOutput :: Language i o -> o -> String
-showOutput (Language _ _ _ _ (Just _)) = show
-showOutput Language{} = read . show
+ext :: Compiler i o -> Extension
+ext (Nil (Compiler1 _ ext)) = ext
+ext (Cons _ t)             = ext t
 
 -- parsing
-parseString :: Language i o -> String -> Val i
-parseString l = liftParser $ parser l
-
-parseFile :: Language i o -> FilePath -> IO (Val i)
-parseFile l file = parseString l <$> readFile file
+parseFile :: FromSExpr i => FilePath -> IO (Val i)
+parseFile file = fromString <$> readFile file
 
 -- compilation
-compile :: Language i o -> Compiler i o
-compile = compiler
+compile :: Compiler i o -> CompilationOptions -> ProgramName -> i -> Either String o
+compile (Nil (Compiler1 f _))    opts name i = f opts name i
+compile (Cons (Compiler1 f _) t) opts name i = f opts name i >>= compile t opts name
 
 compileString ::
-  Language i o       -> 
-  ProgramName        -> 
-  CompilationOptions -> 
-  String             -> 
+  FromSExpr i =>
+  Compiler i o       ->
+  ProgramName        ->
+  CompilationOptions ->
+  String             ->
   Val o
-compileString l name opts s = parseString l s >>= compile l opts name
+compileString c name opts s = fromString s >>= compile c opts name
 
-compileFile :: 
-  Language i o       -> 
-  CompilationOptions -> 
-  FilePath           -> 
+compileFile ::
+  FromSExpr i =>
+  Compiler i o       ->
+  CompilationOptions ->
+  FilePath           ->
   IO (Val o)
-compileFile l opts file = readFile file >>= return . compileString l file opts
+compileFile c opts file = readFile file >>= return . compileString c file opts
 
-compileAndWriteResult :: Show o => 
-  Language i o       -> 
-  CompilationOptions -> 
-  ProgramName        -> 
+compile1AndWriteResult :: Show o =>
+  Compiler1 i o       ->
+  CompilationOptions ->
+  ProgramName        ->
   i                  ->
   IO (Val o)
-compileAndWriteResult l opts inputFile input =
-  f $ compile l opts inputFile input where
-    f = munge $ \o -> do
-      _ <- writeOutput l inputFile (getOutputDirOrElse opts inputFile) o
-      return (return o)
+compile1AndWriteResult (Compiler1 f ex) opts inputFile input = munge
+  (\o -> do { _ <- writeFile (renameFile inputFile ex opts) (show o); return (return o) })
+  (f opts inputFile input)
+
+renameFile :: FilePath -> Extension -> CompilationOptions -> FilePath
+renameFile inputFile ext opts = inputFile & extension .~ ext & directory .~ (getOutputDirOrElse opts inputFile)
+
+compileAndWriteResult :: Show o =>
+  Compiler i o       ->
+  CompilationOptions ->
+  ProgramName        ->
+  i                  ->
+  IO (Val o)
+compileAndWriteResult c opts inputFile input = munge
+  (\o -> do { _ <- writeFile (renameFile inputFile (ext c) opts) (show o); return (return o) })
+  (compile c opts inputFile input)
 
 writeOutput :: Show o =>
-  Language i o -> 
-  ProgramName  -> 
-  FilePath     -> 
-  o            -> 
+  Compiler i o ->
+  ProgramName  ->
+  FilePath     ->
+  o            ->
   IO ()
-writeOutput l inputFile outputDir code = do
-  writeFile outputFile $ showOutput l code where
-    outputFile = inputFile & extension .~ (outputExtension l) & directory .~ outputDir
+writeOutput c inputFile outputDir code =
+  writeFile (inputFile & extension .~ (ext c) & directory .~ outputDir) $ show code
 
-compileFileAndWriteResult :: Show o => 
-  Language i o       -> 
-  CompilationOptions -> 
-  FilePath           -> 
+compileFileAndWriteResult :: (FromSExpr i, Show o) =>
+  Compiler i o       ->
+  CompilationOptions ->
+  FilePath           ->
   IO (Val o)
-compileFileAndWriteResult l opts inputFile = do
-  i <- parseFile l inputFile
-  munge (compileAndWriteResult l opts (inputFile^.filename)) i
+compileFileAndWriteResult c opts inputFile = do
+  i <- parseFile inputFile
+  munge (compileAndWriteResult c opts (inputFile^.filename)) i
 
 -- interpretation
-interpret :: Language i o -> Interpreter i
-interpret = interpreter
+interpretString :: FromSExpr i =>  Interpreter i -> String -> Val Output
+interpretString i s = i <$> fromString s
 
-interpretString :: Language i o -> String -> Val Output
-interpretString l s = interpret l <$> parseString l s
-
-interpretFile :: Language i o -> FilePath -> IO (Val Output)
-interpretFile l file = readFile file >>= return . interpretString l
+interpretFile :: FromSExpr i => Interpreter i -> FilePath -> IO (Val Output)
+interpretFile i file = readFile file >>= return . interpretString i
 
 -- interpret all levels.
 -- TODO: gives the answers back in reverse order
 interpretTurtles :: 
-  Language i o       -> 
-  CompilationOptions -> 
+  Language i o   ->
+  CompilationOptions ->
   ProgramName        -> 
   i                  ->
   [Val Output]
-interpretTurtles l@(Language _ _ _ _ subLang) opts name input = 
-  (Right $ interpret l input) : (maybe [] f subLang) where
-    f sub = mungeList id $ do
-      i' <- compile l opts name input
-      return $ interpretTurtles sub opts name i'
+interpretTurtles (Nil (Language1 _ i)) _ _ input = [Right $ i input]
+interpretTurtles (Cons (Language1 (Compiler1 f _) i) t) opts name input =
+  (Right $ i input) : (mungeList id $ do
+    o <- f opts name input
+    return $ interpretTurtles t opts name o)
 
 interpretTurtlesString ::
-  Language i o       ->
+  FromSExpr i =>
+  Language i o   ->
   CompilationOptions ->
   ProgramName        ->
   String             ->
   [Val Output]
-interpretTurtlesString l opts name s =
-  mungeList (interpretTurtles l opts name) (parseString l s)
+interpretTurtlesString t opts name s =
+  mungeList (interpretTurtles t opts name) (fromString s)
 
 interpretTurtlesFile ::
-  Language i o       ->
+  FromSExpr i =>
+  Language i o   ->
   CompilationOptions ->
   FilePath           ->
   IO ([Val Output])
-interpretTurtlesFile l opts file = do
+interpretTurtlesFile t opts file = do
   code <- readFile file
-  return $ interpretTurtlesString l opts file code
+  return $ interpretTurtlesString t opts file code
 
--- compile all the way to assembly, writing intermediate files
+-- compile from i all the way to o, writing any intermediate files
 compileTurtles ::
-  Language i o       ->
+  Show o =>
+  Thrist (Show :=> Compiler1) i o ->
   CompilationOptions ->
   FilePath           -> --the original input file, also serves as the program name
   i                  ->
   IO ()
-compileTurtles l@(Language _ _ _ _ subLang) opts inputFile input = do
-  code <- compileAndWriteResult l opts inputFile input
-  case (subLang, code) of
-    (_, Left err)       -> error err
-    (Nothing, _)        -> return ()
-    (Just sub, Right o) -> compileTurtles sub opts inputFile o
+compileTurtles n@(Nil _)  opts inputFile input =
+  compileAndWriteResult (mapThrist (\(Constrained f) -> f) n) opts inputFile input >> return ()
+compileTurtles (Cons (Constrained c1) t) opts inputFile input = do
+  code <- compile1AndWriteResult c1 opts inputFile input
+  either error (compileTurtles t opts inputFile) code
 
 compileTurtlesFile ::
- Language i o       ->
+ (FromSExpr i, Show o) =>
+ Thrist (Show :=> Compiler1) i o ->
  CompilationOptions ->
  FilePath           ->
  IO ()
-compileTurtlesFile l opts file = do
-  code <- parseFile l file
-  either error (compileTurtles l opts file) code
+compileTurtlesFile c opts file = do
+  code <- parseFile file
+  either error (compileTurtles c opts file) code
 
 -- native execution
 compileAndRunNative ::
-  Language i o       ->
+  Compiler i X86     ->
   CompilationOptions ->
   FilePath           -> --the original input file, also serves as the program name
   i                  ->
   IO (Val Output)
-compileAndRunNative l@(Language _ _ _ _ subLang) opts inputFile input = do
-  code <- compileAndWriteResult l opts inputFile input
-  munge (recur subLang) code where
-  recur Nothing    _    = return <$> runSFileNative sFile (sFile^.directory) where
-    sFile = inputFile & extension .~ (outputExtension l) & directory .~ (getOutputDirOrElse opts inputFile)
-  recur (Just sub) code = compileAndRunNative sub opts inputFile code
+compileAndRunNative c opts inputFile input = do
+  _ <- compileAndWriteResult c opts inputFile input
+  return <$> runSFileNative sFile (sFile^.directory) where
+    sFile = inputFile & extension .~ (ext c) & directory .~ (getOutputDirOrElse opts inputFile)
 
 compileFileAndRunNative ::
-  Language i o       -> 
+  FromSExpr i =>
+  Compiler i X86     ->
   CompilationOptions ->
   FilePath           ->
   IO (Val Output)
-compileFileAndRunNative lang opts inputFile = do
+compileFileAndRunNative c opts inputFile = do
   code <- readFile inputFile
-  munge (compileAndRunNative lang opts inputFile) (parseString lang code)
+  munge (compileAndRunNative c opts inputFile) (fromString code)

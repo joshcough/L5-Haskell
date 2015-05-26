@@ -1,0 +1,1 @@
+((let ((f (new-tuple 0))) (begin (aset f 0 (make-closure :l5lbl_0 (new-tuple f))) (let ((l5var_1 (aref f 0))) ((closure-proc l5var_1) (closure-vars l5var_1) 10)))) (:l5lbl_0 (frees x) (let ((f (aref frees 0))) (if x (let ((l5var_0 (aref f 0))) ((closure-proc l5var_0) (closure-vars l5var_0) (- x 1))) (print x)))))

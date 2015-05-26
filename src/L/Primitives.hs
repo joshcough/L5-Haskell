@@ -10,6 +10,9 @@ import L.Parser.SExpr
 import L.Variable
 import Prelude hiding (print)
 
+newtype X86      = X86 String
+instance Show X86 where show (X86 s) = read $ show s
+
 -- TODO: probably can't have read and show instances here for parsing and printing reasons
 -- TODO: use the instances below
 newtype Label = Label String deriving (Eq, Ord, Show)

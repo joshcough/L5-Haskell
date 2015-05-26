@@ -273,6 +273,7 @@ instance AsSExpr L1 where
 instance FromSExpr L1 where
   fromSExpr s = L1 <$> fromSExpr s
 
+parseL2X :: Monad m => (String -> a) -> (Register -> a) -> String -> m a
 parseL2X v r s = return $ either (\_ -> v s) r (registerFromName s)
 
 instance FromSExpr L2X where
