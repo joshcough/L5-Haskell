@@ -8,6 +8,7 @@ import L.CommandLine
 import L.Compiler
 import L.Parser.SExpr
 import L.Primitives (X86)
+import L.Runners
 import L.Util.IOHelpers
 import L.Util.NativeRunner
 import L.L1.L1
@@ -36,19 +37,12 @@ turtlesMode = switch
 main' :: (Bool, Bool, CompilationOptions, FilePath) -> IO ()
 main' (exec, turtles, opts, file) = case (file^.extension) of
   "S" -> runSFileNative (file^.filename) (file^.directory) >>= putStrLn
-  ext -> g ext where
-    go lang = c exec lang opts file
-    g ".L1" = go l1CompilerShowable
-    g ".L2" = go l2CompilerShowable
-    g ".L3" = go l3CompilerShowable
-    g ".L4" = go l4CompilerShowable
-    g ".L5" = go l5CompilerShowable
-    g bad  = error $ "LC: bad input file: " ++ file
+  ext -> withCompiler ext $ \l -> c exec l opts file
 
-c :: FromSExpr i => Bool -> Thrist (Show :=> Compiler1) i X86 -> CompilationOptions -> FilePath -> IO ()
+c :: Bool -> Compiler i X86 -> CompilationOptions -> FilePath -> IO ()
 c False comp opts file = do
-  res <- compileFileAndWriteResult (unconstrain comp) (opts & outputDir %~ (<|> (Just $ file^.directory))) file
+  res <- compileFileAndWriteResult comp (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error (const $ return ()) res
 c True comp opts file = do
-  res <- compileFileAndRunNative   (unconstrain comp) (opts & outputDir %~ (<|> (Just $ file^.directory))) file
+  res <- compileFileAndRunNative   comp (opts & outputDir %~ (<|> (Just $ file^.directory))) file
   either error putStrLn res

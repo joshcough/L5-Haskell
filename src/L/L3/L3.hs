@@ -3,10 +3,8 @@
 module L.L3.L3 (
    l3Language
  , l3Language1
- , l3LanguageShowable
  , l3Compiler
  , l3Compiler1
- , l3CompilerShowable
  , l3Interpreter
 ) where
 
@@ -21,22 +19,16 @@ l3Compiler1 :: Compiler1 L3 L2
 l3Compiler1 = Compiler1 (\_ _ -> return . compileL3ToL2) "L3"
 
 l3Compiler :: Compiler L3 X86
-l3Compiler = unconstrain l3CompilerShowable
-
-l3CompilerShowable :: Thrist (Show :=> Compiler1) L3 X86
-l3CompilerShowable = Cons (Constrained l3Compiler1) l2CompilerShowable
+l3Compiler = Cons (Constrained l3Compiler1) l2Compiler
 
 l3Interpreter :: Interpreter L3
 l3Interpreter = interpL3
 
 l3Language1 :: Language1 L3 L2
-l3Language1  = Language1 l3Compiler1 interpL3
+l3Language1  = Language1 l3Compiler1 l3Interpreter
 
 l3Language :: Language L3 X86
-l3Language = Cons l3Language1 l2Language
-
-l3LanguageShowable :: Thrist (Show :=> Language1) L3 X86
-l3LanguageShowable = Cons (Constrained l3Language1) l2LanguageShowable
+l3Language = Cons (Constrained l3Language1) l2Language
 
 compileL3ToL2 :: L3 -> L2
 compileL3ToL2 = linearize

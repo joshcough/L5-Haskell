@@ -54,7 +54,8 @@ quickCompileL5 = quickCompileString l5Compiler
 
 -- TODO: really need a pretty printer for displaying the result in the repl
 quickCompile :: FilePath -> IO ()
-quickCompile inputFile = g $ inputFile^.extension  where
+quickCompile inputFile = error "todo" {-
+g $ inputFile^.extension  where
   f :: (FromSExpr i, Show o) => Compiler i o -> IO ()
   f c = liftM show (compileFileAndWriteResult c opts inputFile) >>= putStrLn
   g ".L1" = f l1Compiler
@@ -63,6 +64,7 @@ quickCompile inputFile = g $ inputFile^.extension  where
   g ".L4" = f l4Compiler
   g ".L5" = f l5Compiler
   g _     = error $ "Error: bad L file: " ++ inputFile
+-}
 
 quickCompileTurtles :: FilePath -> IO ()
 quickCompileTurtles inputFile = error "todo" {-

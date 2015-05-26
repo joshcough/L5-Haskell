@@ -12,6 +12,9 @@ import Prelude hiding (print)
 
 newtype X86      = X86 String
 instance Show X86 where show (X86 s) = read $ show s
+instance FromSExpr X86 where
+  fromSExpr  _ = Left "can't parse X86 from SExpr"
+  fromString _ = Left "can't parse X86 from SExpr"
 
 -- TODO: probably can't have read and show instances here for parsing and printing reasons
 -- TODO: use the instances below

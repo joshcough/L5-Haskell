@@ -37,6 +37,7 @@ library
     L.Compiler
     L.OS
     L.Registers
+    L.Runners
     L.ReplTools
     L.Primitives
     L.Variable

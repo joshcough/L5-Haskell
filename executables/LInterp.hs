@@ -7,6 +7,7 @@ import Control.Lens
 import L.CommandLine
 import L.Compiler
 import L.Parser.SExpr
+import L.Runners
 import L.Util.IOHelpers
 import L.L1.L1Interp
 import L.L1.L1
@@ -50,24 +51,3 @@ main' (turtles, opts, file) =
   g ".L5" = go l5Language
   g bad  = error $ "LInterp: bad input file: " ++ file
 -}
-
-withLang :: (forall i o. Thrist (Show :=> Language1) i o -> a) -> Extension -> a
-withLang go ".L1" = go l1LanguageShowable
-withLang go ".L2" = go l2LanguageShowable
-withLang go ".L3" = go l3LanguageShowable
-withLang go ".L4" = go l4LanguageShowable
-withLang go ".L5" = go l5LanguageShowable
-
-withLang1 :: (forall i o. Language1 i o -> a) -> Extension -> a
-withLang1 go ".L1" = go l1Language1
-withLang1 go ".L2" = go l2Language1
-withLang1 go ".L3" = go l3Language1
-withLang1 go ".L4" = go l4Language1
-withLang1 go ".L5" = go l5Language1
-
-withInterp :: (forall i. Interpreter i -> a) -> Extension -> a
-withInterp go ".L1" = go l1Interpreter
-withInterp go ".L2" = go l1Interpreter
-withInterp go ".L3" = go l1Interpreter
-withInterp go ".L4" = go l1Interpreter
-withInterp go ".L5" = go l1Interpreter

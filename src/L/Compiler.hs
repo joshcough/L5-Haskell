@@ -3,6 +3,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module L.Compiler {-(
    Val 
@@ -33,6 +35,7 @@ module L.Compiler {-(
   ,parseFile
   ,runVal
   ,munge
+  ,withCompiler
 ) -} where
 
 import Control.Applicative
@@ -73,6 +76,9 @@ type Parser         i = SExpr -> Val i
 type Interpreter    i = i -> Output
 type Extension        = String
 
+class (FromSExpr a, Show a) => FromSExprShow a
+instance (FromSExpr a, Show a) => FromSExprShow a
+
 data Compiler1 i o = Compiler1 {
   compile1 :: CompilationOptions -> ProgramName -> i -> Val o
  ,ext1     :: Extension
@@ -91,8 +97,8 @@ mapThrist :: (forall x y. f x y -> g x y) -> Thrist f a b -> Thrist g a b
 mapThrist f (Nil  lii)   = Nil  (f lii)
 mapThrist f (Cons lij t) = Cons (f lij) (mapThrist f t)
 
-type Compiler i o = Thrist Compiler1 i o
-type Language i o = Thrist Language1 i o
+type Compiler i o = Thrist (FromSExprShow :=> Compiler1) i o
+type Language i o = Thrist (FromSExprShow :=> Language1) i o
 
 constrain :: (p i, p o) => f i o -> (:=>) p f i o
 constrain = Constrained
@@ -113,17 +119,17 @@ mungeList :: (b -> [Either a b1]) -> Either a b -> [Either a b1]
 mungeList = either (\msg -> [Left msg]) 
 
 ext :: Compiler i o -> Extension
-ext (Nil (Compiler1 _ ext)) = ext
+ext (Nil (Constrained (Compiler1 _ ext))) = ext
 ext (Cons _ t)             = ext t
 
 -- parsing
-parseFile :: FromSExpr i => FilePath -> IO (Val i)
-parseFile file = fromString <$> readFile file
+parseFile :: Compiler i o -> FilePath -> IO (Val i)
+parseFile c file = fromString <$> readFile file
 
 -- compilation
 compile :: Compiler i o -> CompilationOptions -> ProgramName -> i -> Either String o
-compile (Nil (Compiler1 f _))    opts name i = f opts name i
-compile (Cons (Compiler1 f _) t) opts name i = f opts name i >>= compile t opts name
+compile (Nil (Constrained (Compiler1 f _)))    opts name i = f opts name i
+compile (Cons (Constrained (Compiler1 f _)) t) opts name i = f opts name i >>= compile t opts name
 
 compileString ::
   FromSExpr i =>
@@ -174,13 +180,13 @@ writeOutput :: Show o =>
 writeOutput c inputFile outputDir code =
   writeFile (inputFile & extension .~ (ext c) & directory .~ outputDir) $ show code
 
-compileFileAndWriteResult :: (FromSExpr i, Show o) =>
+compileFileAndWriteResult ::
   Compiler i o       ->
   CompilationOptions ->
   FilePath           ->
   IO (Val o)
 compileFileAndWriteResult c opts inputFile = do
-  i <- parseFile inputFile
+  i <- parseFile c inputFile
   munge (compileAndWriteResult c opts (inputFile^.filename)) i
 
 -- interpretation
@@ -198,8 +204,8 @@ interpretTurtles ::
   ProgramName        -> 
   i                  ->
   [Val Output]
-interpretTurtles (Nil (Language1 _ i)) _ _ input = [Right $ i input]
-interpretTurtles (Cons (Language1 (Compiler1 f _) i) t) opts name input =
+interpretTurtles (Nil (Constrained (Language1 _ i))) _ _ input = [Right $ i input]
+interpretTurtles (Cons (Constrained (Language1 (Compiler1 f _) i)) t) opts name input =
   (Right $ i input) : (mungeList id $ do
     o <- f opts name input
     return $ interpretTurtles t opts name o)
@@ -227,25 +233,25 @@ interpretTurtlesFile t opts file = do
 -- compile from i all the way to o, writing any intermediate files
 compileTurtles ::
   Show o =>
-  Thrist (Show :=> Compiler1) i o ->
+  Compiler i o ->
   CompilationOptions ->
   FilePath           -> --the original input file, also serves as the program name
   i                  ->
   IO ()
 compileTurtles n@(Nil _)  opts inputFile input =
-  compileAndWriteResult (mapThrist (\(Constrained f) -> f) n) opts inputFile input >> return ()
+  compileAndWriteResult n opts inputFile input >> return ()
 compileTurtles (Cons (Constrained c1) t) opts inputFile input = do
   code <- compile1AndWriteResult c1 opts inputFile input
   either error (compileTurtles t opts inputFile) code
 
 compileTurtlesFile ::
  (FromSExpr i, Show o) =>
- Thrist (Show :=> Compiler1) i o ->
+ Compiler i o ->
  CompilationOptions ->
  FilePath           ->
  IO ()
 compileTurtlesFile c opts file = do
-  code <- parseFile file
+  code <- parseFile c file
   either error (compileTurtles c opts file) code
 
 -- native execution

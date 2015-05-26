@@ -3,10 +3,8 @@
 module L.L2.L2 (
    l2Language
  , l2Language1
- , l2LanguageShowable
  , l2Compiler
  , l2Compiler1
- , l2CompilerShowable
  , l2Interpreter
 ) where
 
@@ -31,10 +29,7 @@ l2Compiler1 :: Compiler1 L2 L1
 l2Compiler1 = Compiler1 (\_ _ -> return . compileL2ToL1) "L2"
 
 l2Compiler :: Compiler L2 X86
-l2Compiler = unconstrain l2CompilerShowable
-
-l2CompilerShowable :: Thrist (Show :=> Compiler1) L2 X86
-l2CompilerShowable = Cons (Constrained l2Compiler1) l1CompilerShowable
+l2Compiler = Cons (Constrained l2Compiler1) l1Compiler
 
 l2Interpreter :: Interpreter L2
 l2Interpreter = interpL2
@@ -43,14 +38,10 @@ l2Language1 :: Language1 L2 L1
 l2Language1  = Language1 l2Compiler1 l2Interpreter
 
 l2Language :: Language L2 X86
-l2Language = Cons l2Language1 l1Language
-
-l2LanguageShowable :: Thrist (Show :=> Language1) L2 X86
-l2LanguageShowable = Cons (Constrained l2Language1) l1LanguageShowable
+l2Language = Cons (Constrained l2Language1) l1Language
 
 -- this is the main function, the rest are just various helpers
 compileL2ToL1 :: L2 -> L1
 compileL2ToL1 (L2 (Program main fs)) =
   L1 $ Program (allocate mainWithRet) $ (allocate <$> fs) where 
   mainWithRet = Func (body main ++ [Return])
-
