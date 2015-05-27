@@ -31,6 +31,7 @@ import L.L4.L4
 import L.L5.L5
 import L.OS as OS
 import L.Parser.SExpr
+import L.Primitives (X86)
 import L.Util.Utils
 
 tests = do
@@ -116,10 +117,10 @@ l5Dirs = [l5_2010_Dir "burgener",
 l5Tests        = oneLevelTestDef l5Language l5Dirs
 l5TurtlesTests = turtlesTestDef  l5Language l5Dirs
 
-oneLevelTestDef :: Language i o -> [FilePath] -> TestDef
+oneLevelTestDef :: FromSExpr i => Language i X86 -> [FilePath] -> TestDef
 oneLevelTestDef lang dirs' = langTestDef lang "One Level" dirs' runAndCompareInterpVsNativeVsRes
 
-turtlesTestDef :: Language i o -> [FilePath] -> TestDef
+turtlesTestDef :: Language i X86 -> [FilePath] -> TestDef
 turtlesTestDef lang dirs' = langTestDef lang "Turtles" dirs' runAndCompareInterpTurtlesVsNative
 
 langTestDef :: Language i o  ->
@@ -128,17 +129,17 @@ langTestDef :: Language i o  ->
                (Language i o -> FilePath -> FilePath -> IO ()) ->
                TestDef
 langTestDef lang name dirs' runFunction = TestDef {
-  name = ext lang ++ " " ++ name
+  name = ex ++ " " ++ name
  ,dirs  = dirs'
- ,inputFileSearch = "*." ++ ext lang
+ ,inputFileSearch = "*." ++ ex
  ,outputFileExt   = Just "res"
  ,compute = \inputFile (Just resFile) -> runFunction lang inputFile resFile
-}
+} where ex = (ext $ toCompiler lang)
 
-runAndCompareInterpVsNativeVsRes :: Language i o -> FilePath -> FilePath -> IO ()
+runAndCompareInterpVsNativeVsRes :: FromSExpr i => Language i X86 -> FilePath -> FilePath -> IO ()
 runAndCompareInterpVsNativeVsRes lang inputFile resFile = do
-  nativeRes     <- runVal <$> compileFileAndRunNative lang opts inputFile
-  interpRes     <- runInterp lang inputFile
+  nativeRes     <- runVal <$> compileFileAndRunNative (toCompiler lang) opts inputFile
+  interpRes     <- runInterp (toInterpreter lang) inputFile
   resFileExists <- doesFileExist resFile
   expectedRes   <- if resFileExists then strip <$> readFile resFile else return "nope"
   let resultList = fmap strip $ [nativeRes, interpRes] ++ if resFileExists then [expectedRes] else []
@@ -150,9 +151,9 @@ runAndCompareInterpVsNativeVsRes lang inputFile resFile = do
      and then only run other languages if there is an incorrect value
      and really, only go down to the first failure. this would require a pretty big rewrite
 -}
-runAndCompareInterpTurtlesVsNative :: Language i o -> FilePath -> FilePath -> IO ()
+runAndCompareInterpTurtlesVsNative :: Language i X86 -> FilePath -> FilePath -> IO ()
 runAndCompareInterpTurtlesVsNative lang inputFile resFile = do
-  nativeRes     <- return . strip . runVal <$> compileFileAndRunNative lang opts inputFile
+  nativeRes     <- return . strip . runVal <$> compileFileAndRunNative (toCompiler lang) opts inputFile
   interpResList <- (fmap $ fmap strip) <$> (interpretTurtlesFile lang opts inputFile)
   {- If there is no .res file for this thats okay.
      Just make sure the interpreters and native results all agree. -}

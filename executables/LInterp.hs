@@ -32,22 +32,9 @@ turtlesMode = switch
 main' :: (Bool, CompilationOptions, FilePath) -> IO ()
 main' (turtles, opts, file) =
   if turtles
-    then withLang   tn (file^.extension)
-    else withInterp t1 (file^.extension) where
-    tn :: Thrist (Show :=> Language1) i o -> IO ()
-    tn lang = interpretTurtlesFile (unconstrain lang) opts file >>= putStrLn . show
-    t1 :: Interpreter i -> IO ()
+    then withLanguage (file^.extension) tn
+    else withInterp   (file^.extension) t1  where
+    tn :: Language i o -> IO ()
+    tn lang = interpretTurtlesFile lang opts file >>= putStrLn . show
+    t1 :: FromSExpr i => Interpreter i -> IO ()
     t1 i = interpretFile i file >>= putStrLn . runVal
-
-{- g (file^.extension) where
-  go lang = 
-    if turtles
-    then interpretTurtlesFile lang opts file >>= putStrLn . show
-    else interpretFile lang file >>= putStrLn . runVal
-  g ".L1" = go l1Language
-  g ".L2" = go l2Language
-  g ".L3" = go l3Language
-  g ".L4" = go l4Language
-  g ".L5" = go l5Language
-  g bad  = error $ "LInterp: bad input file: " ++ file
--}

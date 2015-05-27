@@ -34,6 +34,7 @@ turtlesMode = switch
   (short 't' <> long "turtles" <>
    help "Write all intermediate languages" )
 
+-- TODO: Shouldn't really have to check the extension anymore after the Thrists added.
 main' :: (Bool, Bool, CompilationOptions, FilePath) -> IO ()
 main' (exec, turtles, opts, file) = case (file^.extension) of
   "S" -> runSFileNative (file^.filename) (file^.directory) >>= putStrLn
