@@ -93,34 +93,33 @@ library
     L.L5.L5Interp
     L.L5.LambdaLifter
 
-  build-depends:
-    array                     >= 0.3.0.2   && < 0.6,
-    base                      >= 4         && < 5,
-    bifunctors                >= 4.1.1.1,
-    bytestring                >= 0.10.4.0,
-    charset                   >= 0.3       && < 1,
-    containers                >= 0.3       && < 0.6,
-    data-default              >= 0.5.3,
-    directory                 >= 1.2.0.1,
-    either                    >= 4.3.1,
-    lens                      >= 4.4,
-    monad-st                  >= 0.2.4,
-    mtl                       >= 2,
-    optparse-applicative      >= 0.10.0,
-    parsers                   >= 0.12.1.1,
-    prelude-extras            >= 0.4,
-    primitive                 >= 0.5.3.0,
-    process                   >= 1.1.0.2,
-    text                      >= 1.1.1.1,
-    thrist                    >= 0.3.0.2,
-    transformers              >= 0.2       && < 0.5,
-    trifecta                  >= 1.5.1,
-    semigroups                >= 0.8.3.1   && < 1,
-    unordered-containers      >= 0.2.5.0,
-    utf8-string               >= 0.3.6     && < 0.4,
-    utility-ht                >= 0.0.10,
-    vector                    >= 0.10.0.1,
-    void                      >= 0.6.1
+  build-depends: array
+               , base
+               , bifunctors
+               , bytestring
+               , charset
+               , containers
+               , data-default
+               , directory
+               , either
+               , lens
+               , monad-st
+               , mtl
+               , optparse-applicative
+               , parsers
+               , prelude-extras
+               , primitive
+               , process
+               , text
+               , thrist
+               , transformers
+               , trifecta
+               , semigroups
+               , unordered-containers
+               , utf8-string
+               , utility-ht
+               , vector
+               , void
 
 -- compile any .Ln file (where n is a number).
 -- will also run the result natively by supplying the -x flag (including .S files)
@@ -128,40 +127,38 @@ executable lc
   default-language: Haskell2010
   hs-source-dirs: executables
   main-is: LC.hs
-  build-depends: 
-    base      >= 4 && < 5,
-    directory >= 1.2.0.1, 
-    l,
-    lens      >= 4.4,
-    mtl       >= 2,
-    optparse-applicative >= 0.10.0
+  build-depends: base >= 4.7 && < 5
+               , directory
+               , l
+               , lens
+               , mtl
+               , optparse-applicative
 
 -- interpreter for any .Ln file (where n is a number).
 executable linterp
   default-language: Haskell2010
   hs-source-dirs: executables
   main-is: LInterp.hs
-  build-depends:
-    base      >= 4 && < 5,
-    directory >= 1.2.0.1,
-    l,
-    lens      >= 4.4,
-    mtl       >= 2,
-    optparse-applicative >= 0.10.0
+  build-depends: base >= 4.7 && < 5
+               , directory
+               , l
+               , lens
+               , mtl
+               , optparse-applicative
 
 -- executable for Liveness
 executable liveness
  default-language: Haskell2010
  hs-source-dirs: executables/other
  main-is: Liveness.hs
- build-depends: base >= 4 && < 5, directory >= 1.2.0.1, l, mtl >= 2
+ build-depends: base >= 4.7 && < 5, directory, l
 
 -- executable for Interference
 executable interference
   default-language: Haskell2010
  hs-source-dirs: executables/other
  main-is: Interference.hs
- build-depends: base >= 4 && < 5, directory >= 1.2.0.1, l, mtl >= 2
+ build-depends: base >= 4.7 && < 5, directory, l, mtl
 
 test-suite tests
   default-language: Haskell2010
@@ -174,15 +171,15 @@ test-suite tests
   if !flag(tests)
     buildable: False
   else
-    build-depends:
-      base,
-      directory                  >= 1.2.0.1,
-      data-default               >= 0.5.3,
-      filemanip                  >= 0.3.6.2,
-      HUnit,
-      l,
-      lens                       >= 4.4,
-      test-framework             >= 0.6,
-      test-framework-hunit,
-      test-framework-quickcheck2 >= 0.2,
-      test-framework-th          >= 0.2
+    build-depends: base >= 4.7 && < 5
+                 , directory
+                 , data-default
+                 , filemanip
+                 , HUnit
+                 , l
+                 , lens
+                 , test-framework
+                 , test-framework-hunit
+                 , test-framework-quickcheck2
+                 , test-framework-th
+
